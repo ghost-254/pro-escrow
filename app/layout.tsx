@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Navigation } from '@/components/navigation'
 import { BottomNav } from '@/components/bottom-nav'
+import { Sidebar } from '@/components/sidebar'
 import type { Metadata } from 'next'
 import './globals.css'
 
@@ -19,23 +20,23 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    throw new Error('Missing env vars NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY')
-  }
+  // Resolve the cookies promise
+  const cookieStore = await cookies()
 
-  const cookieStore = cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(name: string) {
-          return cookieStore.get(name)?.value
+          return cookieStore.get(name)?.value || null
         },
+        // Note: 'set' and 'remove' are omitted because 'cookies' is read-only in this context.
       },
     }
   )
 
+  // Get the session data
   const {
     data: { session },
   } = await supabase.auth.getSession()
@@ -51,7 +52,10 @@ export default async function RootLayout({
         >
           <div className="relative flex min-h-screen flex-col">
             <Navigation session={session} />
-            <main className="flex-1">{children}</main>
+            <div className="flex flex-1">
+              <Sidebar />
+              <main className="flex-1">{children}</main>
+            </div>
             <BottomNav />
           </div>
         </ThemeProvider>
@@ -59,4 +63,3 @@ export default async function RootLayout({
     </html>
   )
 }
-
