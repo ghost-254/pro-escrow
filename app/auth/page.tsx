@@ -25,7 +25,6 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("signin");
-  console.log(activeTab);
 
   const router = useRouter();
 
@@ -85,9 +84,9 @@ export default function AuthPage() {
 
   return (
     <div className="container flex h-screen w-screen flex-col items-center justify-center">
-      <Card className="w-[350px]">
+      <Card className="w-[550px]">
         <CardHeader>
-          <CardTitle>
+          <CardTitle style={{ color: grey[900] }}>
             {activeTab === "signin"
               ? "Good Afternoon,"
               : "You are Invited to Labscrow"}
@@ -131,8 +130,8 @@ export default function AuthPage() {
                   <div className="relative">
                     <Input
                       id="password"
-                      placeholder={showPassword ? "text" : "password"}
-                      type="password"
+                      placeholder={"Password"}
+                      type={showPassword ? "text" : "password"}
                       autoCapitalize="none"
                       disabled={isLoading}
                       value={password}
@@ -141,14 +140,14 @@ export default function AuthPage() {
                     {!showPassword ? (
                       <EyeOff
                         onClick={handleToggleshow}
-                        className="h-5 w-5 absolute right-[0.6rem] top-[0.55rem] text-grey[200]"
+                        className="h-5 w-5 absolute cursor-pointer right-[0.6rem] top-[0.55rem] text-grey[200]"
                         aria-hidden="true"
                         style={{ color: grey[600] }}
                       />
                     ) : (
                       <Eye
                         onClick={handleToggleshow}
-                        className="h-5 w-5 absolute right-[0.6rem] top-[0.55rem] text-grey[200]"
+                        className="h-5 w-5 absolute cursor-pointer right-[0.6rem] top-[0.55rem] text-grey[200]"
                         aria-hidden="true"
                         style={{ color: grey[600] }}
                       />
