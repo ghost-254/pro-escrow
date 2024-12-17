@@ -1,3 +1,4 @@
+/* eslint-disable react/react-in-jsx-scope */
 "use client";
 
 import { useState } from "react";
@@ -83,17 +84,17 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="container flex h-screen w-screen flex-col items-center justify-center">
-      <Card className="w-[550px]">
+    <div className="w-full h-full container flex flex-col items-center mt-[5rem]">
+      <Card className="md:w-[400px] w-full">
         <CardHeader>
-          <CardTitle style={{ color: grey[900] }}>
+          <CardTitle >
             {activeTab === "signin"
               ? "Good Afternoon,"
-              : "You are Invited to Labscrow"}
+              : "You are Invited to Labscro"}
           </CardTitle>
           <CardDescription>
             {activeTab === "signin"
-              ? "Welcome to Labscrow"
+              ? "Welcome to Labscro"
               : "Create account to get started"}
           </CardDescription>
         </CardHeader>
@@ -107,7 +108,7 @@ export default function AuthPage() {
               }
             }}
             defaultValue="signin"
-            className="w-full"
+            className="w-full flex flex-col gap-[1rem]"
           >
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Sign In</TabsTrigger>
@@ -116,7 +117,7 @@ export default function AuthPage() {
 
             <TabsContent value="signin">
               <form onSubmit={signIn}>
-                <div className="grid gap-2">
+                <div className="grid gap-[0.5rem]">
                   <Input
                     id="email"
                     placeholder="name@example.com"
@@ -166,7 +167,7 @@ export default function AuthPage() {
 
             <TabsContent value="signup">
               <form onSubmit={signUp}>
-                <div className="grid gap-[1rem]">
+                <div className="grid gap-[0.5rem]">
                   <Input
                     id="email"
                     placeholder="name@example.com"

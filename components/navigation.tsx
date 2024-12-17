@@ -1,11 +1,12 @@
-import Link from 'next/link'
-import { Session } from '@supabase/supabase-js'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { Button } from '@/components/ui/button'
-import { User } from 'lucide-react'
+/* eslint-disable react/react-in-jsx-scope */
+import Link from "next/link";
+import { Session } from "@supabase/supabase-js";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
+import { Plus, User } from "lucide-react";
 
 interface NavigationProps {
-  session: Session | null
+  session: Session | null;
 }
 
 export function Navigation({ session }: NavigationProps) {
@@ -13,12 +14,22 @@ export function Navigation({ session }: NavigationProps) {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
         <Link href="/" className="flex items-center space-x-2">
-          <span className="font-bold">Labscrow</span>
+          <span className="font-bold text-gray-700 dark:text-gray-200">
+            Labscro
+          </span>
         </Link>
         <div className="ml-auto flex items-center space-x-2">
-          <Button variant="ghost" className="text-primary hover:text-primary-foreground hover:bg-primary">Sell</Button>
-          <Button variant="ghost" className="text-secondary hover:text-secondary-foreground hover:bg-secondary">Buy</Button>
-          <ThemeToggle />
+          <div className="w-[3rem]">
+            <ThemeToggle />
+          </div>
+
+          <Button
+            variant="ghost"
+            className="w-full justify-start bg-primary text-white hover:opacity-[0.77] hover:bg-primary"
+          >
+            <Plus className="h-4 w-4" />
+            Transact
+          </Button>
           {session ? (
             <Button variant="ghost" size="icon">
               <User className="h-5 w-5" />
@@ -26,12 +37,13 @@ export function Navigation({ session }: NavigationProps) {
             </Button>
           ) : (
             <Link href="/auth">
-              <Button className="bg-primary text-[#fff] hover:bg-primary/70">Sign In</Button>
+              <Button className="bg-primary text-[#fff] hover:bg-primary/70">
+                Sign In
+              </Button>
             </Link>
           )}
         </div>
       </div>
     </header>
-  )
+  );
 }
-
