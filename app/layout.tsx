@@ -8,6 +8,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { Sidebar } from "@/components/sidebar";
 import type { Metadata } from "next";
 import "./globals.css";
+import { Providers } from "./GlobalRedux/provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -47,25 +48,27 @@ export default async function RootLayout({
       <body
         className={`${inter.className} min-h-screen bg-background antialiased`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem={false}
-          storageKey="escrow-theme"
-        >
-          <div className="relative flex min-h-screen flex-col">
-            <Navigation session={session} />
-            <div className="h-full w-full flex flex-1">
-              <div className="flex-[0.25]">
-                <Sidebar />
+        <Providers>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem={false}
+            storageKey="escrow-theme"
+          >
+            <div className="relative flex min-h-screen flex-col">
+              <Navigation session={session} />
+              <div className="h-full w-full flex flex-1">
+                <div className="flex-[0.25]">
+                  <Sidebar />
+                </div>
+                <div className="h-full w-full md:flex-[0.75] text-[0.95rem]">
+                  <main>{children}</main>
+                </div>
               </div>
-              <div className="h-full w-full md:flex-[0.75]">
-                <main>{children}</main>
-              </div>
+              <BottomNav />
             </div>
-            <BottomNav />
-          </div>
-        </ThemeProvider>
+          </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );

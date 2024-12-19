@@ -26,7 +26,8 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("signin");
-
+  const [emailError, setEmailError] = useState<string>("");
+  const [passwordError, setPasswordError] = useState<string>("");
   const router = useRouter();
 
   const handleToggleshow = (): void => {
@@ -38,8 +39,32 @@ export default function AuthPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
+  const validateEmail = (email: string): string => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) return "Email is required.";
+    if (!emailRegex.test(email)) return "Invalid email address.";
+    return "";
+  };
+
+  const validatePassword = (password: string): string => {
+    if (!password) return "Password is required.";
+    if (password.length < 8) return "Password must be at least 8 characters.";
+    return "";
+  };
+
+  const validateForm = (): boolean => {
+    const emailError = validateEmail(email);
+    const passwordError = validatePassword(password);
+
+    setEmailError(emailError);
+    setPasswordError(passwordError);
+
+    return !emailError && !passwordError;
+  };
+
   async function signIn(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!validateForm()) return;
     setIsLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -60,6 +85,8 @@ export default function AuthPage() {
 
   async function signUp(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!validateForm()) return;
+
     setIsLoading(true);
     const { error } = await supabase.auth.signUp({
       email,
@@ -87,7 +114,7 @@ export default function AuthPage() {
     <div className="w-full h-full container flex flex-col items-center mt-[5rem]">
       <Card className="md:w-[400px] w-full">
         <CardHeader>
-          <CardTitle >
+          <CardTitle>
             {activeTab === "signin"
               ? "Good Afternoon,"
               : "You are Invited to Labscro"}
@@ -118,26 +145,46 @@ export default function AuthPage() {
             <TabsContent value="signin">
               <form onSubmit={signIn}>
                 <div className="grid gap-[0.5rem]">
-                  <Input
-                    id="email"
-                    placeholder="name@example.com"
-                    type="email"
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    disabled={isLoading}
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                  <div className="relative">
+                  <div className="w-full flex flex-col gap-[0.5rem]">
                     <Input
-                      id="password"
-                      placeholder={"Password"}
-                      type={showPassword ? "text" : "password"}
+                      id="email"
+                      placeholder="name@example.com"
+                      type="email"
                       autoCapitalize="none"
+                      autoComplete="email"
                       disabled={isLoading}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                     />
+                    {emailError && (
+                      <p
+                        style={{ color: "#ff4f4f", paddingLeft: "1rem" }}
+                        className="text-sm"
+                      >
+                        {emailError}
+                      </p>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <div className="w-full flex flex-col gap-[0.5rem]">
+                      <Input
+                        id="password"
+                        placeholder={"Password"}
+                        type={showPassword ? "text" : "password"}
+                        autoCapitalize="none"
+                        disabled={isLoading}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                      />
+                      {passwordError && (
+                        <p
+                          style={{ color: "#ff4f4f", paddingLeft: "1rem" }}
+                          className="text-sm"
+                        >
+                          {passwordError}
+                        </p>
+                      )}
+                    </div>
                     {!showPassword ? (
                       <EyeOff
                         onClick={handleToggleshow}
@@ -179,6 +226,14 @@ export default function AuthPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
+                  {emailError && (
+                    <p
+                      style={{ color: "#ff4f4f", paddingLeft: "1rem" }}
+                      className="text-sm"
+                    >
+                      {emailError}
+                    </p>
+                  )}
                   <div className="relative">
                     <Input
                       id="password"
@@ -189,6 +244,14 @@ export default function AuthPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                     />
+                    {passwordError && (
+                      <p
+                        style={{ color: "#ff4f4f", paddingLeft: "1rem" }}
+                        className="text-sm"
+                      >
+                        {passwordError}
+                      </p>
+                    )}
                     {!showPassword ? (
                       <EyeOff
                         onClick={handleToggleshow}

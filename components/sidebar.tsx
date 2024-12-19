@@ -1,14 +1,19 @@
-/* eslint-disable react/react-in-jsx-scope */
 "use client";
-
+import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Plus, Bell, User, Headphones, History } from "lucide-react";
+import { Plus, Bell, User, Headphones, History, Users } from "lucide-react";
+import { useSelector } from "react-redux";
+import { RootState } from "../app/GlobalRedux/stores/store";
+import { success } from "./ui/color";
 
 export function Sidebar() {
   const pathname = usePathname();
+
+  const open = useSelector((state: RootState) => state.transact.open);
+  console.log(open);
 
   return (
     <div className="w-full h-screen bg-muted p-2 hidden md:block">
@@ -16,8 +21,9 @@ export function Sidebar() {
         <nav className="space-y-2 flex flex-col gap-[0.1rem]">
           <div className="w-full pb-[1rem] border-b-[1px] border-[#dbdbdb] dark:border-[#4b4b4b]">
             <Button
+              title="Transact"
               variant="ghost"
-              className="w-full justify-start bg-primary text-white hover:opacity-[0.77] hover:bg-primary"
+              className="w-full justify-start bg-primary text-white hover:text-white hover:opacity-[0.77] hover:bg-primary"
             >
               <Plus className="mr-2 h-4 w-4" />
               Transact
@@ -39,7 +45,32 @@ export function Sidebar() {
               Home
             </Button>
           </Link> */}
-
+          <Link href="/groups">
+            <div className="relative">
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start text-gray-700 dark:text-gray-200",
+                  pathname === "/groups"
+                    ? "bg-gray-600 text-white dark:bg-gray-700 dark:text-white"
+                    : "hover:text-gray-800 hover:bg-gray-200 dark:hover:text-gray-300 dark:hover:bg-gray-700"
+                )}
+              >
+                <Users className="mr-2 h-4 w-4" />
+                Groups
+              </Button>
+              <p
+                style={{
+                  background: `${success[600]}`,
+                  padding: "0.1rem 0.3rem",
+                  borderRadius: "5px",
+                }}
+                className="absolute top-[0.55rem] font-bold left-[6.5rem] text-[0.65rem] text-white"
+              >
+                New
+              </p>
+            </div>
+          </Link>
           {/* Orders Button */}
           <Link href="/orders">
             <Button
