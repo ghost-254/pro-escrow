@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select'
 
 export function ListingFilters() {
+  console.log('Error')
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-center">
       <div className="flex flex-1 items-center space-x-2">
