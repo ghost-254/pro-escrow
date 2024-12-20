@@ -1,52 +1,39 @@
-// {
-//     "extends": [
-//       "next/core-web-vitals",
-//       "plugin:react/recommended",
-//       "plugin:unicorn/recommended",
-//       "plugin:sonarjs/recommended",
-//       "eslint:recommended"
-//     ],
-//     "plugins": [
-//       "next",
-//       "import",
-//       "jsx-a11y",
-//       "react",
-//       "react-hooks",
-//       "unicorn",
-//       "sonarjs"
-//     ],
-//     "rules": {
-//       "no-console": ["warn", { "allow": ["warn", "error"] }],
-//       "no-magic-numbers": ["error", { "ignore": [0, 1, -1], "ignoreArrayIndexes": true }],
-//       "import/order": [
-//         "error",
-//         {
-//           "groups": ["builtin", "external", "internal", "parent", "sibling", "index"],
-//           "newlines-between": "always",
-//           "alphabetize": { "order": "asc", "caseInsensitive": true }
-//         }
-//       ],
-//       "jsx-a11y/anchor-is-valid": "error",
-//       "react/prop-types": "off",
-//       "react/react-in-jsx-scope": "off",
-//       "react-hooks/rules-of-hooks": "error",
-//       "react-hooks/exhaustive-deps": "warn",
-//       "unicorn/prefer-module": "off",
-//       "unicorn/no-null": "off",
-//       "unicorn/prefer-query-selector": "off",
-//       "sonarjs/no-duplicate-string": "warn",
-//       "sonarjs/no-identical-functions": "warn",
-//       "no-multiple-empty-lines": ["error", { "max": 1, "maxEOF": 0, "maxBOF": 0 }]
-//     },
-//     "settings": {
-//       "react": {
-//         "version": "detect"
-//       }
-//     },p
-//     "env": {
-//       "browser": true,
-//       "es2021": true,
-//       "node": true
-//     }
-//   }
+{
+    "extends": [
+      "next/core-web-vitals",
+      "plugin:@typescript-eslint/recommended",
+      "plugin:@typescript-eslint/recommended-requiring-type-checking",
+      "eslint:recommended"
+    ],
+    "parser": "@typescript-eslint/parser",
+    "plugins": [
+      "@typescript-eslint"
+    ],
+    "rules": {
+      "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+      "@typescript-eslint/explicit-function-return-type": "off",
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-non-null-assertion": "warn",
+      "@typescript-eslint/no-inferrable-types": "off",
+      "@typescript-eslint/ban-ts-comment": "warn",
+      "@typescript-eslint/consistent-type-imports": [
+        "error",
+        { "prefer": "type-imports", "fixStyle": "inline-type-imports" }
+      ],
+      "no-console": ["warn", { "allow": ["warn", "error"] }],
+      "semi": ["error", "always"],
+      "quotes": ["error", "single", { "avoidEscape": true }],
+      "indent": ["error", 2, { "SwitchCase": 1 }],
+      "no-trailing-spaces": "error",
+      "eol-last": ["error", "always"],
+      "react/jsx-uses-react": "off",
+      "react/react-in-jsx-scope": "off",
+      "no-multiple-empty-lines": ["error", { "max": 1 }]
+    },
+    "settings": {
+      "react": {
+        "version": "detect"
+      }
+    }
+  }
   
