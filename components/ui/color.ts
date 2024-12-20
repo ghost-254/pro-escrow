@@ -1,4 +1,3 @@
-
 export const grey = {
   25: '#F9FAFB',
   50: '#F6F7F8',
@@ -10,8 +9,8 @@ export const grey = {
   600: '#4b5563',
   700: '#374151',
   800: '#1f2937',
-  900: '#111827'
-};
+  900: '#111827',
+}
 
 export const primary = {
   25: '#F5EAFD',
@@ -25,8 +24,8 @@ export const primary = {
   700: '#5D1995',
   800: '#471474',
   900: '#310F53',
-  main: '#8529cd' 
-};
+  main: '#8529cd',
+}
 
 export const success = {
   25: '#F1FEF5',
@@ -40,8 +39,8 @@ export const success = {
   700: '#088477',
   800: '#056A6A',
   900: '#035058',
-  main: '#11b886'
-};
+  main: '#11b886',
+}
 
 export const warning = {
   25: '#FFFCF5',
@@ -55,8 +54,8 @@ export const warning = {
   700: '#B75F19',
   800: '#93440F',
   900: '#7A3109',
-  main: '#FEBF06'
-};
+  main: '#FEBF06',
+}
 
 export const error = {
   25: '#FEF6F8',
@@ -70,30 +69,30 @@ export const error = {
   700: '#C0113C',
   800: '#910D2D',
   900: '#63091F',
-  main: '#EF4770'
-};
+  main: '#EF4770',
+}
 
 export const secondary = {
   ...grey,
-  main: '#8529cd' // Secondary main color updated
-};
+  main: '#8529cd', // Secondary main color updated
+}
 
 export const info = {
   light: '#F5EAFD', // Adjusted to be consistent with primary
   main: '#8529cd', // Updated to your preferred main color
-  dark: '#5D1995' // A darker shade for info
-};
+  dark: '#5D1995', // A darker shade for info
+}
 
 // FOR LIGHT THEME ACTION COLORS
 export const textLight = {
   primary: grey[900],
   disabled: grey[200],
-  secondary: grey[500]
-};
+  secondary: grey[500],
+}
 
 // FOR DARK THEME TEXT COLORS
 export const textDark = {
   primary: '#ffffff',
   disabled: grey[200],
-  secondary: grey[400]
-};
+  secondary: grey[400],
+}

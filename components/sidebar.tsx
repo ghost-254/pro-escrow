@@ -1,19 +1,19 @@
-"use client";
-import React from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Plus, Bell, User, Headphones, History, Users } from "lucide-react";
-import { useSelector } from "react-redux";
-import { RootState } from "../app/GlobalRedux/stores/store";
-import { success } from "./ui/color";
+'use client'
+import React from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Plus, Bell, User, Headphones, History, Users } from 'lucide-react'
+import { useSelector } from 'react-redux'
+import { RootState } from '../app/GlobalRedux/stores/store'
+import { success } from './ui/color'
 
 export function Sidebar() {
-  const pathname = usePathname();
+  const pathname = usePathname()
 
-  const open = useSelector((state: RootState) => state.transact.open);
-  console.log(open);
+  const open = useSelector((state: RootState) => state.transact.open)
+  console.log(open)
 
   return (
     <div className="w-full h-screen bg-muted p-2 hidden md:block">
@@ -50,10 +50,10 @@ export function Sidebar() {
               <Button
                 variant="ghost"
                 className={cn(
-                  "w-full justify-start text-gray-700 dark:text-gray-200",
-                  pathname === "/groups"
-                    ? "bg-gray-600 text-white dark:bg-gray-700 dark:text-white"
-                    : "hover:text-gray-800 hover:bg-gray-200 dark:hover:text-gray-300 dark:hover:bg-gray-700"
+                  'w-full justify-start text-gray-700 dark:text-gray-200',
+                  pathname === '/groups'
+                    ? 'bg-gray-600 text-white dark:bg-gray-700 dark:text-white'
+                    : 'hover:text-gray-800 hover:bg-gray-200 dark:hover:text-gray-300 dark:hover:bg-gray-700'
                 )}
               >
                 <Users className="mr-2 h-4 w-4" />
@@ -62,8 +62,8 @@ export function Sidebar() {
               <p
                 style={{
                   background: `${success[600]}`,
-                  padding: "0.1rem 0.3rem",
-                  borderRadius: "5px",
+                  padding: '0.1rem 0.3rem',
+                  borderRadius: '5px',
                 }}
                 className="absolute top-[0.55rem] font-bold left-[6.5rem] text-[0.65rem] text-white"
               >
@@ -76,10 +76,10 @@ export function Sidebar() {
             <Button
               variant="ghost"
               className={cn(
-                "w-full justify-start text-gray-700 dark:text-gray-200",
-                pathname === "/orders"
-                  ? "bg-gray-600 text-white dark:bg-gray-700 dark:text-white"
-                  : "hover:text-gray-800 hover:bg-gray-200 dark:hover:text-gray-300 dark:hover:bg-gray-700"
+                'w-full justify-start text-gray-700 dark:text-gray-200',
+                pathname === '/orders'
+                  ? 'bg-gray-600 text-white dark:bg-gray-700 dark:text-white'
+                  : 'hover:text-gray-800 hover:bg-gray-200 dark:hover:text-gray-300 dark:hover:bg-gray-700'
               )}
             >
               <Bell className="mr-2 h-4 w-4" />
@@ -92,10 +92,10 @@ export function Sidebar() {
             <Button
               variant="ghost"
               className={cn(
-                "w-full justify-start text-gray-700 dark:text-gray-200",
-                pathname === "/history"
-                  ? "bg-gray-600 text-white dark:bg-gray-700 dark:text-white"
-                  : "hover:text-gray-800 hover:bg-gray-200 dark:hover:text-gray-300 dark:hover:bg-gray-700"
+                'w-full justify-start text-gray-700 dark:text-gray-200',
+                pathname === '/history'
+                  ? 'bg-gray-600 text-white dark:bg-gray-700 dark:text-white'
+                  : 'hover:text-gray-800 hover:bg-gray-200 dark:hover:text-gray-300 dark:hover:bg-gray-700'
               )}
             >
               <History className="mr-2 h-4 w-4" />
@@ -108,10 +108,10 @@ export function Sidebar() {
             <Button
               variant="ghost"
               className={cn(
-                "w-full justify-start text-gray-700 dark:text-gray-200",
-                pathname === "/profile"
-                  ? "bg-gray-600 text-white dark:bg-gray-700 dark:text-white"
-                  : "hover:text-gray-800 hover:bg-gray-200 dark:hover:text-gray-300 dark:hover:bg-gray-700"
+                'w-full justify-start text-gray-700 dark:text-gray-200',
+                pathname === '/profile'
+                  ? 'bg-gray-600 text-white dark:bg-gray-700 dark:text-white'
+                  : 'hover:text-gray-800 hover:bg-gray-200 dark:hover:text-gray-300 dark:hover:bg-gray-700'
               )}
             >
               <User className="mr-2 h-4 w-4" />
@@ -124,10 +124,10 @@ export function Sidebar() {
           <Button
             variant="ghost"
             className={cn(
-              "w-full justify-start text-gray-700 dark:text-gray-200",
-              pathname === "/Support"
-                ? "bg-gray-600 text-white dark:bg-gray-700 dark:text-white"
-                : "hover:text-gray-800 hover:bg-gray-200 dark:hover:text-gray-300 dark:hover:bg-gray-700"
+              'w-full justify-start text-gray-700 dark:text-gray-200',
+              pathname === '/Support'
+                ? 'bg-gray-600 text-white dark:bg-gray-700 dark:text-white'
+                : 'hover:text-gray-800 hover:bg-gray-200 dark:hover:text-gray-300 dark:hover:bg-gray-700'
             )}
           >
             <Headphones className="mr-2 h-4 w-4" />
@@ -136,5 +136,5 @@ export function Sidebar() {
         </div>
       </div>
     </div>
-  );
+  )
 }

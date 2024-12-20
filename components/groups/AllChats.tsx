@@ -1,47 +1,47 @@
-import React, { useState } from "react";
+import React, { useState } from 'react'
 // import { getColorForLetter } from "@/utils/utils";
-import { error, grey, success } from "../ui/color";
-import { Users, ChevronRight } from "lucide-react";
+import { error, grey, success } from '../ui/color'
+import { Users, ChevronRight } from 'lucide-react'
 
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils'
 
 type Members = {
-  count: number;
-};
+  count: number
+}
 
 // Types for simplified Folder and Chat data
 type Chat = {
-  chatId: string;
-  title: string;
-  amount: number;
-  currency: string;
-  startTime: string;
-  endTime: string;
-  completionTime?: string;
-  status: string;
-  color: string;
-};
+  chatId: string
+  title: string
+  amount: number
+  currency: string
+  startTime: string
+  endTime: string
+  completionTime?: string
+  status: string
+  color: string
+}
 
 type Folder = {
-  folderId: string;
-  type: string;
-  chats: Chat[];
-  members: Members;
-};
+  folderId: string
+  type: string
+  chats: Chat[]
+  members: Members
+}
 
 // Define the type for the props that AllChats will receive
 type AllChatsProps = {
-  data: Folder; // Use Folder type here
-};
+  data: Folder // Use Folder type here
+}
 
 function AllChats({ data }: AllChatsProps) {
   // State to track the selected chat ID
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
 
   // Function to handle chat click and set selected chat ID
   const handleChatClick = (chatId: string) => {
-    setSelectedChatId(chatId);
-  };
+    setSelectedChatId(chatId)
+  }
 
   return (
     <div
@@ -56,18 +56,18 @@ function AllChats({ data }: AllChatsProps) {
           <div
             key={chat.chatId}
             style={{
-              padding: "0.3rem 1rem",
+              padding: '0.3rem 1rem',
             }}
             className={cn(
-              "w-full flex flex-col gap-[1rem] active:bg-gray-300 dark:active:bg-gray-800", // Removed hover effect from the base class
+              'w-full flex flex-col gap-[1rem] active:bg-gray-300 dark:active:bg-gray-800', // Removed hover effect from the base class
               {
                 // Conditionally apply styles based on whether the chat is selected
-                "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-white":
+                'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-white':
                   selectedChatId === chat?.chatId,
-                "bg-transparent text-gray-700 dark:text-gray-200":
+                'bg-transparent text-gray-700 dark:text-gray-200':
                   selectedChatId !== chat.chatId,
                 // Apply hover effect only if the chat is not selected
-                "hover:bg-gray-50 dark:hover:bg-gray-900":
+                'hover:bg-gray-50 dark:hover:bg-gray-900':
                   selectedChatId !== chat.chatId,
               }
             )}
@@ -78,8 +78,8 @@ function AllChats({ data }: AllChatsProps) {
                 <div className="flex items-center gap-[1rem]">
                   <div
                     style={{
-                      color: data.type === "Buy" ? success[500] : error[600],
-                      fontWeight: "bold",
+                      color: data.type === 'Buy' ? success[500] : error[600],
+                      fontWeight: 'bold',
                     }}
                   >
                     <p>{data.type}</p> {/* Display chat type */}
@@ -97,7 +97,7 @@ function AllChats({ data }: AllChatsProps) {
                 </div>
                 <p
                   style={{
-                    fontSize: "0.85rem",
+                    fontSize: '0.85rem',
                   }}
                   className="dark:text-[#c4c4c4]"
                 >
@@ -109,7 +109,7 @@ function AllChats({ data }: AllChatsProps) {
                   style={{
                     color: chat.color,
                     // fontWeight: "bold",
-                    fontSize: "0.85rem",
+                    fontSize: '0.85rem',
                   }}
                 >
                   {chat.status} {/* Display countdown */}
@@ -126,14 +126,14 @@ function AllChats({ data }: AllChatsProps) {
                 {chat.title}
               </span>
               <p className="font-bold whitespace-nowrap ml-auto">
-                {chat.currency} {chat.amount}{" "}
+                {chat.currency} {chat.amount}{' '}
               </p>
             </div>
           </div>
         ))}
       </div>
     </div>
-  );
+  )
 }
 
-export default AllChats;
+export default AllChats

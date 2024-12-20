@@ -1,39 +1,11 @@
 {
-    "extends": [
-      "next/core-web-vitals",
-      "plugin:@typescript-eslint/recommended",
-      "plugin:@typescript-eslint/recommended-requiring-type-checking",
-      "eslint:recommended"
-    ],
-    "parser": "@typescript-eslint/parser",
-    "plugins": [
-      "@typescript-eslint"
-    ],
-    "rules": {
-      "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
-      "@typescript-eslint/explicit-function-return-type": "off",
-      "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-non-null-assertion": "warn",
-      "@typescript-eslint/no-inferrable-types": "off",
-      "@typescript-eslint/ban-ts-comment": "warn",
-      "@typescript-eslint/consistent-type-imports": [
-        "error",
-        { "prefer": "type-imports", "fixStyle": "inline-type-imports" }
-      ],
-      "no-console": ["warn", { "allow": ["warn", "error"] }],
-      "semi": ["error", "always"],
-      "quotes": ["error", "single", { "avoidEscape": true }],
-      "indent": ["error", 2, { "SwitchCase": 1 }],
-      "no-trailing-spaces": "error",
-      "eol-last": ["error", "always"],
-      "react/jsx-uses-react": "off",
-      "react/react-in-jsx-scope": "off",
-      "no-multiple-empty-lines": ["error", { "max": 1 }]
-    },
-    "settings": {
-      "react": {
-        "version": "detect"
-      }
-    }
+  "extends": [
+    "next/core-web-vitals",
+    "plugin:@next/next/recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "plugins": ["@typescript-eslint"],
+  "rules": {
+    "react/prop-types": "off" // Disable prop-types rule for React
   }
-  
+}

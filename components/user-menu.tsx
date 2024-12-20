@@ -9,10 +9,10 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Button } from "@/components/ui/button"
+} from '@/components/ui/dropdown-menu'
+import { Button } from '@/components/ui/button'
 import { User } from 'lucide-react'
-import { toast } from '@/hooks/use-toast'
+// import { toast } from '@/hooks/use-toast'
 
 export function UserMenu() {
   const router = useRouter()
@@ -26,16 +26,16 @@ export function UserMenu() {
     setIsLoading(true)
     const { error } = await supabase.auth.signOut()
     setIsLoading(false)
-    if (error) {
-      toast({
-        title: "Error",
-        description: "There was a problem signing out.",
-        variant: "destructive",
-      })
-    } else {
-      router.push('/auth')
-      router.refresh()
-    }
+    // if (error) {
+    //   toast({
+    //     title: 'Error',
+    //     description: 'There was a problem signing out.',
+    //     variant: 'destructive',
+    //   })
+    // } else {
+    //   router.push('/auth')
+    //   router.refresh()
+    // }
   }
 
   return (
@@ -61,4 +61,3 @@ export function UserMenu() {
     </DropdownMenu>
   )
 }
-

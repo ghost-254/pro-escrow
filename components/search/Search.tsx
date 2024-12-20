@@ -1,5 +1,5 @@
-import React from "react";
-import { Input } from "../ui/input";
+import React from 'react'
+import { Input } from '../ui/input'
 
 function Search() {
   return (
@@ -11,7 +11,7 @@ function Search() {
         autoCapitalize="none"
       />
     </div>
-  );
+  )
 }
 
-export default Search;
+export default Search

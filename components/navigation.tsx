@@ -1,12 +1,13 @@
-/* eslint-disable react/react-in-jsx-scope */
-import Link from "next/link";
-import { Session } from "@supabase/supabase-js";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { Button } from "@/components/ui/button";
-import { Plus, User } from "lucide-react";
+import React from 'react'
+
+import Link from 'next/link'
+import { Session } from '@supabase/supabase-js'
+import { ThemeToggle } from '@/components/theme-toggle'
+import { Button } from '@/components/ui/button'
+import { Plus, User } from 'lucide-react'
 
 interface NavigationProps {
-  session: Session | null;
+  session: Session | null
 }
 
 export function Navigation({ session }: NavigationProps) {
@@ -45,5 +46,5 @@ export function Navigation({ session }: NavigationProps) {
         </div>
       </div>
     </header>
-  );
+  )
 }

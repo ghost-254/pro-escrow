@@ -1,5 +1,5 @@
 'use client'
-
+import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -45,7 +45,9 @@ export function BottomNav() {
           href="/notifications"
           className={cn(
             'inline-flex flex-col items-center justify-center px-5',
-            pathname === '/notifications' ? 'text-primary' : 'text-muted-foreground'
+            pathname === '/notifications'
+              ? 'text-primary'
+              : 'text-muted-foreground'
           )}
         >
           <Bell className="h-5 w-5" />
@@ -65,4 +67,3 @@ export function BottomNav() {
     </nav>
   )
 }
-

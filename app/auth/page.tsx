@@ -1,11 +1,10 @@
-/* eslint-disable react/react-in-jsx-scope */
-"use client";
+'use client'
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createBrowserClient } from "@supabase/ssr";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createBrowserClient } from '@supabase/ssr'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Card,
   CardContent,
@@ -13,101 +12,101 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "@/hooks/use-toast";
-import Checkbox from "@/components/ui/checkbox";
-import { Eye, EyeOff } from "lucide-react";
-import { grey } from "@/components/ui/color";
+} from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+// import { toast } from '@/hooks/use-toast'
+import Checkbox from '@/components/ui/checkbox'
+import { Eye, EyeOff } from 'lucide-react'
+import { grey } from '@/components/ui/color'
 
 export default function AuthPage() {
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>("signin");
-  const [emailError, setEmailError] = useState<string>("");
-  const [passwordError, setPasswordError] = useState<string>("");
-  const router = useRouter();
+  const [email, setEmail] = useState<string>('')
+  const [password, setPassword] = useState<string>('')
+  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [showPassword, setShowPassword] = useState<boolean>(false)
+  const [activeTab, setActiveTab] = useState<string>('signin')
+  const [emailError, setEmailError] = useState<string>('')
+  const [passwordError, setPasswordError] = useState<string>('')
+  const router = useRouter()
 
   const handleToggleshow = (): void => {
-    setShowPassword((prev) => !prev);
-  };
+    setShowPassword((prev) => !prev)
+  }
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  )
 
   const validateEmail = (email: string): string => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email) return "Email is required.";
-    if (!emailRegex.test(email)) return "Invalid email address.";
-    return "";
-  };
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!email) return 'Email is required.'
+    if (!emailRegex.test(email)) return 'Invalid email address.'
+    return ''
+  }
 
   const validatePassword = (password: string): string => {
-    if (!password) return "Password is required.";
-    if (password.length < 8) return "Password must be at least 8 characters.";
-    return "";
-  };
+    if (!password) return 'Password is required.'
+    if (password.length < 8) return 'Password must be at least 8 characters.'
+    return ''
+  }
 
   const validateForm = (): boolean => {
-    const emailError = validateEmail(email);
-    const passwordError = validatePassword(password);
+    const emailError = validateEmail(email)
+    const passwordError = validatePassword(password)
 
-    setEmailError(emailError);
-    setPasswordError(passwordError);
+    setEmailError(emailError)
+    setPasswordError(passwordError)
 
-    return !emailError && !passwordError;
-  };
+    return !emailError && !passwordError
+  }
 
   async function signIn(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!validateForm()) return;
-    setIsLoading(true);
+    e.preventDefault()
+    if (!validateForm()) return
+    setIsLoading(true)
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
-    });
-    setIsLoading(false);
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      router.push("/");
-      router.refresh();
-    }
+    })
+    setIsLoading(false)
+    // if (error) {
+    //   // toast({
+    //   //   title: 'Error',
+    //   //   description: error.message,
+    //   //   variant: 'destructive',
+    //   // })
+    // } else {
+    //   router.push('/')
+    //   router.refresh()
+    // }
   }
 
   async function signUp(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!validateForm()) return;
+    e.preventDefault()
+    if (!validateForm()) return
 
-    setIsLoading(true);
+    setIsLoading(true)
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: `${location.origin}/auth/callback`,
       },
-    });
-    setIsLoading(false);
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Success",
-        description: "Check your email to confirm your account.",
-      });
-    }
+    })
+    setIsLoading(false)
+    // if (error) {
+    //   toast({
+    //     title: 'Error',
+    //     description: error.message,
+    //     variant: 'destructive',
+    //   })
+    // } else {
+    //   toast({
+    //     title: 'Success',
+    //     description: 'Check your email to confirm your account.',
+    //   })
+    // }
   }
 
   return (
@@ -115,23 +114,23 @@ export default function AuthPage() {
       <Card className="md:w-[400px] w-full">
         <CardHeader>
           <CardTitle>
-            {activeTab === "signin"
-              ? "Good Afternoon,"
-              : "You are Invited to Labscro"}
+            {activeTab === 'signin'
+              ? 'Good Afternoon,'
+              : 'You are Invited to Labscro'}
           </CardTitle>
           <CardDescription>
-            {activeTab === "signin"
-              ? "Welcome to Labscro"
-              : "Create account to get started"}
+            {activeTab === 'signin'
+              ? 'Welcome to Labscro'
+              : 'Create account to get started'}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs
             onValueChange={(value) => {
-              if (value === "signin") {
-                setActiveTab("signin");
-              } else if (value === "signup") {
-                setActiveTab("signup");
+              if (value === 'signin') {
+                setActiveTab('signin')
+              } else if (value === 'signup') {
+                setActiveTab('signup')
               }
             }}
             defaultValue="signin"
@@ -158,7 +157,7 @@ export default function AuthPage() {
                     />
                     {emailError && (
                       <p
-                        style={{ color: "#ff4f4f", paddingLeft: "1rem" }}
+                        style={{ color: '#ff4f4f', paddingLeft: '1rem' }}
                         className="text-sm"
                       >
                         {emailError}
@@ -169,8 +168,8 @@ export default function AuthPage() {
                     <div className="w-full flex flex-col gap-[0.5rem]">
                       <Input
                         id="password"
-                        placeholder={"Password"}
-                        type={showPassword ? "text" : "password"}
+                        placeholder={'Password'}
+                        type={showPassword ? 'text' : 'password'}
                         autoCapitalize="none"
                         disabled={isLoading}
                         value={password}
@@ -178,7 +177,7 @@ export default function AuthPage() {
                       />
                       {passwordError && (
                         <p
-                          style={{ color: "#ff4f4f", paddingLeft: "1rem" }}
+                          style={{ color: '#ff4f4f', paddingLeft: '1rem' }}
                           className="text-sm"
                         >
                           {passwordError}
@@ -205,7 +204,7 @@ export default function AuthPage() {
                     {isLoading ? (
                       <span className="mr-2">Loading...</span>
                     ) : (
-                      "Sign In"
+                      'Sign In'
                     )}
                   </Button>
                 </div>
@@ -228,7 +227,7 @@ export default function AuthPage() {
                   />
                   {emailError && (
                     <p
-                      style={{ color: "#ff4f4f", paddingLeft: "1rem" }}
+                      style={{ color: '#ff4f4f', paddingLeft: '1rem' }}
                       className="text-sm"
                     >
                       {emailError}
@@ -238,7 +237,7 @@ export default function AuthPage() {
                     <Input
                       id="password"
                       placeholder="Password"
-                      type={showPassword ? "text" : "password"}
+                      type={showPassword ? 'text' : 'password'}
                       autoCapitalize="none"
                       disabled={isLoading}
                       value={password}
@@ -246,7 +245,7 @@ export default function AuthPage() {
                     />
                     {passwordError && (
                       <p
-                        style={{ color: "#ff4f4f", paddingLeft: "1rem" }}
+                        style={{ color: '#ff4f4f', paddingLeft: '1rem' }}
                         className="text-sm"
                       >
                         {passwordError}
@@ -272,7 +271,7 @@ export default function AuthPage() {
                     {isLoading ? (
                       <span className="mr-2">Loading...</span>
                     ) : (
-                      "Sign Up"
+                      'Sign Up'
                     )}
                   </Button>
                 </div>
@@ -281,32 +280,32 @@ export default function AuthPage() {
           </Tabs>
         </CardContent>
 
-        {activeTab !== "signin" && (
+        {activeTab !== 'signin' && (
           <CardFooter className="flex items-center gap-[0.5rem] md:gap-[1rem]">
             {/* Simple checkbox without label */}
             <Checkbox />
             <p className="text-sm text-muted-foreground">
-              By continuing, you agree to our{" "}
+              By continuing, you agree to our{' '}
               <b
                 title="Terms of Service"
                 className="cursor-pointer hover:text-primary"
               >
-                {" "}
+                {' '}
                 Terms of Service
-              </b>{" "}
+              </b>{' '}
               and
               <b
                 title="Privacy Policy"
                 className="cursor-pointer hover:text-primary"
               >
-                {" "}
+                {' '}
                 Privacy Policy
-              </b>{" "}
+              </b>{' '}
               .
             </p>
           </CardFooter>
         )}
       </Card>
     </div>
-  );
+  )
 }

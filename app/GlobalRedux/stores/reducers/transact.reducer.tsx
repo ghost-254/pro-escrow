@@ -1,24 +1,24 @@
-"use client";
-import { createSlice } from "@reduxjs/toolkit";
+'use client'
+import { createSlice } from '@reduxjs/toolkit'
 
 interface TransactState {
-  open: boolean;
+  open: boolean
 }
 
 const initialState: TransactState = {
   open: false,
-};
+}
 
 export const transactSlice = createSlice({
-  name: "transact",
+  name: 'transact',
   initialState,
   reducers: {
     toggleShowTransactModal: (state) => {
-      state.open = !state.open; // Toggle the state between true and false
+      state.open = !state.open // Toggle the state between true and false
     },
   },
-});
+})
 
-export const { toggleShowTransactModal } = transactSlice.actions;
+export const { toggleShowTransactModal } = transactSlice.actions
 
-export default transactSlice.reducer;
+export default transactSlice.reducer

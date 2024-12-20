@@ -1,4 +1,5 @@
 'use client'
+import React from 'react'
 
 import { Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
@@ -17,10 +18,7 @@ export function ListingFilters() {
       <div className="flex flex-1 items-center space-x-2">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search listings..."
-            className="pl-8"
-          />
+          <Input placeholder="Search listings..." className="pl-8" />
         </div>
         <Select defaultValue="all">
           <SelectTrigger className="w-[180px]">
@@ -35,14 +33,9 @@ export function ListingFilters() {
         </Select>
       </div>
       <div className="flex items-center space-x-2">
-        <Button variant="outline">
-          Price: Low to High
-        </Button>
-        <Button variant="outline">
-          Highest Rating
-        </Button>
+        <Button variant="outline">Price: Low to High</Button>
+        <Button variant="outline">Highest Rating</Button>
       </div>
     </div>
   )
 }
-

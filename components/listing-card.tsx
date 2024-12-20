@@ -1,3 +1,4 @@
+import React from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -19,7 +20,11 @@ interface ListingCardProps {
   paymentMethods: string[]
 }
 
-export function ListingCard({ seller, service, paymentMethods }: ListingCardProps) {
+export function ListingCard({
+  seller,
+  service,
+  paymentMethods,
+}: ListingCardProps) {
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-0">
@@ -38,7 +43,9 @@ export function ListingCard({ seller, service, paymentMethods }: ListingCardProp
                   <span>{seller.rating}</span>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground">{service.description}</p>
+              <p className="text-sm text-muted-foreground">
+                {service.description}
+              </p>
             </div>
           </div>
           <div className="flex items-center justify-between">
