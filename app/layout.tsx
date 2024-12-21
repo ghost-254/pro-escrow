@@ -1,3 +1,4 @@
+import React from 'react'
 import { Inter } from 'next/font/google'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'

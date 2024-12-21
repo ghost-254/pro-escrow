@@ -5,15 +5,15 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Plus, Bell, User, Headphones, History, Users } from 'lucide-react'
-import { useSelector } from 'react-redux'
-import { RootState } from '../app/GlobalRedux/stores/store'
+// import { useSelector } from 'react-redux'
+// import { RootState } from '../app/GlobalRedux/stores/store'
 import { success } from './ui/color'
 
 export function Sidebar() {
   const pathname = usePathname()
 
-  const open = useSelector((state: RootState) => state.transact.open)
-  console.log(open)
+  // const open = useSelector((state: RootState) => state.transact.open)
+  // console.log(open)
 
   return (
     <div className="w-full h-screen bg-muted p-2 hidden md:block">

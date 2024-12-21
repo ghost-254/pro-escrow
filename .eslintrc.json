@@ -1,43 +1,6 @@
 {
   "extends": [
     "next/core-web-vitals",
-    "plugin:@next/next/recommended",
-    "plugin:@typescript-eslint/recommended"
-  ],
-  "plugins": ["@typescript-eslint"],
-  "rules": {
-    // React-specific rules
-    "react/prop-types": "off", // Disable prop-types rule for React
-
-    // Variable naming and structure
-    "consistent-this": ["error", "self"], // Enforce consistent variable naming for `this`
-    "id-length": ["error", { "min": 2, "exceptions": ["i", "j", "k"] }], // Enforce variable name length
-
-    // File organization
-    "grouped-accessor-pairs": "error", // Require grouped getter/setter pairs
-    "no-empty-function": "error", // Disallow empty functions
-    "no-multiple-empty-lines": [
-      "error",
-      { "max": 1, "maxBOF": 0, "maxEOF": 1 }
-    ], // Limit empty lines
-    "no-unused-vars": "error", // Disallow unused variables
-
-    // Code structure
-    "no-dupe-args": "error", // Disallow duplicate function arguments
-    "no-invalid-this": "error", // Disallow invalid `this` usage
-    "no-throw-literal": "error", // Disallow throwing literals
-    "no-useless-call": "error", // Disallow unnecessary `.call()` and `.apply()`
-
-    // General best practices
-    "consistent-return": "error", // Enforce consistent return statements
-    "no-caller": "error", // Disallow use of `arguments.caller` or `arguments.callee`
-    "no-eval": "error", // Disallow `eval()`
-    "no-new-wrappers": "error", // Disallow primitive wrapper instances
-
-    // Other recommended rules
-    "no-console": "warn", // Warn on `console` usage
-    "no-undef": "warn", // Warn on undefined variables
-    "no-extra-semi": "warn", // Warn on unnecessary semicolons
-    "import/no-named-as-default": "off" // Allow named exports as default
-  }
+    "next/typescript"
+  ]
 }

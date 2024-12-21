@@ -1,8 +1,8 @@
 'use client'
-
+import React from 'react'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createBrowserClient } from '@supabase/ssr'
+// import { useRouter } from 'next/navigation'
+// import { createBrowserClient } from '@supabase/ssr'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -27,16 +27,16 @@ export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>('signin')
   const [emailError, setEmailError] = useState<string>('')
   const [passwordError, setPasswordError] = useState<string>('')
-  const router = useRouter()
+  // const router = useRouter()
 
   const handleToggleshow = (): void => {
     setShowPassword((prev) => !prev)
   }
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  // const supabase = createBrowserClient(
+  //   process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  //   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  // )
 
   const validateEmail = (email: string): string => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -65,10 +65,10 @@ export default function AuthPage() {
     e.preventDefault()
     if (!validateForm()) return
     setIsLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    // const { error } = await supabase.auth.signInWithPassword({
+    //   email,
+    //   password,
+    // })
     setIsLoading(false)
     // if (error) {
     //   // toast({
@@ -87,13 +87,13 @@ export default function AuthPage() {
     if (!validateForm()) return
 
     setIsLoading(true)
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${location.origin}/auth/callback`,
-      },
-    })
+    // const { error } = await supabase.auth.signUp({
+    //   email,
+    //   password,
+    //   options: {
+    //     emailRedirectTo: `${location.origin}/auth/callback`,
+    //   },
+    // })
     setIsLoading(false)
     // if (error) {
     //   toast({

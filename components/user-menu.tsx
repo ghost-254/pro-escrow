@@ -2,7 +2,7 @@
 import React from 'react'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createBrowserClient } from '@supabase/ssr'
+// import { createBrowserClient } from '@supabase/ssr'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,14 +17,14 @@ import { User } from 'lucide-react'
 export function UserMenu() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  // const supabase = createBrowserClient(
+  //   process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  //   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  // )
 
   const handleSignOut = async () => {
     setIsLoading(true)
-    const { error } = await supabase.auth.signOut()
+    // const { error } = await supabase.auth.signOut()
     setIsLoading(false)
     // if (error) {
     //   toast({
