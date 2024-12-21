@@ -8,7 +8,7 @@ import { BottomNav } from '@/components/bottom-nav'
 import { Sidebar } from '@/components/sidebar'
 import type { Metadata } from 'next'
 import './globals.css'
-import { Providers } from './GlobalRedux/provider'
+import { Providers } from './global.redux/provider'
 
 const inter = Inter({ subsets: ['latin'] })
 
