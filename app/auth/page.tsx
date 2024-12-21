@@ -27,7 +27,7 @@ export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>('signin')
   const [emailError, setEmailError] = useState<string>('')
   const [passwordError, setPasswordError] = useState<string>('')
-  const router = useRouter()
+  // const router = useRouter()
 
   const handleToggleshow = (): void => {
     setShowPassword((prev) => !prev)
