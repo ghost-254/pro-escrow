@@ -3,8 +3,8 @@ import {
   folders,
   //  chats
 } from '@/components/dummyData/DummyData'
-import AllChats from '@/components/groups/AllChats'
-import Chat from '@/components/groups/Chat'
+import AllChats from '@/components/groups.chat/AllChats'
+import Chat from '@/components/groups.chat/Chat'
 import Search from '@/components/search/Search'
 import React from 'react'
 
