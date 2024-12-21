@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Plus, Bell, User, Headphones, History, Users } from 'lucide-react'
 // import { useSelector } from 'react-redux'
 // import { RootState } from '../app/GlobalRedux/stores/store'
-import { success } from './ui/color'
+import { success } from '../ui/color'
 
 export function Sidebar() {
   const pathname = usePathname()

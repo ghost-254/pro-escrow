@@ -14,7 +14,6 @@
     {
       "files": ["*.stories.@(ts|tsx|js|jsx|mjs|cjs)"],
       "rules": {
-        // example of overriding a rule
         "storybook/hierarchy-separator": "error"
       }
     }
@@ -51,6 +50,7 @@
     "no-console": "error",
     "no-undef": "warn",
     "no-extra-semi": "warn",
-    "import/no-named-as-default": "off"
+    "import/no-named-as-default": "off",
+    "react/no-unescaped-entities": "off"
   }
 }
