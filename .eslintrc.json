@@ -1,22 +1,43 @@
 {
   "extends": [
+    "plugin:storybook/recommended",
     "next/core-web-vitals",
     "next/typescript",
-    "plugin:@typescript-eslint/recommended"
+    "plugin:@typescript-eslint/recommended",
+    "plugin:storybook/recommended"
   ],
   "globals": {
     "React": "readonly"
   },
   "plugins": ["@typescript-eslint"],
+  "overrides": [
+    {
+      "files": ["*.stories.@(ts|tsx|js|jsx|mjs|cjs)"],
+      "rules": {
+        // example of overriding a rule
+        "storybook/hierarchy-separator": "error"
+      }
+    }
+  ],
   "rules": {
     "react/prop-types": "off",
     "consistent-this": ["error", "self"],
-    "id-length": ["error", { "min": 2, "exceptions": ["i", "j", "k", "e"] }],
+    "id-length": [
+      "error",
+      {
+        "min": 2,
+        "exceptions": ["i", "j", "k", "e"]
+      }
+    ],
     "grouped-accessor-pairs": "error",
     "no-empty-function": "error",
     "no-multiple-empty-lines": [
       "error",
-      { "max": 1, "maxBOF": 0, "maxEOF": 1 }
+      {
+        "max": 1,
+        "maxBOF": 0,
+        "maxEOF": 1
+      }
     ],
     "no-unused-vars": "error",
     "no-dupe-args": "error",
