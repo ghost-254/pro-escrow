@@ -5,7 +5,7 @@ import { createServerClient } from '@supabase/ssr'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Navigation } from '@/components/navigation'
 import { BottomNav } from '@/components/bottom-nav'
-import { Sidebar } from '@/components/sidebar'
+import { SidebarVisibility } from '@/components/sidebars/sidebarvisibility'
 import type { Metadata } from 'next'
 import './globals.css'
 import { Providers } from './GlobalRedux/provider'
@@ -22,7 +22,6 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Resolve the cookies promise
   const cookieStore = await cookies()
 
   const supabase = createServerClient(
@@ -33,12 +32,10 @@ export default async function RootLayout({
         get(name: string) {
           return cookieStore.get(name)?.value || null
         },
-        // Note: 'set' and 'remove' are omitted because 'cookies' is read-only in this context.
       },
     }
   )
 
-  // Get the session data
   const {
     data: { session },
   } = await supabase.auth.getSession()
@@ -46,7 +43,7 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.className} min-h-screen bg-background antialiased`}
+        className={`${inter.className} min-h-screen bg-background antialiased `}
       >
         <Providers>
           <ThemeProvider
@@ -55,15 +52,14 @@ export default async function RootLayout({
             enableSystem={false}
             storageKey="escrow-theme"
           >
-            <div className="relative flex min-h-screen flex-col">
+            <div className="relative flex h-screen  overflow-hidden flex-col">
               <Navigation session={session} />
               <div className="h-full w-full flex flex-1">
-                <div className="flex-[0.25]">
-                  <Sidebar />
-                </div>
-                <div className="h-full w-full md:flex-[0.75] text-[0.95rem]">
-                  <main>{children}</main>
-                </div>
+                <SidebarVisibility>
+                  <div className="h-full w-full overflow-hidden  md:flex-[0.75] text-[0.95rem]">
+                    <main>{children}</main>
+                  </div>
+                </SidebarVisibility>
               </div>
               <BottomNav />
             </div>

@@ -121,7 +121,7 @@ function AllChats({ data }: AllChatsProps) {
             <div className="w-full flex items-center gap-[0.5rem]">
               <span
                 title={chat.title}
-                className="truncate cursor-default text-gray-400 mr-auto dark:text-gray-500"
+                className="truncate cursor-default text-gray-800 mr-auto dark:text-gray-400"
               >
                 {chat.title}
               </span>
