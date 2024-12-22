@@ -9,14 +9,14 @@ import Search from '@/components/search/Search'
 import React from 'react'
 import { ArrowLeft } from 'lucide-react'
 import Modal from '@/components/ui/modal'
-import DetailedChatInfo from '@/components/groups/DetailedChatInfo'
 import { useDispatch, useSelector } from 'react-redux'
-import { RootState } from '../GlobalRedux/stores/store'
-import { toggleShowDetailedChatInfoModal } from '../GlobalRedux/stores/reducers/chat.moreinfo.reducer'
+import { RootState } from '../global.redux/stores/store'
+import { toggleShowDetailedChatInfoModal } from '../global.redux/stores/reducers/chat.moreinfo.reducer'
+import DetailedChatInfo from '@/components/groups.chat/DetailedChatInfo'
 
 function Group() {
   // Get the current state of modal visibility from Redux
-  const open = useSelector((state: RootState) => state.chatInfo.open)
+  const open = useSelector((state: RootState) => state?.chatInfo.open)
 
   const dispatch = useDispatch()
 

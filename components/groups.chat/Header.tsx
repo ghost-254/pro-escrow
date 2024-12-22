@@ -6,9 +6,9 @@ import {
   //  X
 } from 'lucide-react'
 import { useDispatch } from 'react-redux'
-import { toggleShowDetailedChatInfoModal } from '@/app/GlobalRedux/stores/reducers/chat.moreinfo.reducer'
 import truncate from '@/lib/truncate'
 import Typography from '../ui/typography'
+import { toggleShowDetailedChatInfoModal } from '@/app/global.redux/stores/reducers/chat.moreinfo.reducer'
 function Header() {
   const dispatch = useDispatch()
 
