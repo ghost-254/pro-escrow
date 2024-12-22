@@ -30,7 +30,7 @@ export const folders = [
         currency: 'USD',
         startTime: '2024-01-10',
         endTime: '2024-01-15',
-        status: 'Pending Release',
+        status: 'In Progress',
         color: '#FFA500', // Orange for ongoing tasks
       },
     ],
