@@ -8,14 +8,33 @@ import Chat from '@/components/groups.chat/Chat'
 import Search from '@/components/search/Search'
 import React from 'react'
 import { ArrowLeft } from 'lucide-react'
+import Modal from '@/components/ui/modal'
+import DetailedChatInfo from '@/components/groups/DetailedChatInfo'
+import { useDispatch, useSelector } from 'react-redux'
+import { RootState } from '../GlobalRedux/stores/store'
+import { toggleShowDetailedChatInfoModal } from '../GlobalRedux/stores/reducers/chat.moreinfo.reducer'
 
 function Group() {
+  // Get the current state of modal visibility from Redux
+  const open = useSelector((state: RootState) => state.chatInfo.open)
+
+  const dispatch = useDispatch()
+
+  const handleCloseModal = () => {
+    // Dispatch action to close modal
+    dispatch(toggleShowDetailedChatInfoModal())
+  }
+
   return (
-    <div className="w-full flex ">
+    <div className="w-full flex relative">
+      {/* Modal to show DetailedChatInfo */}
+      <Modal isOpen={open} onClose={handleCloseModal}>
+        <DetailedChatInfo />
+      </Modal>
       {/* Left section: Folders and Chats */}
       <div
         style={{ width: '35%' }}
-        className="flex flex-col h-screen border-r-[1px] border-[#f0f0f0] dark:border-[#202020]"
+        className="flex flex-col h-screen border-r-[1px] border-[#e7e7e7] dark:border-[#202020]"
       >
         <div
           style={{ padding: '1rem 0.5rem' }}
@@ -34,7 +53,7 @@ function Group() {
         <div className="flex flex-col max-h-screen overflow-y-auto pb-[5rem]">
           {folders.map((folder) => (
             <div
-              className="border-b-[1px] border-[#f0f0f0] dark:border-[#202020]"
+              className="border-b-[1px] border-[#dddddd] dark:border-[#202020]"
               style={{
                 // borderRadius: "5px",
                 width: '100%',

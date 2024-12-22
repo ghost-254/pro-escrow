@@ -4,6 +4,7 @@ import { error, grey, success } from '../ui/color'
 import { Users, ChevronRight } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import Typography from '../ui/typography'
 
 type Members = {
   count: number
@@ -62,12 +63,12 @@ function AllChats({ data }: AllChatsProps) {
               'w-full flex flex-col gap-[1rem] active:bg-gray-300 dark:active:bg-gray-800', // Removed hover effect from the base class
               {
                 // Conditionally apply styles based on whether the chat is selected
-                'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-white':
+                'bg-gray-200 text-gray-800 dark:bg-gray-800 dark:text-white':
                   selectedChatId === chat?.chatId,
                 'bg-transparent text-gray-700 dark:text-gray-200':
                   selectedChatId !== chat.chatId,
                 // Apply hover effect only if the chat is not selected
-                'hover:bg-gray-50 dark:hover:bg-gray-900':
+                'hover:bg-gray-100 dark:hover:bg-gray-900':
                   selectedChatId !== chat.chatId,
               }
             )}
@@ -82,7 +83,8 @@ function AllChats({ data }: AllChatsProps) {
                       fontWeight: 'bold',
                     }}
                   >
-                    <p>{data.type}</p> {/* Display chat type */}
+                    <Typography variant="p">{data.type}</Typography>{' '}
+                    {/* Display chat type */}
                   </div>
                   <div
                     title="3 Users"
@@ -92,17 +94,14 @@ function AllChats({ data }: AllChatsProps) {
                     className="flex items-center "
                   >
                     <Users className="mr-2 h-4 w-4" />
-                    <p className="font-bold">3</p>
+                    <Typography variant="p" className="font-bold">
+                      3
+                    </Typography>
                   </div>
                 </div>
-                <p
-                  style={{
-                    fontSize: '0.85rem',
-                  }}
-                  className="dark:text-[#c4c4c4]"
-                >
+                <Typography variant="span" className="dark:text-[#c4c4c4]">
                   {chat.startTime} {/* Display timestamp */}
-                </p>
+                </Typography>
               </div>
               <div className="flex items-center ">
                 <div
@@ -119,15 +118,19 @@ function AllChats({ data }: AllChatsProps) {
             </div>
 
             <div className="w-full flex items-center gap-[0.5rem]">
-              <span
+              <Typography
+                variant="span"
                 title={chat.title}
-                className="truncate cursor-default text-gray-800 mr-auto dark:text-gray-400"
+                className="truncate cursor-default mr-auto"
               >
                 {chat.title}
-              </span>
-              <p className="font-bold whitespace-nowrap ml-auto">
+              </Typography>
+              <Typography
+                variant="p"
+                className="font-bold whitespace-nowrap ml-auto"
+              >
                 {chat.currency} {chat.amount}{' '}
-              </p>
+              </Typography>
             </div>
           </div>
         ))}

@@ -12,7 +12,7 @@ interface NavigationProps {
 
 export function Navigation({ session }: NavigationProps) {
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-[5] w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
         <Link href="/" className="flex items-center space-x-2">
           <span className="font-bold text-gray-700 dark:text-gray-200">

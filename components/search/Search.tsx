@@ -8,6 +8,7 @@ function Search() {
         id="search"
         placeholder="Search"
         type="text"
+        autoComplete='off'
         autoCapitalize="none"
       />
     </div>

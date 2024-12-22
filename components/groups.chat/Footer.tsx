@@ -16,6 +16,8 @@ const Footer: React.FC = () => {
           >
             <Input
               className="w-full h-[2.5rem]"
+              autoComplete='off'
+              autoCorrect='on'
               id="message"
               placeholder="Type a message"
               type="text"
