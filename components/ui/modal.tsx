@@ -11,7 +11,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children }) => {
   return (
     <Dialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed z-[6] inset-0 bg-black bg-opacity-[0.85]" />
+        <Dialog.Overlay className="fixed z-[6] inset-0 bg-black bg-opacity-[0.6] dark:bg-opacity-[0.8]" />
         <Dialog.Content className="fixed z-[7] overflow-y-auto  inset-1/4 bg-white dark:bg-gray-900 rounded-md shadow-lg">
           {/* Modal body will be dynamic */}
           <div>{children}</div>
