@@ -5,6 +5,8 @@ import { Users, ChevronRight } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import Typography from '../ui/typography'
+import { useDispatch } from 'react-redux'
+import { toggleShowDetailedChatInfoModal } from '@/app/GlobalRedux/stores/reducers/chat.moreinfo.reducer'
 
 type Members = {
   count: number
@@ -43,6 +45,12 @@ function AllChats({ data }: AllChatsProps) {
   const handleChatClick = (chatId: string) => {
     setSelectedChatId(chatId)
   }
+  const dispatch = useDispatch()
+
+  const handleOpenModal = () => {
+    // Dispatch action to close modal
+    dispatch(toggleShowDetailedChatInfoModal())
+  }
 
   return (
     <div
@@ -77,21 +85,22 @@ function AllChats({ data }: AllChatsProps) {
             <div className="w-full flex justify-between">
               <div className="w-auto flex flex-col gap-[0.3rem]">
                 <div className="flex items-center gap-[1rem]">
-                  <div
+                  <Typography
                     style={{
                       color: data.type === 'Buy' ? success[500] : error[600],
                       fontWeight: 'bold',
                     }}
+                    variant="p"
                   >
-                    <Typography variant="p">{data.type}</Typography>{' '}
-                    {/* Display chat type */}
-                  </div>
+                    {data.type}
+                  </Typography>{' '}
                   <div
-                    title="3 Users"
+                    title="View"
                     style={{
                       color: `${grey[400]}`,
                     }}
-                    className="flex items-center "
+                    className="flex items-center hover:opacity-[0.6]"
+                    onClick={handleOpenModal}
                   >
                     <Users className="mr-2 h-4 w-4" />
                     <Typography variant="p" className="font-bold">

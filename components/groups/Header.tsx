@@ -35,12 +35,12 @@ function Header() {
             </button>
           </div>
           <Typography
-            variant="h1"
+            variant="p"
             title="More"
             onClick={handleOpenModal}
-            className="cursor-pointer font-medium max-w-[90%] text-sm hover:opacity-[0.77] flex items-center gap-1"
+            className="cursor-pointer font-medium max-w-[90%] hover:opacity-[0.77] flex items-center gap-1"
           >
-            {truncate(text, 90)}
+            {truncate(text, 80)}
           </Typography>
         </div>
 

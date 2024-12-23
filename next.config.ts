@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
+  images: {
+    domains: ['avatars.mds.yandex.net'], // Add your allowed image hostname(s) here
+  },
 }
 
 export default nextConfig

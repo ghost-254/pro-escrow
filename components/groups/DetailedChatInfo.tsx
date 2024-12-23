@@ -1,4 +1,4 @@
-import { X } from 'lucide-react'
+import { LogOut, X } from 'lucide-react'
 import React from 'react'
 import Typography from '../ui/typography'
 import { Button } from '../ui/button'
@@ -42,7 +42,7 @@ function DetailedChatInfo() {
         style={{ padding: '0.5rem 1rem' }}
         className="w-full flex sticky top-0 bg-background z-[2] dark:bg-gray-900 justify-between items-center border-b-[1px] border-[#ccc] dark:border-[#202020]"
       >
-        <Typography className="max-w-[90%]" variant="h2">
+        <Typography className="max-w-[90%] font-semibold" variant="h2">
           {text}
         </Typography>
         <button
@@ -55,24 +55,34 @@ function DetailedChatInfo() {
       </div>
 
       <div className="w-full px-[1rem] border-b-[1px] pb-[0.7rem] border-[#ccc] dark:border-[#202020]">
-        <div className="flex items-center gap-[0.5rem]">
-          <Typography variant="p">Amount Deposited:</Typography>
-          <Typography variant="h1" className="font-bold">
-            USD 1000
-          </Typography>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-[0.5rem]">
+            <Typography variant="p">Amount Deposited:</Typography>
+            <Typography variant="h1" className="font-bold">
+              USD 1000
+            </Typography>
+          </div>
+          <Button
+            variant="destructive"
+            className="flex items-center text-white dark:bg-red-500 cursor-pointer hover:opacity-[0.87]"
+          >
+            <LogOut className="w-4 h-4" />
+            Leave group
+          </Button>
         </div>
       </div>
 
       <div className="w-full px-[0.5rem] border-b-[1px] pb-[0.7rem] border-[#ccc] dark:border-[#202020]">
         <div className="flex items-center gap-[0.5rem]">
-          <Button variant="destructive" className="text-white dark:bg-red-500">
+          {/* show red if exceeded time for release */}
+          <Button variant="secondary" className="text-white cursor-default">
             00h:15m:30s
           </Button>
           <div className="flex items-center gap-[0.5rem]">
             <Typography variant="p">Created:</Typography>
-            <Typography variant="span">22-05-2025 12:00 PM</Typography>
+            <Typography variant="span" className='font-medium'>22-05-2025 12:00 PM</Typography>
             <Typography variant="span">by</Typography>
-            <Typography variant="span">Alice*******</Typography>
+            <Typography variant="span" className='font-medium'>Alice*******</Typography>
           </div>
         </div>
       </div>
