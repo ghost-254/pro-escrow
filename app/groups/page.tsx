@@ -1,12 +1,12 @@
 'use client'
+import React from 'react'
 import {
   folders,
   //  chats
 } from '@/components/dummyData/DummyData'
+import Search from '@/components/search/Search'
 import AllChats from '@/components/groups.chat/AllChats'
 import Chat from '@/components/groups.chat/Chat'
-import Search from '@/components/search/Search'
-import React from 'react'
 import { ArrowLeft } from 'lucide-react'
 import Modal from '@/components/ui/modal'
 import { useDispatch, useSelector } from 'react-redux'
@@ -31,6 +31,7 @@ function Group() {
       <Modal isOpen={open} onClose={handleCloseModal}>
         <DetailedChatInfo />
       </Modal>
+
       {/* Left section: Folders and Chats */}
       <div
         style={{ width: '35%' }}
@@ -55,7 +56,6 @@ function Group() {
             <div
               className="border-b-[1px] border-[#dddddd] dark:border-[#202020]"
               style={{
-                // borderRadius: "5px",
                 width: '100%',
               }}
               key={folder?.folderId}

@@ -5,15 +5,19 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Plus, Bell, User, Headphones, History, Users } from 'lucide-react'
-// import { useSelector } from 'react-redux'
-// import { RootState } from '../app/GlobalRedux/stores/store'
+
 import { success } from '../ui/color'
+import { useDispatch } from 'react-redux'
+import { toggleTransactModal } from '@/app/global.redux/stores/reducers/transact.reducer'
 
 export function Sidebar() {
   const pathname = usePathname()
 
-  // const open = useSelector((state: RootState) => state.transact.open)
-  // console.log(open)
+  const dispatch = useDispatch()
+
+  const handleShowTransactmodal = () => {
+    dispatch(toggleTransactModal())
+  }
 
   return (
     <div className="w-full h-screen bg-muted p-2 hidden md:block">
@@ -22,6 +26,7 @@ export function Sidebar() {
           <div className="w-full pb-[1rem] border-b-[1px] border-[#dbdbdb] dark:border-[#4b4b4b]">
             <Button
               title="Transact"
+              onClick={handleShowTransactmodal}
               variant="ghost"
               className="w-full justify-start bg-primary text-white hover:text-white hover:opacity-[0.77] hover:bg-primary"
             >

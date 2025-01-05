@@ -69,7 +69,7 @@ function Body() {
 
         {/* Image Preview */}
         <div className="flex gap-[0.5rem] justify-end items-start">
-          <div className="relative w-[16rem] grid justify-center place-items-center h-[16rem] ml-auto dark:bg-gray-800 bg-gray-200 rounded-lg overflow-hidden rounded-tr-none">
+          <div className="relative w-[14rem] xs:w-[20rem] md:w-[17rem] h-[10rem] grid justify-center place-items-center ml-auto dark:bg-gray-800 bg-gray-200 rounded-lg overflow-hidden rounded-tr-none">
             <Image
               className="object-cover w-[98%] h-[98%] rounded-md"
               src={imageUrl}

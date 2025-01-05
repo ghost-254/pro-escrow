@@ -13,12 +13,12 @@ export const transactSlice = createSlice({
   name: 'transact',
   initialState,
   reducers: {
-    toggleShowTransactModal: (state) => {
+    toggleTransactModal: (state) => {
       state.open = !state.open // Toggle the state between true and false
     },
   },
 })
 
-export const { toggleShowTransactModal } = transactSlice.actions
+export const { toggleTransactModal } = transactSlice.actions
 
 export default transactSlice.reducer

@@ -54,7 +54,7 @@ export default async function RootLayout({
           >
             <div className="relative flex h-screen  overflow-hidden flex-col">
               <Navigation session={session} />
-              <div className="h-full w-full flex flex-1">
+              <div className="h-full w-full flex">
                 <SidebarVisibility>
                   <div className="h-full w-full overflow-hidden  md:flex-[0.75] text-[0.95rem]">
                     <main>{children}</main>

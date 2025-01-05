@@ -28,7 +28,7 @@ function Header() {
         <div className="flex gap-[0.5rem] items-center">
           <div>
             <button
-              title="Report"
+              title="Engage Support"
               className="flex items-center justify-center p-2 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 rounded-[5px]"
             >
               <Power className="w-4 h-4" />
