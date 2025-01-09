@@ -80,7 +80,7 @@ function Transact() {
       newErrors.amount = 'Amount must be a positive number.'
     if (!selectedPayment) newErrors.payment = 'Please select a payment method.'
     if (!checkTime || Number(checkTime) <= 0) {
-      newErrors.checkTime = 'Check time must be a positive number.'
+      newErrors.checkTime = 'Check time is required.'
     }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -248,6 +248,7 @@ function Transact() {
           </Typography>
           <Input
             type="number"
+            min={0}
             placeholder="Enter check time (hours)"
             value={checkTime}
             onChange={(e) => setcheckTime(e.target.value)}
