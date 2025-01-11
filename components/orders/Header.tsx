@@ -2,8 +2,7 @@
 import React, { useState } from 'react'
 import clsx from 'clsx' // Ensure clsx is installed: npm install clsx
 import Typography from '../ui/typography'
-import { Input } from '../ui/input'
-import { Search } from 'lucide-react'
+import Search from '../search/Search'
 
 interface OrderFilter {
   id: number
@@ -12,7 +11,6 @@ interface OrderFilter {
 
 const Header: React.FC = () => {
   const [selectedFilter, setSelectedFilter] = useState<string | null>('All')
-  const [search, setSearch] = useState<string>('')
 
   const orderFilters: OrderFilter[] = [
     { id: 1, name: 'All' },
@@ -50,16 +48,8 @@ const Header: React.FC = () => {
             ))}
           </div>
         </div>
-        {/* Search by name section */}
         <div className="relative">
-          <Input
-            type="text"
-            placeholder="Search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full"
-          />
-          <Search className="w-4 h-4 absolute right-[1rem] top-[0.6rem]" />
+         <Search/>
         </div>
       </div>
     </div>

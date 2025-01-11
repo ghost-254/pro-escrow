@@ -11,13 +11,16 @@ const buttonVariants = cva(
       variant: {
         default: 'bg-primary text-white shadow hover:bg-primary/90',
         destructive:
-          'bg-destructive text-white shadow-sm hover:bg-destructive/90',
+          'bg-red-500 text-white shadow-sm hover:bg-destructive/90',
         outline:
           'border border-primary text-primary bg-transparent hover:bg-primary/10',
         secondary:
           'bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80',
         ghost: 'hover:bg-accent hover:text-accent-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
+        pending: 'bg-amber-400 text-black hover:bg-amber-500',
+        hoverIcons:
+        'bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 rounded-[5px]', // Hover icons variant
       },
       size: {
         default: 'h-9 px-4 py-2',

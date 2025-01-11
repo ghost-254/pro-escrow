@@ -4,6 +4,7 @@ import Typography from '../ui/typography'
 import { Download, Eye } from 'lucide-react'
 import VideoPlayer from '../ui/videoplayer'
 import Image from 'next/image'
+import { Button } from '../ui/button'
 
 function Body() {
   const videoUrl: string = 'https://youtu.be/Uid0NaifrSM?list=RDUid0NaifrSM'
@@ -78,18 +79,12 @@ function Body() {
               height={300}
             />
             <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-              <button
-                title="View"
-                className="text-white p-2 mr-2 rounded-full bg-black bg-opacity-50 hover:bg-opacity-70"
-              >
+              <Button title="View" variant={'hoverIcons'}>
                 <Eye className="w-4 h-4" />
-              </button>
-              <button
-                title="Download"
-                className="text-white p-2 rounded-full bg-black bg-opacity-50 hover:bg-opacity-70"
-              >
+              </Button>
+              <Button title="Download" variant={'hoverIcons'}>
                 <Download className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
           </div>
         </div>

@@ -13,6 +13,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '../global.redux/stores/store'
 import { toggleShowDetailedChatInfoModal } from '../global.redux/stores/reducers/chat.moreinfo.reducer'
 import DetailedChatInfo from '@/components/groups.chat/DetailedChatInfo'
+import { Button } from '@/components/ui/button'
 
 function Group() {
   // Get the current state of modal visibility from Redux
@@ -41,12 +42,9 @@ function Group() {
           style={{ padding: '1rem 0.5rem' }}
           className="flex w-full items-center gap-[0.5rem]"
         >
-          <button
-            title="Back"
-            className="flex items-center justify-center p-2 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 rounded-[5px]"
-          >
+          <Button title="Back" variant={'hoverIcons'}>
             <ArrowLeft className="w-4 h-4" />
-          </button>
+          </Button>
           <div className="w-full">
             <Search />
           </div>

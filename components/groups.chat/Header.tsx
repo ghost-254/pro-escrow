@@ -1,5 +1,4 @@
 import React from 'react'
-import { Button } from '@/components/ui/button'
 import {
   Power,
   ClipboardList,
@@ -9,6 +8,7 @@ import { useDispatch } from 'react-redux'
 import truncate from '@/lib/truncate'
 import Typography from '../ui/typography'
 import { toggleShowDetailedChatInfoModal } from '@/app/global.redux/stores/reducers/chat.moreinfo.reducer'
+import { Button } from '../ui/button'
 function Header() {
   const dispatch = useDispatch()
 
@@ -27,12 +27,12 @@ function Header() {
       >
         <div className="flex gap-[0.5rem] items-center">
           <div>
-            <button
+            <Button
               title="Engage Support"
-              className="flex items-center justify-center p-2 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 rounded-[5px]"
+              variant={"hoverIcons"}
             >
               <Power className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
           <Typography
             variant="p"
@@ -46,12 +46,12 @@ function Header() {
 
         <div>
           <div className="w-full flex gap-[0.5rem] items-center">
-            <button
+            <Button
               title="Orders"
-              className="flex items-center justify-center p-2 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 rounded-[5px]"
+              variant={"hoverIcons"}
             >
               <ClipboardList className="w-4 h-4" />
-            </button>
+            </Button>
             <Button variant="secondary" className="text-white">
               {/* Release Funds */} Mark Delivered
             </Button>
@@ -62,12 +62,12 @@ function Header() {
             >
               {/* Release Funds */} Cancel
             </Button>
-            {/* <button
+            {/* <Button
               title="Close"
-              className="flex items-center justify-center p-2 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 rounded-[5px]"
+              variant={"hoverIcons"}
             >
               <X className="w-4 h-4" />
-            </button> */}
+            </Button> */}
           </div>
         </div>
       </div>

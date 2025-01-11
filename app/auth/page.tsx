@@ -168,7 +168,7 @@ export default function AuthPage() {
                     <div className="w-full flex flex-col gap-[0.5rem]">
                       <Input
                         id="password"
-                        placeholder={'Password'}
+                        placeholder={showPassword ? 'Password' : '*********'}
                         type={showPassword ? 'text' : 'password'}
                         autoCapitalize="none"
                         disabled={isLoading}
@@ -236,7 +236,7 @@ export default function AuthPage() {
                   <div className="relative">
                     <Input
                       id="password"
-                      placeholder="Password"
+                      placeholder={showPassword ? 'Password' : '*********'}
                       type={showPassword ? 'text' : 'password'}
                       autoCapitalize="none"
                       disabled={isLoading}

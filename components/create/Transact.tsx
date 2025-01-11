@@ -77,7 +77,7 @@ function Transact() {
     }
     if (!title) newErrors.title = 'Transaction title is required.'
     if (!amount || Number(amount) <= 0)
-      newErrors.amount = 'Amount must be a positive number.'
+      newErrors.amount = 'Amountis reuired.'
     if (!selectedPayment) newErrors.payment = 'Please select a payment method.'
     if (!checkTime || Number(checkTime) <= 0) {
       newErrors.checkTime = 'Check time is required.'
@@ -204,11 +204,28 @@ function Transact() {
             <Input
               type="number"
               placeholder="Enter Amount"
+              min={3}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="w-full"
             />
           </div>
+          {amount.length !== 0 && (
+            <div className="flex items-center gap-[0.5rem] px-[0.5rem] py-[0.2rem] bg-[#cbf1de] dark:bg-[#2da966] font-semibold">
+              <Typography
+                variant="span"
+                className="text-[#2da966] dark:text-[#fff] text-[0.8rem]"
+              >
+                Escrow Fee:
+              </Typography>
+              <Typography
+                variant="span"
+                className="text-[#2da966] dark:text-[#fff] text-[0.8rem]"
+              >
+                3$ applies
+              </Typography>
+            </div>
+          )}
           {errors.amount && (
             <Typography variant="p" className="!text-red-500">
               {errors.amount}

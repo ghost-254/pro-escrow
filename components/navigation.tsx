@@ -1,4 +1,4 @@
-"use client"
+'use client'
 import React from 'react'
 import Link from 'next/link'
 import { Session } from '@supabase/supabase-js'
@@ -40,6 +40,11 @@ export function Navigation({ session }: NavigationProps) {
             <Plus className="h-4 w-4" />
             Transact
           </Button>
+        <div className="w-[3rem]">
+            <div className="grid w-[2.5rem] h-[2.5rem] cursor-pointer hover:opacity-[0.75] justify-center place-items-center rounded-full  bg-gray-700 text-white font-semibold">
+              <p>F</p>
+            </div>
+          </div>
           {session ? (
             <Button variant="ghost" size="icon">
               <User className="h-5 w-5" />
