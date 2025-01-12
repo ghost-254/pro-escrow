@@ -6,24 +6,38 @@ import { toggleTransactModal } from '@/app/global.redux/stores/reducers/transact
 import { useDispatch, useSelector } from 'react-redux'
 import Transact from '../create/Transact'
 import Modal from '../ui/modal'
+import AddFunds from '../create/AddFunds'
+import { toggleAddFundsModal } from '@/app/global.redux/stores/reducers/addfunds.reducer'
 // import { RootState } from '@/app/global.redux/stores/store'
 
 export const SidebarVisibility = ({ children }) => {
   const pathname = usePathname()
-  const transact = useSelector((state) => state?.transact.open)
   const dispatch = useDispatch()
+  const transact = useSelector((state) => state?.transact.open)
+  const addfunds = useSelector((state) => state?.addFunds.open)
+
   const handleCloseTransactModal = () => {
     // Dispatch action to close modal
     dispatch(toggleTransactModal())
+  }
+
+  const handleCloseAddFundsModal = () => {
+    // Dispatch action to close modal
+    dispatch(toggleAddFundsModal())
   }
 
   const isSidebarVisible = pathname !== '/groups'
 
   return (
     <div style={{ display: 'flex', height: '100%', width: '100%' }}>
-      {/* Modal to show craete transaction */}
+      {/* Modal to show create transaction */}
       <Modal isOpen={transact} onClose={handleCloseTransactModal}>
         <Transact />
+      </Modal>
+
+      {/* Modal to show add funds */}
+      <Modal width={"50%"} isOpen={addfunds} onClose={handleCloseAddFundsModal}>
+        <AddFunds />
       </Modal>
 
       {/* Sidebar Section */}

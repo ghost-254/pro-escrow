@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import Typography from '../ui/typography'
-import { X } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import { useDispatch } from 'react-redux'
 import { toggleTransactModal } from '@/app/global.redux/stores/reducers/transact.reducer'
 import {
@@ -15,6 +15,7 @@ import {
 import { Input } from '../ui/input'
 import clsx from 'clsx'
 import { Button } from '../ui/button'
+import { toggleAddFundsModal } from '@/app/global.redux/stores/reducers/addfunds.reducer'
 
 function Transact() {
   interface Role {
@@ -64,6 +65,10 @@ function Transact() {
     dispatch(toggleTransactModal())
   }
 
+  const openAddfundsModal = () => {
+    dispatch(toggleAddFundsModal())
+  }
+
   const validateFields = () => {
     const newErrors: Record<string, string> = {}
     if (!selectedRole) newErrors.role = 'Please select a role.'
@@ -76,7 +81,7 @@ function Transact() {
       newErrors.invitee = 'Invalid email or UID format.'
     }
     if (!title) newErrors.title = 'Transaction title is required.'
-    if (!amount || Number(amount) <= 0) newErrors.amount = 'Amountis reuired.'
+    if (!amount || Number(amount) <= 0) newErrors.amount = 'Amount is required.'
     if (!selectedPayment) newErrors.payment = 'Please select a payment method.'
     if (!checkTime || Number(checkTime) <= 0) {
       newErrors.checkTime = 'Check time is required.'
@@ -98,21 +103,48 @@ function Transact() {
   return (
     <div className="w-full">
       <div className="w-full top-0 sticky z-[2] bg-background flex px-[1rem] py-[1rem] justify-between border-b-[1px] border-[#f0f0f0] dark:border-[#202020]">
-        <div>
-          <Typography variant="h1" className="font-bold text-gray-600 dark:text-white">
+        <div className="flex flex-col gap-[0.5rem]">
+          <Typography
+            variant="h1"
+            className="font-bold text-gray-600 dark:text-white"
+          >
             Create Escrow
           </Typography>
           <div className="flex items-center gap-[1rem]">
-            <div className="flex items-center gap-[0.5rem]">
-              <Typography variant="span" className="font-medium text-gray-600 ">
-                Current Bal:
-              </Typography>
-              <Typography variant="span" className="font-bold text-gray-600 ">
-                USD 50
-              </Typography>
+            <div className="flex flex-col gap-[0.3rem]">
+              <div className="flex items-center gap-[0.5rem]">
+                <Typography
+                  variant="span"
+                  className="font-medium text-gray-600 "
+                >
+                  Balance:
+                </Typography>
+                <Typography variant="span" className="font-bold text-gray-600 ">
+                  USD 50.00
+                </Typography>
+              </div>
+              <div className="flex items-center gap-[0.5rem]">
+                <Typography
+                  variant="span"
+                  className="font-medium dark:text-gray-700 text-gray-500 "
+                >
+                  Unavailable:
+                </Typography>
+                <Typography
+                  variant="span"
+                  className="font-bold dark:text-gray-700 text-gray-500"
+                >
+                  USD 20.00
+                </Typography>
+              </div>
             </div>
-            <Button variant={'secondary'} className="text-white">
-              Add Funds
+            <Button
+              onClick={openAddfundsModal}
+              variant={'secondary'}
+              className="text-white flex items-center"
+            >
+              <Plus className="w-3 h-3" />
+              <p>Add Funds</p>
             </Button>
           </div>
         </div>
