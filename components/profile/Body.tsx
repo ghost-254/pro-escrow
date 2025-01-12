@@ -109,13 +109,24 @@ const Body: React.FC = () => {
           <Typography variant="span" className="font-semibold">
             Phone Number
           </Typography>
-          <Input
-            type="tel"
-            placeholder="Enter your phone number"
-            value={formState.phoneNumber}
-            onChange={handleChange('phoneNumber')}
-            className="w-full"
-          />
+          <div className="relative flex items-center">
+            <span className="absolute left-3 text-gray-500">+</span>
+            <Input
+              type="tel"
+              placeholder=" 254712345678 (e.g., Kenya)"
+              value={
+                formState.phoneNumber.startsWith('+')
+                  ? formState.phoneNumber.slice(1)
+                  : formState.phoneNumber
+              }
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9]/g, '') // Only allow numeric input
+                setFormState({ ...formState, phoneNumber: `+${value}` })
+                setErrors({ ...errors, phoneNumber: '' }) // Clear error
+              }}
+              className="w-full pl-8" // Adjust padding to accommodate the "+" prefix
+            />
+          </div>
           {errors.phoneNumber && (
             <Typography
               variant="span"
