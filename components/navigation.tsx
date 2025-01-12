@@ -40,8 +40,8 @@ export function Navigation({ session }: NavigationProps) {
             <Plus className="h-4 w-4" />
             Transact
           </Button>
-        <div className="w-[3rem]">
-            <div className="grid w-[2.5rem] h-[2.5rem] cursor-pointer hover:opacity-[0.75] justify-center place-items-center rounded-full  bg-gray-700 text-white font-semibold">
+        <div className="w-[2.5rem]">
+            <div className="grid w-[2.2rem] h-[2.2rem] cursor-pointer hover:opacity-[0.75] justify-center place-items-center rounded-full  bg-gray-700 text-white font-semibold">
               <p>F</p>
             </div>
           </div>

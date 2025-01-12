@@ -56,10 +56,10 @@ function Header() {
           variant={'secondary'}
           className="text-white"
         >
-          Deposit
+          Add Funds
         </Button>
         <Button onClick={handleWithdrawal} variant={'destructive'}>
-          Withdrawal
+          Withdraw
         </Button>
       </div>
     </div>

@@ -6,9 +6,8 @@ function Profile() {
   return (
     <div>
       <Header />
-      <div className='w-full max-h-screen overflow-y-auto'>
-
-      <Body />
+      <div className="w-full max-h-screen overflow-y-auto">
+        <Body />
       </div>
     </div>
   )

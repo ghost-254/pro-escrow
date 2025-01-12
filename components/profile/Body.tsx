@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import Typography from '../ui/typography'
 import { Input } from '../ui/input'
 import { Button } from '../ui/button'
+import { Copy } from 'lucide-react'
 
 interface FormState {
   fullName: string
@@ -54,8 +55,8 @@ const Body: React.FC = () => {
 
   return (
     <div className="space-y-6 px-[1rem] my-[0.5rem] mb-[15rem]">
-      <div className="flex flex-col gap-[0.5rem]">
-        <Typography variant="h2" className="font-semibold">
+      <div className="flex flex-col gap-[1rem]">
+        <Typography variant="h2" className="dark:text-white font-medium">
           User Details
         </Typography>
         {/* Full Name */}
@@ -71,7 +72,10 @@ const Body: React.FC = () => {
             className="w-full"
           />
           {errors.fullName && (
-            <Typography variant="span" className="text-red-500 text-sm">
+            <Typography
+              variant="span"
+              className="!text-red-500 capitalize text-sm"
+            >
               {errors.fullName}
             </Typography>
           )}
@@ -88,9 +92,13 @@ const Body: React.FC = () => {
             value={formState.email}
             onChange={handleChange('email')}
             className="w-full"
+            readOnly
           />
           {errors.email && (
-            <Typography variant="span" className="text-red-500 text-sm">
+            <Typography
+              variant="span"
+              className="!text-red-500 capitalize text-sm"
+            >
               {errors.email}
             </Typography>
           )}
@@ -109,7 +117,10 @@ const Body: React.FC = () => {
             className="w-full"
           />
           {errors.phoneNumber && (
-            <Typography variant="span" className="text-red-500 text-sm">
+            <Typography
+              variant="span"
+              className="!text-red-500 capitalize text-sm"
+            >
               {errors.phoneNumber}
             </Typography>
           )}
@@ -117,37 +128,121 @@ const Body: React.FC = () => {
       </div>
 
       {/* Payment Methods */}
-      <div className="flex flex-col gap-[0.5rem]">
-        <Typography variant="h2" className="font-semibold">
+      <div className="flex flex-col gap-[1rem]">
+        <Typography variant="h2" className="dark:text-white font-medium">
           Payment Methods
         </Typography>
 
-        {['cryptoBEP20', 'binanceId', 'paypal', 'mpesa'].map((field) => (
-          <div key={field} className="flex flex-col gap-[0.5rem]">
-            <Typography variant="span" className="font-semibold capitalize">
-              {field.replace(/([A-Z])/g, ' $1')} {/* Format camelCase */}
-            </Typography>
+        {/* Crypto BEP20 */}
+        <div className="flex flex-col gap-[0.5rem]">
+          <Typography variant="span" className="font-semibold">
+            Crypto (BEP20)
+          </Typography>
+          <div className="relative">
             <Input
               type="text"
-              placeholder={`Enter ${field}`}
-              value={formState[field as keyof FormState]}
-              onChange={handleChange(field as keyof FormState)}
+              placeholder="Enter Crypto BEP20 address"
+              value={formState.cryptoBEP20}
+              onChange={handleChange('cryptoBEP20')}
               className="w-full"
             />
-            {errors[field as keyof FormState] && (
-              <Typography variant="span" className="text-red-500 text-sm">
-                {errors[field as keyof FormState]}
-              </Typography>
-            )}
+            <Copy className="w-3.5 h-3.5 cursor-pointer hover:opacity-[0.77] absolute top-[0.7rem] right-[0.7rem] dark:text-[gray]" />
           </div>
-        ))}
+          {errors.cryptoBEP20 && (
+            <Typography
+              variant="span"
+              className="!text-red-500 capitalize text-sm"
+            >
+              {errors.cryptoBEP20}
+            </Typography>
+          )}
+        </div>
+
+        {/* Binance ID */}
+        <div className="flex flex-col gap-[0.5rem]">
+          <Typography variant="span" className="font-semibold">
+            Binance ID
+          </Typography>
+          <div className="relative">
+            <Input
+              type="text"
+              placeholder="Enter Binance ID"
+              value={formState.binanceId}
+              onChange={handleChange('binanceId')}
+              className="w-full"
+            />
+            <Copy className="w-3.5 h-3.5 cursor-pointer hover:opacity-[0.77] dark:hover:text-white absolute top-[0.7rem] right-[0.7rem] dark:text-[gray]" />
+          </div>
+          {errors.binanceId && (
+            <Typography
+              variant="span"
+              className="!text-red-500 capitalize text-sm"
+            >
+              {errors.binanceId}
+            </Typography>
+          )}
+        </div>
+
+        {/* PayPal */}
+        <div className="flex flex-col gap-[0.5rem]">
+          <Typography variant="span" className="font-semibold">
+            PayPal
+          </Typography>
+          <div className="relative">
+            <Input
+              type="text"
+              placeholder="Enter PayPal address"
+              value={formState.paypal}
+              onChange={handleChange('paypal')}
+              className="w-full"
+            />
+            <Copy className="w-3.5 h-3.5 cursor-pointer hover:opacity-[0.77] absolute top-[0.7rem] right-[0.7rem] dark:text-[gray]" />
+          </div>
+          {errors.paypal && (
+            <Typography
+              variant="span"
+              className="!text-red-500 capitalize text-sm"
+            >
+              {errors.paypal}
+            </Typography>
+          )}
+        </div>
+
+        {/* Mpesa */}
+        <div className="flex flex-col gap-[0.5rem]">
+          <Typography variant="span" className="font-semibold">
+            Mpesa
+          </Typography>
+          <div className="relative">
+            <Input
+              type="text"
+              placeholder="Enter Mpesa number"
+              value={formState.mpesa}
+              onChange={handleChange('mpesa')}
+              className="w-full"
+            />
+            <Copy className="w-3.5 h-3.5 cursor-pointer hover:opacity-[0.77] absolute top-[0.7rem] right-[0.7rem] dark:text-[gray]" />
+          </div>
+          {errors.mpesa && (
+            <Typography
+              variant="span"
+              className="!text-red-500 capitalize text-sm"
+            >
+              {errors.mpesa}
+            </Typography>
+          )}
+        </div>
       </div>
 
       {/* Save Button */}
-      <div>
+      <div className="flex justify-end items-center gap-[1rem]">
+        <Button onClick={handleSave} variant={'hoverIcons'}>
+          Back
+        </Button>
         <Button
+          className="bg-primary hover:opacity-[0.75] hover:bg-primary text-white"
           onClick={handleSave}
-          className="bg-blue-500 text-white font-semibold px-6 py-2 rounded"
+          variant={'ghost'}
         >
           Save Changes
         </Button>

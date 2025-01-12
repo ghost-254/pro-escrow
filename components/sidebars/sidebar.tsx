@@ -57,7 +57,7 @@ export function Sidebar() {
                 className={cn(
                   'w-full justify-start text-gray-700 dark:text-gray-200',
                   pathname === '/groups'
-                    ? 'bg-gray-600 text-white dark:bg-gray-700 dark:text-white'
+                    ? 'bg-gray-600 text-white dark:bg-gray-700 dark:text-white dark:hover:dark:bg-gray-700 hover:bg-gray-600 hover:text-white'
                     : 'hover:text-gray-800 hover:bg-gray-200 dark:hover:text-gray-300 dark:hover:bg-gray-700'
                 )}
               >
@@ -83,7 +83,7 @@ export function Sidebar() {
               className={cn(
                 'w-full justify-start text-gray-700 dark:text-gray-200',
                 pathname === '/orders'
-                  ? 'bg-gray-600 text-white dark:bg-gray-700 dark:text-white'
+                  ? 'bg-gray-600 text-white dark:bg-gray-700 dark:text-white dark:hover:dark:bg-gray-700 hover:bg-gray-600 hover:text-white'
                   : 'hover:text-gray-800 hover:bg-gray-200 dark:hover:text-gray-300 dark:hover:bg-gray-700'
               )}
             >
@@ -99,7 +99,7 @@ export function Sidebar() {
               className={cn(
                 'w-full justify-start text-gray-700 dark:text-gray-200',
                 pathname === '/history'
-                  ? 'bg-gray-600 text-white dark:bg-gray-700 dark:text-white'
+                  ? 'bg-gray-600 text-white dark:bg-gray-700 dark:text-white dark:hover:dark:bg-gray-700 hover:bg-gray-600 hover:text-white'
                   : 'hover:text-gray-800 hover:bg-gray-200 dark:hover:text-gray-300 dark:hover:bg-gray-700'
               )}
             >
@@ -115,7 +115,7 @@ export function Sidebar() {
               className={cn(
                 'w-full justify-start text-gray-700 dark:text-gray-200',
                 pathname === '/profile'
-                  ? 'bg-gray-600 text-white dark:bg-gray-700 dark:text-white'
+                  ? 'bg-gray-600 text-white dark:bg-gray-700 dark:text-white dark:hover:dark:bg-gray-700 hover:bg-gray-600 hover:text-white'
                   : 'hover:text-gray-800 hover:bg-gray-200 dark:hover:text-gray-300 dark:hover:bg-gray-700'
               )}
             >
@@ -125,20 +125,22 @@ export function Sidebar() {
           </Link>
         </nav>
 
-        <div className="mb-[5rem]">
-          <Button
-            variant="ghost"
-            className={cn(
-              'w-full justify-start text-gray-700 dark:text-gray-200',
-              pathname === '/Support'
-                ? 'bg-gray-600 text-white dark:bg-gray-700 dark:text-white'
-                : 'hover:text-gray-800 hover:bg-gray-200 dark:hover:text-gray-300 dark:hover:bg-gray-700'
-            )}
-          >
-            <Headphones className="mr-2 h-4 w-4" />
-            Support
-          </Button>
-        </div>
+        <Link href="/support">
+          <div className="mb-[5rem]">
+            <Button
+              variant="ghost"
+              className={cn(
+                'w-full justify-start text-gray-700 dark:text-gray-200',
+                pathname === '/support' // Use lowercase for comparison
+                  ? 'bg-gray-600 text-white dark:bg-gray-700 dark:text-white dark:hover:dark:bg-gray-700 hover:bg-gray-600 hover:text-white'
+                  : 'hover:text-gray-800 hover:bg-gray-200 dark:hover:text-gray-300 dark:hover:bg-gray-700'
+              )}
+            >
+              <Headphones className="mr-2 h-4 w-4" />
+              Support
+            </Button>
+          </div>
+        </Link>
       </div>
     </div>
   )

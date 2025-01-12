@@ -76,8 +76,7 @@ function Transact() {
       newErrors.invitee = 'Invalid email or UID format.'
     }
     if (!title) newErrors.title = 'Transaction title is required.'
-    if (!amount || Number(amount) <= 0)
-      newErrors.amount = 'Amountis reuired.'
+    if (!amount || Number(amount) <= 0) newErrors.amount = 'Amountis reuired.'
     if (!selectedPayment) newErrors.payment = 'Please select a payment method.'
     if (!checkTime || Number(checkTime) <= 0) {
       newErrors.checkTime = 'Check time is required.'
@@ -99,16 +98,27 @@ function Transact() {
   return (
     <div className="w-full">
       <div className="w-full top-0 sticky z-[2] bg-background flex px-[1rem] py-[1rem] justify-between border-b-[1px] border-[#f0f0f0] dark:border-[#202020]">
-        <Typography variant="h2" className="font-bold text-gray-600 ">
-          Create Escrow
-        </Typography>
-        <button
-          onClick={handleCloseModal}
-          title="Close"
-          className="flex items-center justify-center p-2 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 rounded-[5px]"
-        >
+        <div>
+          <Typography variant="h1" className="font-bold text-gray-600 dark:text-white">
+            Create Escrow
+          </Typography>
+          <div className="flex items-center gap-[1rem]">
+            <div className="flex items-center gap-[0.5rem]">
+              <Typography variant="span" className="font-medium text-gray-600 ">
+                Current Bal:
+              </Typography>
+              <Typography variant="span" className="font-bold text-gray-600 ">
+                USD 50
+              </Typography>
+            </div>
+            <Button variant={'secondary'} className="text-white">
+              Add Funds
+            </Button>
+          </div>
+        </div>
+        <Button onClick={handleCloseModal} title="Close" variant={'hoverIcons'}>
           <X className="w-4 h-4" />
-        </button>
+        </Button>
       </div>
       <div className="w-full relative flex flex-col gap-[1rem] px-[1rem] py-[1rem]">
         <div className="w-full flex flex-col gap-[0.5rem]">
