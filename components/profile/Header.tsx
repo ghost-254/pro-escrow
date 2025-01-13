@@ -12,23 +12,29 @@ import {
 } from '@/components/ui/select'
 import { Plus } from 'lucide-react'
 import { useDispatch } from 'react-redux'
-import { toggleAddFundsModal } from '@/app/global.redux/stores/reducers/addfunds.reducer'
+import {
+  resetAddFundsModal,
+  setAddFundsType,
+  toggleAddFundsModal,
+} from '@/app/global.redux/stores/reducers/addfunds.reducer'
 
 function Header() {
   const dispatch = useDispatch()
 
-  const openAddfundsModal = () => {
+  const handleAddFunds = () => {
+    dispatch(resetAddFundsModal())
+    dispatch(toggleAddFundsModal())
+  }
+
+  const handleWithdrawal = () => {
+    dispatch(setAddFundsType('withdraw'))
     dispatch(toggleAddFundsModal())
   }
 
   const balance: number = 1250.75 // Example balance; replace with dynamic value
 
   const handleDeposit = () => {
-    openAddfundsModal()
-  }
-
-  const handleWithdrawal = () => {
-    alert('Withdrawal clicked')
+    handleAddFunds()
   }
 
   return (

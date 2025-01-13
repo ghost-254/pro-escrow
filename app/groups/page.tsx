@@ -29,7 +29,7 @@ function Group() {
   return (
     <div className="w-full flex relative">
       {/* Modal to show DetailedChatInfo */}
-      <Modal isOpen={open} onClose={handleCloseModal}>
+      <Modal top={'10%'} left='5%' isOpen={open} onClose={handleCloseModal}>
         <DetailedChatInfo />
       </Modal>
 

@@ -15,7 +15,7 @@ import {
 import { Input } from '../ui/input'
 import clsx from 'clsx'
 import { Button } from '../ui/button'
-import { toggleAddFundsModal } from '@/app/global.redux/stores/reducers/addfunds.reducer'
+import { resetAddFundsModal, toggleAddFundsModal } from '@/app/global.redux/stores/reducers/addfunds.reducer'
 
 function Transact() {
   interface Role {
@@ -66,6 +66,8 @@ function Transact() {
   }
 
   const openAddfundsModal = () => {
+    dispatch(resetAddFundsModal())
+    dispatch(toggleTransactModal())
     dispatch(toggleAddFundsModal())
   }
 

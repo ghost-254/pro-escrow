@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Plus, Bell, User, Headphones, History, Users } from 'lucide-react'
+import { Plus, Bell, User, Headphones, History, Users, CreditCard } from 'lucide-react'
 
 import { success } from '../ui/color'
 import { useDispatch } from 'react-redux'
@@ -75,6 +75,21 @@ export function Sidebar() {
                 New
               </p>
             </div>
+          </Link>
+          {/* Transactions Button */}
+          <Link href="/transactions">
+            <Button
+              variant="ghost"
+              className={cn(
+                'w-full justify-start text-gray-700 dark:text-gray-200',
+                pathname === '/transactions'
+                  ? 'bg-gray-600 text-white dark:bg-gray-700 dark:text-white dark:hover:dark:bg-gray-700 hover:bg-gray-600 hover:text-white'
+                  : 'hover:text-gray-800 hover:bg-gray-200 dark:hover:text-gray-300 dark:hover:bg-gray-700'
+              )}
+            >
+              <CreditCard className="mr-2 h-4 w-4" />
+              Transactions
+            </Button>
           </Link>
           {/* Orders Button */}
           <Link href="/orders">

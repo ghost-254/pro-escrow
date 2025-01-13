@@ -20,9 +20,9 @@ const Body: React.FC = () => {
   const [formState, setFormState] = useState<FormState>({
     fullName: 'John Doe',
     email: 'johndoe@example.com',
-    phoneNumber: '+1234567890',
+    phoneNumber: '254712345678',
     cryptoBEP20: '0xABCDEF1234567890',
-    binanceId: '12345678',
+    binanceId: '254712345678',
     paypal: 'john.doe@paypal.com',
     mpesa: '254700123456',
   })
