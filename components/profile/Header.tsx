@@ -3,13 +3,6 @@
 import React from 'react'
 import { Button } from '@/components/ui/button'
 import Typography from '../ui/typography'
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from '@/components/ui/select'
 import { Plus } from 'lucide-react'
 import { useDispatch } from 'react-redux'
 import {
@@ -39,51 +32,30 @@ function Header() {
 
   return (
     <div className="flex items-center justify-between px-[1rem] py-[0.5rem] bg-background/95 border-b">
-      <div className="flex flex-col gap-[0.5rem]">
-        <div className="flex items-center gap-[0.5rem]">
+      <div className="flex flex-col gap-[0.3rem]">
+        {/* Balance Section */}
+        <div className="flex items-center space-x-2">
           <Typography variant="p" className="font-semibold">
-            Funding:
+            Balance:
           </Typography>
-          {/* Payment Method Dropdown */}
-          <div className="flex items-center space-x-4">
-            <Select defaultValue="binance">
-              <SelectTrigger className="w-[7rem] font-bold">
-                <SelectValue placeholder="Select" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="paypal">PayPal</SelectItem>
-                <SelectItem value="binance">Binance</SelectItem>
-                <SelectItem value="mpesa">MPesa</SelectItem>
-                <SelectItem value="crypto">Crypto</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Typography
+            variant="h1"
+            className="text-[1.1rem] font-bold dark:text-white"
+          >{`USD ${balance.toFixed(2)}`}</Typography>
         </div>
-        <div className="flex flex-col">
-          {/* Balance Section */}
-          <div className="flex items-center space-x-2">
-            <Typography variant="p" className="font-semibold">
-              Balance:
-            </Typography>
-            <Typography
-              variant="h1"
-              className="text-[1.1rem] font-bold dark:text-white"
-            >{`USD ${balance.toFixed(2)}`}</Typography>
-          </div>
-          <div className="flex items-center gap-[0.5rem]">
-            <Typography
-              variant="span"
-              className="font-medium dark:text-gray-700 text-gray-500 "
-            >
-              Unavailable:
-            </Typography>
-            <Typography
-              variant="span"
-              className="font-bold dark:text-gray-700 text-gray-500"
-            >
-              USD 20.00
-            </Typography>
-          </div>
+        <div className="flex items-center gap-[0.5rem]">
+          <Typography
+            variant="span"
+            className="font-medium dark:text-gray-700 text-gray-500 "
+          >
+            Unavailable:
+          </Typography>
+          <Typography
+            variant="span"
+            className="font-bold dark:text-gray-700 text-gray-500"
+          >
+            USD 20.00
+          </Typography>
         </div>
       </div>
 

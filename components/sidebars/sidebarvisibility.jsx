@@ -31,7 +31,7 @@ export const SidebarVisibility = ({ children }) => {
   return (
     <div style={{ display: 'flex', height: '100%', width: '100%' }}>
       {/* Modal to show create transaction */}
-      <Modal isOpen={transact} onClose={handleCloseTransactModal}>
+        <Modal left='5%' isOpen={transact} onClose={handleCloseTransactModal}>
         <Transact />
       </Modal>
 
