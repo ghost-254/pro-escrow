@@ -46,13 +46,13 @@ function Header() {
         <div className="flex items-center gap-[0.5rem]">
           <Typography
             variant="span"
-            className="font-medium dark:text-gray-700 text-gray-500 "
+            className="font-medium dark:text-gray-500 text-gray-500 "
           >
             Unavailable:
           </Typography>
           <Typography
             variant="span"
-            className="font-bold dark:text-gray-700 text-gray-500"
+            className="font-bold dark:text-gray-500 text-gray-500"
           >
             USD 20.00
           </Typography>

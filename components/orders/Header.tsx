@@ -23,7 +23,7 @@ const Header: React.FC = () => {
     <div className="w-full flex flex-col gap-[1rem]">
       {/* Header Section */}
       <div className="w-full flex justify-between items-center p-[1rem]">
-        <Typography variant="h1" className="font-bold">
+        <Typography variant="h1" className="font-bold dark:text-white">
           Orders
         </Typography>
         <Typography variant="p">Jan 23 23:06</Typography>

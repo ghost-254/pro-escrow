@@ -148,7 +148,7 @@ const Orders: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-[0.5rem]">
                   <Typography variant="p" className="font-medium">
-                    Type:
+                    Role:
                   </Typography>
                   <Typography variant="p">Buyer</Typography>
                 </div>

@@ -6,7 +6,10 @@ function Header() {
   return (
     <div className="flex items-center justify-between p-[1rem]">
       <div className="flex items-center gap-[1rem]">
-        <Typography variant="h1" className="font-bold whitespace-nowrap">
+        <Typography
+          variant="h1"
+          className="font-bold whitespace-nowrap dark:text-white"
+        >
           Notifications
         </Typography>
         <div className="relative">
