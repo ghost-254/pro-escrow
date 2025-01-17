@@ -52,11 +52,26 @@ export default async function RootLayout({
             enableSystem={false}
             storageKey="escrow-theme"
           >
-            <div className="relative flex h-screen  overflow-hidden flex-col">
+            <div
+              style={{
+                position: 'relative',
+                width: '100%',
+                height: '100vh',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
               <Navigation session={session} />
-              <div className="h-full w-full flex">
+              <div style={{ height: '100%', width: '100%' }}>
                 <SidebarVisibility>
-                  <div className="h-full w-full overflow-hidden  md:flex-[0.75] text-[0.95rem]">
+                  <div
+                    style={{
+                      height: '100%',
+                      width: '100%',
+                      overflow: 'hidden',
+                    }}
+                  >
                     <main>{children}</main>
                   </div>
                 </SidebarVisibility>

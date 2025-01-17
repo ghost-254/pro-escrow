@@ -22,16 +22,18 @@ const Header: React.FC = () => {
   return (
     <div className="w-full flex flex-col gap-[1rem]">
       {/* Header Section */}
-      <div className="w-full flex justify-between items-center p-[1rem]">
-        <Typography variant="h1" className="font-bold dark:text-white">
-          Orders
-        </Typography>
-        <Typography variant="p">Jan 23 23:06</Typography>
+      <div className="hidden lg:block ">
+        <div className="w-full flex justify-between items-center lg:p-[1rem] p-[0.5rem]">
+          <Typography variant="h1" className="font-bold dark:text-white">
+            Orders
+          </Typography>
+          <Typography variant="p" className='font-bold'>Jan 23 23:06</Typography>
+        </div>
       </div>
 
-      <div className="flex items-center justify-between px-[1rem]">
+      <div className="w-full bg-red-600 flex flex-col md:flex-row items-center justify-between lg:px-[1rem] px-[0.5rem]">
         {/* Filter Section */}
-        <div className="filter-section">
+        <div className="mt-[0.5rem] lg:mt-0">
           <div className="flex items-center gap-[0.5rem]">
             {orderFilters.map((filter) => (
               <div
@@ -48,8 +50,8 @@ const Header: React.FC = () => {
             ))}
           </div>
         </div>
-        <div className="relative">
-         <Search/>
+        <div className="relative mt-[0.5rem] lg:mt-0">
+          <Search />
         </div>
       </div>
     </div>

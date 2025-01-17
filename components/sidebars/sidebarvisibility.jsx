@@ -8,7 +8,6 @@ import Transact from '../create/Transact'
 import Modal from '../ui/modal'
 import AddFunds from '../create/AddFunds'
 import { toggleAddFundsModal } from '@/app/global.redux/stores/reducers/addfunds.reducer'
-// import { RootState } from '@/app/global.redux/stores/store'
 
 export const SidebarVisibility = ({ children }) => {
   const pathname = usePathname()
@@ -17,29 +16,27 @@ export const SidebarVisibility = ({ children }) => {
   const addfunds = useSelector((state) => state?.addFunds.open)
 
   const handleCloseTransactModal = () => {
-    // Dispatch action to close modal
     dispatch(toggleTransactModal())
   }
 
   const handleCloseAddFundsModal = () => {
-    // Dispatch action to close modal
     dispatch(toggleAddFundsModal())
   }
 
   const isSidebarVisible = pathname !== '/groups'
 
   return (
-    <div style={{ display: 'flex', height: '100%', width: '100%' }}>
+    <div className="h-full w-full flex">
       {/* Modal to show create transaction */}
-        <Modal left='5%' isOpen={transact} onClose={handleCloseTransactModal}>
+      <Modal left="5%" isOpen={transact} onClose={handleCloseTransactModal}>
         <Transact />
       </Modal>
 
       {/* Modal to show add funds */}
       <Modal
-        width={'50%'}
-        left={'23%'}
-        top={'10%'}
+        width="50%"
+        left="23%"
+        top="10%"
         isOpen={addfunds}
         onClose={handleCloseAddFundsModal}
       >
@@ -48,16 +45,22 @@ export const SidebarVisibility = ({ children }) => {
 
       {/* Sidebar Section */}
       {isSidebarVisible && (
-        <div style={{ flex: 0.25, height: '100%' }}>
+        <div
+          className="hidden md:block bg-gray-100 h-full"
+          style={{
+            width: '25%', // Sidebar takes 25% width on larger screens
+          }}
+        >
           <Sidebar />
         </div>
       )}
 
       {/* Main Content Section */}
       <div
+        className="h-full"
         style={{
-          flex: isSidebarVisible ? 0.75 : 1,
-          height: '100%',
+          width: isSidebarVisible ? '75%' : '100%', // Sidebar takes 75% if visible, otherwise full width
+          flexGrow: 1,
         }}
       >
         {children}

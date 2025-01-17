@@ -20,14 +20,14 @@ export function Navigation({ session }: NavigationProps) {
   }
 
   return (
-    <header className="sticky top-0 z-[5] w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center">
-        <Link href="/" className="flex items-center space-x-2">
+    <header className="sticky top-0 z-[5] w-full border-b bg-background/95 backdrop-blur">
+      <div className="flex h-14 items-center px-[0.5rem] lg:px-[1rem]">
+        <Link href="/" className="flex items-center">
           <span className="font-bold text-gray-700 dark:text-gray-200">
             Labscro
           </span>
         </Link>
-        <div className="ml-auto flex items-center space-x-2">
+        <div className="ml-auto flex items-center gap-[0.5rem]">
           <div className="w-[3rem]">
             <ThemeToggle />
           </div>
@@ -40,7 +40,7 @@ export function Navigation({ session }: NavigationProps) {
             <Plus className="h-4 w-4" />
             Transact
           </Button>
-        <div className="w-[2.5rem]">
+          <div className="w-[2.5rem]">
             <div className="grid w-[2.2rem] h-[2.2rem] cursor-pointer hover:opacity-[0.75] justify-center place-items-center rounded-full  bg-gray-700 text-white font-semibold">
               <p>F</p>
             </div>
