@@ -31,9 +31,9 @@ const Header: React.FC = () => {
         </div>
       </div>
 
-      <div className="w-full bg-red-600 flex flex-col md:flex-row items-center justify-between lg:px-[1rem] px-[0.5rem]">
+      <div className="w-full flex flex-col md:flex-row items-center gap-[0.5rem] lg:gap-0 justify-between lg:px-[1rem] px-[0.5rem]">
         {/* Filter Section */}
-        <div className="mt-[0.5rem] lg:mt-0">
+        <div className="w-full overflow-x-auto mt-[0.7rem] lg:mt-0">
           <div className="flex items-center gap-[0.5rem]">
             {orderFilters.map((filter) => (
               <div
@@ -50,7 +50,7 @@ const Header: React.FC = () => {
             ))}
           </div>
         </div>
-        <div className="relative mt-[0.5rem] lg:mt-0">
+        <div className="w-full lg:w-[13rem] md:w-[17rem] relative mt-[0.5rem] lg:mt-0">
           <Search />
         </div>
       </div>

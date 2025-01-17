@@ -63,8 +63,8 @@ const Orders: React.FC = () => {
   }
 
   return (
-    <div className="w-full max-h-screen mt-2 overflow-y-auto pb-[13rem]">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-[1rem] p-[1rem]">
+    <div className="w-full max-h-screen mt-2 overflow-y-auto pb-[17rem] md:pb-[13rem]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-[1rem] p-[0.5rem] lg:p-[1rem]">
         {currentOrders?.map((order) => (
           <div
             key={order.id}
@@ -178,7 +178,7 @@ const Orders: React.FC = () => {
       </div>
 
       {/* Pagination */}
-      <div className="flex justify-center mt-6">
+      <div className="flex justify-center lg:mt-6">
         <Pagination>
           <PaginationContent>
             {/* Previous Button */}

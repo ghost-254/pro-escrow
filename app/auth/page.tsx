@@ -110,8 +110,8 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="w-full h-full container flex flex-col items-center mt-[5rem]">
-      <Card className="md:w-[400px] w-full">
+    <div className="w-full h-full px-[0.5rem] lg:px-[1rem] flex flex-col items-center mt-[2rem] md:mt-[5rem]">
+      <Card className="lg:w-[400px] md:w-[550px] w-full">
         <CardHeader>
           <CardTitle>
             {activeTab === 'signin'
@@ -233,7 +233,7 @@ export default function AuthPage() {
                       {emailError}
                     </p>
                   )}
-                  <div className="relative">
+                  <div className="relative flex flex-col gap-[0.5rem]">
                     <Input
                       id="password"
                       placeholder={showPassword ? 'Password' : '*********'}

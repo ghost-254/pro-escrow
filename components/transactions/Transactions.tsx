@@ -71,20 +71,20 @@ const Transactions: React.FC = () => {
   const columns = [
     columnHelper.accessor('id', {
       header: 'Transaction ID',
-      cell: (info) => <Typography variant="p">{info.getValue()}</Typography>,
+      cell: (info) => <Typography variant="p" style={{whiteSpace:"nowrap"}}>{info.getValue()}</Typography>,
     }),
     columnHelper.accessor('type', {
       header: 'Type',
-      cell: (info) => <Typography variant="p">{info.getValue()}</Typography>,
+      cell: (info) => <Typography variant="p" style={{whiteSpace:"nowrap"}}>{info.getValue()}</Typography>,
     }),
     columnHelper.accessor('method', {
       header: 'Method',
-      cell: (info) => <Typography variant="p">{info.getValue()}</Typography>,
+      cell: (info) => <Typography variant="p" style={{whiteSpace:"nowrap"}}>{info.getValue()}</Typography>,
     }),
     columnHelper.accessor('amount', {
       header: 'Amount',
       cell: (info) => (
-        <Typography variant="p" className="font-bold">
+        <Typography variant="p" style={{whiteSpace:"nowrap"}} className="font-bold">
           USD{info.getValue().toFixed(2)}
         </Typography>
       ),
@@ -98,19 +98,19 @@ const Transactions: React.FC = () => {
         // Only show the charge for withdrawals
         if (transactionType === 'Withdrawal') {
           return (
-            <Typography variant="p" className="font-bold">
+            <Typography variant="p" style={{whiteSpace:"nowrap"}} className="font-bold">
               {charge !== undefined ? `USD${charge.toFixed(2)}` : 'N/A'}
             </Typography>
           )
         }
         // Return a blank cell or "N/A" for deposits
-        return <Typography variant="p">N/A</Typography>
+        return <Typography variant="p" style={{whiteSpace:"nowrap"}}>N/A</Typography>
       },
     }),
 
     columnHelper.accessor('date', {
       header: 'Date',
-      cell: (info) => <Typography variant="p">{info.getValue()}</Typography>,
+      cell: (info) => <Typography variant="p" style={{whiteSpace:"nowrap"}}>{info.getValue()}</Typography>,
     }),
     columnHelper.accessor('status', {
       header: 'Status',
@@ -149,8 +149,8 @@ const Transactions: React.FC = () => {
   })
 
   return (
-    <div className="p-4 flex flex-col gap-[1rem]">
-      <div className="flex justify-between items-center">
+    <div className="w-full lg:p-4 p-[0.5rem] flex flex-col gap-[1rem]">
+      <div className="w-full flex flex-col md:flex-row gap-[0.5rem] md:justify-between lg:items-center">
         <Typography variant="h1" className="font-bold dark:text-white">
           Transactions
         </Typography>
@@ -159,11 +159,11 @@ const Transactions: React.FC = () => {
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="min-w-full border">
+        <table className="min-w-full border whitespace-nowrap">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
+                {headerGroup?.headers?.map((header) => (
                   <th
                     key={header.id}
                     className="px-4 py-2 text-left text-sm font-medium"
@@ -194,7 +194,7 @@ const Transactions: React.FC = () => {
         </table>
       </div>
       {/* Pagination Controls */}
-      <div className="mt-4 flex items-center gap-[1rem] ml-auto">
+      <div className="mt-4 flex items-center gap-[1rem] ml:ml-auto justify-center">
         <button
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}

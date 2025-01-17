@@ -4,7 +4,7 @@ import React from 'react'
 
 function page() {
   return (
-    <div className='w-full bg-blue-600 p-0 m-0'>
+    <div className="w-full">
       <Header />
       <Orders />
     </div>

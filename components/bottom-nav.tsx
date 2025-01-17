@@ -15,7 +15,7 @@ export function BottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed bottom-0 left-0 z-50 w-full border-t bg-background md:hidden">
+    <nav className="fixed bottom-0 left-0 z-50 w-full border-t bg-background lg:hidden">
       <div className="grid h-16 grid-cols-5">
         <Link
           href="/orders"

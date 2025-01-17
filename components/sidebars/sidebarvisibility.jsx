@@ -46,7 +46,7 @@ export const SidebarVisibility = ({ children }) => {
       {/* Sidebar Section */}
       {isSidebarVisible && (
         <div
-          className="hidden md:block bg-gray-100 h-full"
+          className="hidden lg:block bg-gray-100 h-full"
           style={{
             width: '25%', // Sidebar takes 25% width on larger screens
           }}
