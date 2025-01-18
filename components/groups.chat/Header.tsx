@@ -32,6 +32,7 @@ function Header({ handleBackToChats }: HeaderProps) {
             onClick={handleBackToChats}
             title="Back"
             variant={'hoverIcons'}
+            className='lg:hidden'
           >
             <ArrowLeft className="w-3 h-3" />
           </Button>
