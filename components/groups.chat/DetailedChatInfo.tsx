@@ -38,7 +38,7 @@ function DetailedChatInfo() {
   return (
     <div className="w-full flex flex-col gap-2">
       <div className="p-2 md:p-4 flex sticky top-0 bg-background z-[2] dark:bg-gray-900 justify-between items-center border-b">
-        <Typography className="max-w-[90%] font-semibold text-sm" variant="h2">
+        <Typography className="max-w-[90%] font-semibold" variant="p">
           {text}
         </Typography>
         <button
