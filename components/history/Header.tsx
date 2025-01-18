@@ -18,7 +18,7 @@ function Header() {
       </div>
       <Typography
         variant="p"
-        className="absolute top-[0.7rem] right-[0.5rem] md:top-[1rem] lg:relative font-medium cursor-pointer hover:opacity-[0.75]"
+        className="absolute top-[0.7rem] right-[0.5rem] md:top-[1rem] lg:right-[1rem] font-medium cursor-pointer hover:opacity-[0.75]"
       >
         Mark All as Read
       </Typography>
