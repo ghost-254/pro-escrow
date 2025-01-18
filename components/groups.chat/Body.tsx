@@ -12,13 +12,13 @@ function Body() {
     'https://avatars.mds.yandex.net/i?id=e0e7d8d201b683692e58e03677a27dce7311ad1f-10595607-images-thumbs&n=13'
 
   return (
-    <div className="w-full pt-[5.5rem] pb-[9.5rem] px-[1rem] flex flex-col gap-[1rem] break-all">
+    <div className="w-full pt-[5.5rem] pb-[9.5rem] px-[0.5rem] lg:px-[1rem] flex flex-col gap-[1rem] break-all">
       {/* Welcome Message */}
       <div className="flex flex-col text-[0.77rem]">
         <Typography
           variant="p"
           style={{ padding: '0.3rem 0.5rem' }}
-          className="max-w-[70%] text-sm rounded-md bg-[#f1d9d9] dark:bg-[#ff6969] self-center dark:text-white text-[#ff4f4f]"
+          className="lg:max-w-[70%] mt-[0.5rem] lg:mt-0 w-full text-sm rounded-md bg-[#f1d9d9] dark:bg-[#ff6969] self-center dark:text-white text-[#ff4f4f]"
         >
           This chat is monitored to ensure secure communication while
           maintaining anonymity for all parties.
@@ -70,7 +70,7 @@ function Body() {
 
         {/* Image Preview */}
         <div className="flex gap-[0.5rem] justify-end items-start">
-          <div className="relative w-[14rem] xs:w-[20rem] md:w-[17rem] h-[10rem] grid justify-center place-items-center ml-auto dark:bg-gray-800 bg-gray-200 rounded-lg overflow-hidden rounded-tr-none">
+          <div className="relative w-[17rem] xs:w-[20rem] md:w-[17rem] h-[10rem] grid justify-center place-items-center ml-auto dark:bg-gray-800 bg-gray-200 rounded-lg overflow-hidden rounded-tr-none">
             <Image
               className="object-cover w-[98%] h-[98%] rounded-md"
               src={imageUrl}

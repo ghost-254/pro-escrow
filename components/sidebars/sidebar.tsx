@@ -62,7 +62,7 @@ export function Sidebar() {
                 )}
               >
                 <Users className="mr-2 h-4 w-4" />
-                Groups
+                Chats
               </Button>
               <p
                 style={{

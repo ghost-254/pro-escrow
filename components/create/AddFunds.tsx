@@ -48,7 +48,7 @@ const AddFunds: React.FC = () => {
 
   return (
     <div className="w-full h-full bg-transparent border flex flex-col items-center">
-      <div className="w-full p-[1rem] rounded-lg shadow-md space-y-6">
+      <div className="w-full p-[0.5rem] lg:p-[1rem] rounded-lg shadow-md space-y-6">
         <div className="flex items-center justify-between">
           <Typography
             variant="h1"

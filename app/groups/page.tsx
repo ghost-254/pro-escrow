@@ -1,5 +1,5 @@
 'use client'
-import React from 'react'
+import React, { useState } from 'react'
 import {
   folders,
   //  chats
@@ -16,32 +16,34 @@ import DetailedChatInfo from '@/components/groups.chat/DetailedChatInfo'
 import { Button } from '@/components/ui/button'
 
 function Group() {
-  // Get the current state of modal visibility from Redux
+  const [selectedChat, setSelectedChat] = useState<string | null>(null)
   const open = useSelector((state: RootState) => state?.chatInfo.open)
-
   const dispatch = useDispatch()
 
   const handleCloseModal = () => {
-    // Dispatch action to close modal
     dispatch(toggleShowDetailedChatInfoModal())
   }
 
+  const handleChatSelect = (chatId: string) => {
+    setSelectedChat(chatId)
+  }
+
+  const handleBackToChats = () => {
+    setSelectedChat(null)
+  }
+
   return (
-    <div className="w-full flex relative">
-      {/* Modal to show DetailedChatInfo */}
-      <Modal top={'10%'} left='5%' isOpen={open} onClose={handleCloseModal}>
+    <div className="w-full flex relative h-screen">
+      <Modal top={'10%'} left="5%" isOpen={open} onClose={handleCloseModal}>
         <DetailedChatInfo />
       </Modal>
 
-      {/* Left section: Folders and Chats */}
       <div
-        style={{ width: '35%' }}
-        className="flex flex-col h-screen border-r-[1px] border-[#e7e7e7] dark:border-[#202020]"
+        className={`w-full flex flex-col border-r ${
+          selectedChat ? 'hidden' : 'flex'
+        } lg:flex lg:w-1/3`}
       >
-        <div
-          style={{ padding: '1rem 0.5rem' }}
-          className="flex w-full items-center gap-[0.5rem]"
-        >
+        <div className="flex items-center gap-2 lg:p-4 p-[0.5rem]">
           <Button title="Back" variant={'hoverIcons'}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
@@ -49,24 +51,30 @@ function Group() {
             <Search />
           </div>
         </div>
-        <div className="flex flex-col max-h-screen overflow-y-auto pb-[5rem]">
+        <div className="flex flex-col max-h-screen overflow-y-auto pb-20">
           {folders.map((folder) => (
-            <div
-              className="border-b-[1px] border-[#dddddd] dark:border-[#202020]"
-              style={{
-                width: '100%',
-              }}
-              key={folder?.folderId}
-            >
-              <AllChats data={folder} />
+            <div className="border-b" key={folder?.folderId}>
+              <AllChats
+                data={folder}
+                onSelectChat={handleChatSelect} // Pass handler to child component
+              />
             </div>
           ))}
         </div>
       </div>
 
-      {/* Right section: Chat View */}
-      <div style={{ width: '65%' }}>
-        <Chat />
+      <div
+        className={` flex flex-col w-full ${
+          selectedChat ? 'flex' : 'hidden'
+        } lg:flex lg:w-2/3`}
+      >
+        {/* <div className="p-4 border-b flex items-center gap-2">
+          <Button onClick={handleBackToChats} title="Back to Chats">
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <span className="text-lg font-semibold">Chat</span>
+        </div> */}
+        <Chat handleBackToChats={handleBackToChats}/>
       </div>
     </div>
   )

@@ -1,4 +1,4 @@
-import { LogOut, X } from 'lucide-react'
+import { ClipboardList, LogOut, X } from 'lucide-react'
 import React from 'react'
 import Typography from '../ui/typography'
 import { Button } from '../ui/button'
@@ -10,9 +10,9 @@ function DetailedChatInfo() {
   const dispatch = useDispatch()
 
   const handleCloseModal = () => {
-    // Dispatch action to close modal
     dispatch(toggleShowDetailedChatInfoModal())
   }
+
   const text: string =
     'Buying Chat Home Base, Text Factory and Screening Buying Chat Home Base, Text Factory and Screening'
 
@@ -22,7 +22,6 @@ function DetailedChatInfo() {
     joined: string
   }
 
-  // Define a list of members
   const members: MEMBERS[] = [
     {
       name: 'Kelvin************',
@@ -37,34 +36,45 @@ function DetailedChatInfo() {
   ]
 
   return (
-    <div className="w-full flex flex-col gap-[0.5rem]">
-      <div
-        style={{ padding: '0.5rem 1rem' }}
-        className="w-full flex sticky top-0 bg-background z-[2] dark:bg-gray-900 justify-between items-center border-b-[1px] border-[#ccc] dark:border-[#202020]"
-      >
-        <Typography className="max-w-[90%] font-semibold" variant="h2">
+    <div className="w-full flex flex-col gap-2">
+      <div className="p-2 md:p-4 flex sticky top-0 bg-background z-[2] dark:bg-gray-900 justify-between items-center border-b">
+        <Typography className="max-w-[90%] font-semibold text-sm" variant="h2">
           {text}
         </Typography>
         <button
           onClick={handleCloseModal}
           title="Close"
-          className="flex items-center justify-center p-2 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 rounded-[5px]"
+          className="flex items-center justify-center p-2 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-800 rounded-md"
         >
-          <X className="w-4 h-4" />
+          <X className="w-5 h-5" />
         </button>
       </div>
 
-      <div className="w-full px-[1rem] border-b-[1px] pb-[0.7rem] border-[#ccc] dark:border-[#202020]">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-[0.5rem]">
-            <Typography variant="p">Amount Deposited:</Typography>
-            <Typography variant="h1" className="font-bold">
+      <div className="lg:hidden w-full border-b pb-4 px-2 flex flex-wrap gap-2">
+        <Button title="Orders" variant={'hoverIcons'}>
+          <ClipboardList className="w-4 h-4" />
+        </Button>
+        <Button variant="secondary" className="text-white flex-1">
+          Mark Delivered
+        </Button>
+        <Button variant="destructive" className="text-white flex-1">
+          Cancel
+        </Button>
+      </div>
+
+      <div className="w-full lg:px-4 px-[0.5rem] border-b pb-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+          <div className="flex items-center gap-2">
+            <Typography variant="p" className="text-sm">
+              Amount Deposited:
+            </Typography>
+            <Typography variant="h1" className="font-bold text-lg">
               USD 1000
             </Typography>
           </div>
           <Button
             variant="destructive"
-            className="flex items-center text-white dark:bg-red-500 cursor-pointer hover:opacity-[0.87]"
+            className="mt-2 md:mt-0 flex items-center text-white dark:bg-red-500 hover:opacity-90"
           >
             <LogOut className="w-4 h-4" />
             Leave group
@@ -72,44 +82,56 @@ function DetailedChatInfo() {
         </div>
       </div>
 
-      <div className="w-full px-[0.5rem] border-b-[1px] pb-[0.7rem] border-[#ccc] dark:border-[#202020]">
-        <div className="flex items-center gap-[0.5rem]">
-          {/* show red if exceeded time for release */}
+      <div className="w-full px-2 md:px-4 border-b pb-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-2">
           <Button variant="secondary" className="text-white cursor-default">
             00h:15m:30s
           </Button>
-          <div className="flex items-center gap-[0.5rem]">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
             <Typography variant="p">Created:</Typography>
-            <Typography variant="span" className='font-medium'>22-05-2025 12:00 PM</Typography>
+            <Typography variant="span" className="font-medium">
+              22-05-2025 12:00 PM
+            </Typography>
             <Typography variant="span">by</Typography>
-            <Typography variant="span" className='font-medium'>Alice*******</Typography>
+            <Typography variant="span" className="font-medium">
+              Alice*******
+            </Typography>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-[1rem] py-[0.5rem] px-[1rem]">
-        <Typography variant="h1" className="font-bold">
-          Members({members.length})
+      <div className="flex flex-col gap-4 py-2 px-[0.5rem] lg:px-4">
+        <Typography variant="h1" className="font-bold text-lg">
+          Members ({members.length})
         </Typography>
-        <div className="flex flex-col gap-[1rem]">
+        <div className="w-full grid gap-4">
           {members.map((member, index) => (
             <div
               key={index}
-              className="flex items-center justify-between border-b-[1px] border-[#dddddd] dark:border-[#202020] pb-[0.5rem]"
+              className="flex flex-col gap-[0.5rem] md:flex-row justify-between items-start md:items-center border-b pb-2"
             >
-              <div className="flex items-center gap-[0.5rem]">
+              <div className=" flex items-center gap-2">
                 <div
-                  style={{ backgroundColor: getColorForLetter(member.name[0]) }}
-                  className="w-[2rem] h-[2rem] grid place-items-center justify-center rounded-full font-semibold text-white"
+                  style={{
+                    backgroundColor: getColorForLetter(member.name[0]),
+                  }}
+                  className="w-8 h-8 grid place-items-center rounded-full font-semibold text-white"
                 >
                   {member.name[0]}
                 </div>
                 <div>
-                  <Typography variant="p">{member.name}</Typography>
-                  <Typography variant="p">{member.role}</Typography>
+                  <Typography
+                    variant="p"
+                    className="text-sm md:text-base truncate"
+                  >
+                    {member.name}
+                  </Typography>
+                  <Typography variant="p" className="text-xs md:text-sm">
+                    {member.role}
+                  </Typography>
                 </div>
               </div>
-              <div className="text-end">
+              <div className="flex lg:flex-col gap-[0.5rem] text-sm md:text-base text-right">
                 <Typography variant="p" className="font-medium">
                   Joined
                 </Typography>

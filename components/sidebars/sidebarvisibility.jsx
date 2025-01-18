@@ -34,11 +34,10 @@ export const SidebarVisibility = ({ children }) => {
 
       {/* Modal to show add funds */}
       <Modal
-        width="50%"
-        left="23%"
-        top="10%"
+        left="5%"
         isOpen={addfunds}
         onClose={handleCloseAddFundsModal}
+        className="w-[90%] sm:w-[80%] md:w-[60%] lg:w-[50%] mx-auto"
       >
         <AddFunds />
       </Modal>

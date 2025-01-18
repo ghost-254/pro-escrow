@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState } from 'react'
 // import { getColorForLetter } from "@/utils/utils";
 import { error, grey, success } from '../ui/color'
@@ -37,50 +38,44 @@ type AllChatsProps = {
   data: Folder // Use Folder type here
 }
 
-function AllChats({ data }: AllChatsProps) {
-  // State to track the selected chat ID
+function AllChats({
+  data,
+  onSelectChat,
+}: AllChatsProps & { onSelectChat: (chatId: string) => void }) {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
-
-  // Function to handle chat click and set selected chat ID
-  const handleChatClick = (chatId: string) => {
-    setSelectedChatId(chatId)
-  }
   const dispatch = useDispatch()
 
+  const handleChatClick = (chatId: string) => {
+    setSelectedChatId(chatId)
+    onSelectChat(chatId) // Invoke the handler when a chat is selected
+  }
+
   const handleOpenModal = () => {
-    // Dispatch action to close modal
     dispatch(toggleShowDetailedChatInfoModal())
   }
 
   return (
     <div
       className="w-full flex flex-col gap-[1rem] dark:text-gray-50 cursor-pointer"
-      style={{
-        color: `${grey[600]}`, // Default text color
-      }}
+      style={{ color: `${grey[600]}` }}
     >
       <div className="w-full">
-        {/* Map through the chats in the folder */}
         {data?.chats?.map((chat) => (
           <div
             key={chat.chatId}
-            style={{
-              padding: '0.3rem 1rem',
-            }}
+            style={{ padding: '0.3rem 1rem' }}
             className={cn(
-              'w-full flex flex-col gap-[1rem] active:bg-gray-300 dark:active:bg-gray-800', // Removed hover effect from the base class
+              'w-full flex flex-col gap-[1rem] active:bg-gray-300 dark:active:bg-gray-800',
               {
-                // Conditionally apply styles based on whether the chat is selected
                 'bg-gray-200 text-gray-800 dark:bg-gray-800 dark:text-white':
                   selectedChatId === chat?.chatId,
                 'bg-transparent text-gray-700 dark:text-gray-200':
                   selectedChatId !== chat.chatId,
-                // Apply hover effect only if the chat is not selected
                 'hover:bg-gray-100 dark:hover:bg-gray-900':
                   selectedChatId !== chat.chatId,
               }
             )}
-            onClick={() => handleChatClick(chat.chatId)} // Handle click to set selected chat
+            onClick={() => handleChatClick(chat.chatId)}
           >
             <div className="w-full flex justify-between">
               <div className="w-auto flex flex-col gap-[0.3rem]">
@@ -93,39 +88,30 @@ function AllChats({ data }: AllChatsProps) {
                     variant="p"
                   >
                     {data.type}
-                  </Typography>{' '}
+                  </Typography>
                   <div
                     title="View"
-                    style={{
-                      color: `${grey[400]}`,
-                    }}
+                    style={{ color: `${grey[400]}` }}
                     className="flex items-center hover:opacity-[0.6]"
                     onClick={handleOpenModal}
                   >
                     <Users className="mr-2 h-4 w-4" />
                     <Typography variant="p" className="font-bold">
-                      3
+                      {data.members.count}
                     </Typography>
                   </div>
                 </div>
                 <Typography variant="span" className="dark:text-[#c4c4c4]">
-                  {chat.startTime} {/* Display timestamp */}
+                  {chat.startTime}
                 </Typography>
               </div>
-              <div className="flex items-center ">
-                <div
-                  style={{
-                    color: chat.color,
-                    // fontWeight: "bold",
-                    fontSize: '0.85rem',
-                  }}
-                >
-                  {chat.status} {/* Display countdown */}
+              <div className="flex items-center">
+                <div style={{ color: chat.color, fontSize: '0.85rem' }}>
+                  {chat.status}
                 </div>
                 <ChevronRight className="h-4 w-4" />
               </div>
             </div>
-
             <div className="w-full flex items-center gap-[0.5rem]">
               <Typography
                 variant="span"
@@ -138,7 +124,7 @@ function AllChats({ data }: AllChatsProps) {
                 variant="p"
                 className="font-bold whitespace-nowrap ml-auto"
               >
-                {chat.currency} {chat.amount}{' '}
+                {chat.currency} {chat.amount}
               </Typography>
             </div>
           </div>

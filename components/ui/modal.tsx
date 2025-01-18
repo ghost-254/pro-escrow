@@ -7,9 +7,10 @@ interface ModalProps {
   onClose: () => void
   children: ReactNode
   width?: string // Optional prop for width
-  left?: string // Optional prop for width
-  top?: string // Optional prop for width
+  left?: string // Optional prop for positioning
+  top?: string // Optional prop for positioning
   maxHeight?: string // Optional prop for height
+  className?: string // Optional className prop for custom styles
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -18,22 +19,23 @@ const Modal: React.FC<ModalProps> = ({
   children,
   width = '90%',
   left = '5rem',
-  top= '5%', // Centers the modal vertically
+  top = '5%', // Centers the modal vertically
   maxHeight = '90vh',
+  className = '', // Default empty className
 }) => {
   return (
     <Dialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed animate__animated animate__fadeIn z-[5] inset-0 bg-black bg-opacity-[0.6] dark:bg-opacity-[0.8]" />
         <Dialog.Content
-          className="fixed animate__animated animate__fadeInDownBig overflow-y-auto z-[7] bg-white dark:bg-gray-900 rounded-md shadow-lg"
+          className={`fixed animate__animated animate__fadeInDownBig overflow-y-auto z-[7] bg-white dark:bg-gray-900 rounded-md shadow-lg ${className}`}
           style={{
             width,
             maxHeight,
-            top, // Centers the modal vertically
-            left, // Centers the modal horizontally
+            top,
+            left,
             transform: 'translate(-50%, -50%)',
-          }} // Dynamically set width and height
+          }}
         >
           <Dialog.DialogTitle></Dialog.DialogTitle>
           {/* Modal body will be dynamic */}

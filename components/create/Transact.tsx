@@ -15,7 +15,10 @@ import {
 import { Input } from '../ui/input'
 import clsx from 'clsx'
 import { Button } from '../ui/button'
-import { resetAddFundsModal, toggleAddFundsModal } from '@/app/global.redux/stores/reducers/addfunds.reducer'
+import {
+  resetAddFundsModal,
+  toggleAddFundsModal,
+} from '@/app/global.redux/stores/reducers/addfunds.reducer'
 
 function Transact() {
   interface Role {
@@ -104,16 +107,16 @@ function Transact() {
 
   return (
     <div className="w-full">
-      <div className="w-full top-0 sticky z-[2] bg-background flex px-[1rem] py-[1rem] justify-between border-b-[1px] border-[#f0f0f0] dark:border-[#202020]">
-        <div className="flex flex-col gap-[0.5rem]">
+      <div className="w-full top-0 sticky z-[2] bg-background flex px-[0.5rem] py-[0.5rem] md:px-[1rem] md:py-[1rem] justify-between border-b dark:border-[#202020]">
+        <div className="w-full flex flex-col gap-[0.5rem]">
           <Typography
             variant="h1"
             className="font-bold text-gray-600 dark:text-white"
           >
             Create Escrow
           </Typography>
-          <div className="flex items-center gap-[1rem]">
-            <div className="flex flex-col gap-[0.3rem]">
+          <div className="w-full flex flex-col md:flex-row md:items-center gap-[0.5rem] md:gap-[1rem]">
+            <div className="w-full flex flex-col gap-[0.3rem]">
               <div className="flex items-center gap-[0.5rem]">
                 <Typography
                   variant="span"
@@ -125,25 +128,27 @@ function Transact() {
                   USD 50.00
                 </Typography>
               </div>
-              <div className="flex items-center gap-[0.5rem]">
-                <Typography
-                  variant="span"
-                  className="font-medium dark:text-gray-500 text-gray-500 "
-                >
-                  Unavailable:
-                </Typography>
-                <Typography
-                  variant="span"
-                  className="font-bold dark:text-gray-500 text-gray-500"
-                >
-                  USD 20.00
-                </Typography>
+              <div className='hidden md:block'>
+                <div className="flex items-center gap-[0.5rem]">
+                  <Typography
+                    variant="span"
+                    className="font-medium dark:text-gray-500 text-gray-500 "
+                  >
+                    Unavailable:
+                  </Typography>
+                  <Typography
+                    variant="span"
+                    className="font-bold dark:text-gray-500 text-gray-500"
+                  >
+                    USD 20.00
+                  </Typography>
+                </div>
               </div>
             </div>
             <Button
               onClick={openAddfundsModal}
               variant={'secondary'}
-              className="text-white flex items-center"
+              className="text-white w-full md:w-auto flex items-center"
             >
               <Plus className="w-3 h-3" />
               <p>Add Funds</p>
@@ -154,7 +159,7 @@ function Transact() {
           <X className="w-4 h-4" />
         </Button>
       </div>
-      <div className="w-full relative flex flex-col gap-[1rem] px-[1rem] py-[1rem]">
+      <div className="w-full relative flex flex-col md:gap-[1rem] gap-[0.5rem] px-[0.5rem] py-[0.5rem] md:px-[1rem] md:py-[1rem]">
         <div className="w-full flex flex-col gap-[0.5rem]">
           <Typography variant="p" className="font-bold text-gray-600 ">
             My Role
@@ -281,7 +286,7 @@ function Transact() {
           <Typography variant="p" className="font-bold text-gray-600 ">
             Select Payment
           </Typography>
-          <div className="flex items-center gap-[1rem]">
+          <div className="flex items-center md:gap-[1rem] gap-[0.5rem] flex-wrap">
             {payments.map((payment) => (
               <div
                 key={payment.id}
@@ -322,7 +327,7 @@ function Transact() {
           )}
         </div>
 
-        <div className="flex items-center gap-[1rem] py-[0.5rem] ml-auto">
+        <div className="w-full flex flex-col-reverse md:flex-row md:items-center gap-[0.5rem] md:gap-[1rem] py-[0.5rem] ml-auto ">
           <Button
             variant="outline"
             onClick={handleCloseModal}

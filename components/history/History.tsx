@@ -34,20 +34,20 @@ const History: React.FC = () => {
   ]
 
   const handleAccept = (id: number) => {
-    alert('Invitation Accepted!'+id)
+    alert('Invitation Accepted!' + id)
   }
 
   const handleDecline = (id: number) => {
-    alert('Invitation Declined!'+id)
+    alert('Invitation Declined!' + id)
   }
 
   return (
-    <div className="p-[1rem]">
+    <div className="lg:p-[1rem] p-[0.5rem]">
       <div className="flex flex-col gap-[1rem]">
         {historyEntries.map((entry) => (
           <div
             key={entry.id}
-            className="p-[1rem] flex flex-col gap-[0.3rem] border rounded-md shadow-sm bg-background hover:shadow-md transition"
+            className="md:p-[1rem] p-[0.5rem] flex flex-col gap-[0.3rem] border rounded-md shadow-sm bg-background hover:shadow-md transition"
           >
             <Typography variant="span">{entry.timestamp}</Typography>
             <Typography variant="p" className="dark:text-white">
@@ -55,7 +55,7 @@ const History: React.FC = () => {
             </Typography>
 
             {entry.type === 'invite' && (
-              <div className="mt-2 flex space-x-2">
+              <div className="mt-2 w-full flex flex-col md:flex-row md:items-center gap-[0.5rem]">
                 <Button
                   variant={'default'}
                   onClick={() => handleAccept(entry.id)}

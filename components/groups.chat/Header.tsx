@@ -1,36 +1,42 @@
 import React from 'react'
-import {
-  Power,
-  ClipboardList,
-  //  X
-} from 'lucide-react'
+import { Power, ClipboardList } from 'lucide-react'
 import { useDispatch } from 'react-redux'
 import truncate from '@/lib/truncate'
 import Typography from '../ui/typography'
 import { toggleShowDetailedChatInfoModal } from '@/app/global.redux/stores/reducers/chat.moreinfo.reducer'
 import { Button } from '../ui/button'
-function Header() {
+import { ArrowLeft } from 'lucide-react'
+
+type HeaderProps = {
+  handleBackToChats: () => void
+}
+
+function Header({ handleBackToChats }: HeaderProps) {
   const dispatch = useDispatch()
 
   const handleOpenModal = () => {
-    // Dispatch action to close modal
     dispatch(toggleShowDetailedChatInfoModal())
   }
 
   const text: string =
-    'USD 1000 -Buying Chat Home Base, Text Factory and Screening Buying Chat Home Base, Text Factory and Screening'
+    'USD 1000 - Buying Chat Home Base, Text Factory and Screening Buying Chat Home Base, Text Factory and Screening'
+
   return (
-    <div className="w-full relative bg-background z-[2] border-b-[1px] border-[#f0f0f0] dark:border-[#202020]">
+    <div className="w-full relative bg-background z-[2] border-b">
       <div
         style={{ padding: ' 0.5rem' }}
-        className="w-full flex justify-between"
+        className="w-full flex-col lg:flex-row gap-[0.5rem] lg:gap-0 flex lg:justify-between"
       >
         <div className="flex gap-[0.5rem] items-center">
+          <Button
+            onClick={handleBackToChats}
+            title="Back"
+            variant={'hoverIcons'}
+          >
+            <ArrowLeft className="w-3 h-3" />
+          </Button>
           <div>
-            <Button
-              title="Engage Support"
-              variant={"hoverIcons"}
-            >
+            <Button title="Engage Support" variant={'hoverIcons'}>
               <Power className="w-4 h-4" />
             </Button>
           </div>
@@ -44,30 +50,20 @@ function Header() {
           </Typography>
         </div>
 
-        <div>
+        <div className="hidden lg:block">
           <div className="w-full flex gap-[0.5rem] items-center">
-            <Button
-              title="Orders"
-              variant={"hoverIcons"}
-            >
+            <Button title="Orders" variant={'hoverIcons'}>
               <ClipboardList className="w-4 h-4" />
             </Button>
             <Button variant="secondary" className="text-white">
-              {/* Release Funds */} Mark Delivered
+              Mark Delivered
             </Button>
-
             <Button
               variant="destructive"
               className="text-white dark:bg-red-500"
             >
-              {/* Release Funds */} Cancel
+              Cancel
             </Button>
-            {/* <Button
-              title="Close"
-              variant={"hoverIcons"}
-            >
-              <X className="w-4 h-4" />
-            </Button> */}
           </div>
         </div>
       </div>

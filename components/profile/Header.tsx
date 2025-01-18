@@ -31,7 +31,7 @@ function Header() {
   }
 
   return (
-    <div className="flex items-center justify-between px-[1rem] py-[0.5rem] bg-background/95 border-b">
+    <div className="flex-col md:flex-row md:items-center gap-[0.5rem] flex md:justify-between px-[0.5rem] lg:px-[1rem] py-[0.5rem] bg-background/95 border-b">
       <div className="flex flex-col gap-[0.3rem]">
         {/* Balance Section */}
         <div className="flex items-center space-x-2">

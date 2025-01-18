@@ -54,8 +54,8 @@ const Body: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 px-[1rem] my-[0.5rem] mb-[15rem]">
-      <div className="flex flex-col gap-[1rem]">
+    <div className="space-y-6 lg:px-[1rem] px-[0.5rem] my-[0.5rem] mb-[20rem] md:mb-[15rem]">
+      <div className="flex flex-col lg:gap-[1rem] gap-[0.5rem]">
         <Typography variant="h2" className="dark:text-white font-medium">
           User Details
         </Typography>
@@ -139,7 +139,7 @@ const Body: React.FC = () => {
       </div>
 
       {/* Payment Methods */}
-      <div className="flex flex-col gap-[1rem]">
+      <div className="flex flex-col lg:gap-[1rem] gap-[0.5rem]">
         <Typography variant="h2" className="dark:text-white font-medium">
           Payment Methods
         </Typography>
@@ -246,7 +246,7 @@ const Body: React.FC = () => {
       </div>
 
       {/* Save Button */}
-      <div className="flex justify-end items-center gap-[1rem]">
+      <div className="flex flex-col-reverse md:flex-row md:items-center md:justify-end md:gap-[1rem] gap-[0.5rem]">
         <Button onClick={handleSave} variant={'hoverIcons'}>
           Back
         </Button>
