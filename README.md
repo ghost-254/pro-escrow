@@ -9,7 +9,7 @@
 Xcrow is a modern, secure escrow platform built with Next.js, React, and Firebase. It provides a trusted environment for buyers and sellers to conduct transactions with confidence.
 
 <p align="center">
-  <img src="/public/xcrow-logo.png" alt="Xcrow Logo" width="200"/>
+  <img src="/public/logo11xx.png" alt="Xcrow Logo" width="200"/>
 </p>
 
 ## 🚀 Features
