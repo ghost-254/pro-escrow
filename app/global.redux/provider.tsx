@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from 'react'
 import { Provider } from 'react-redux'
-import { store } from './stores/store'
+import { store } from '@/lib/stores/store'
 
 // Define props type for the Providers component
 interface ProvidersProps {

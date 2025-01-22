@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import Typography from '../ui/typography'
 import { Plus, X } from 'lucide-react'
 import { useDispatch } from 'react-redux'
-import { toggleTransactModal } from '@/app/global.redux/stores/reducers/transact.reducer'
+import { toggleTransactModal } from '@/lib/slices/transact.reducer'
 import {
   Select,
   SelectTrigger,
@@ -18,7 +18,7 @@ import { Button } from '../ui/button'
 import {
   resetAddFundsModal,
   toggleAddFundsModal,
-} from '@/app/global.redux/stores/reducers/addfunds.reducer'
+} from '@/lib/slices/addfunds.reducer'
 
 function Transact() {
   interface Role {

@@ -1,4 +1,4 @@
-import { getColorForLetter } from '@/utils/utils'
+import { getColorForLetter } from '../../utils/utils'
 import React from 'react'
 import Typography from '../ui/typography'
 import { Download, Eye } from 'lucide-react'

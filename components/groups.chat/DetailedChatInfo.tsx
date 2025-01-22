@@ -2,9 +2,9 @@ import { ClipboardList, LogOut, X } from 'lucide-react'
 import React from 'react'
 import Typography from '../ui/typography'
 import { Button } from '../ui/button'
-import { getColorForLetter } from '@/utils/utils'
+import { getColorForLetter } from '../../utils/utils'
 import { useDispatch } from 'react-redux'
-import { toggleShowDetailedChatInfoModal } from '@/app/global.redux/stores/reducers/chat.moreinfo.reducer'
+import { toggleShowDetailedChatInfoModal } from '@/lib/slices/chat.moreinfo.reducer'
 
 function DetailedChatInfo() {
   const dispatch = useDispatch()

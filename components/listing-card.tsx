@@ -1,4 +1,3 @@
-import React from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -18,13 +17,10 @@ interface ListingCardProps {
     description: string
   }
   paymentMethods: string[]
+  onInteraction: () => void
 }
 
-export function ListingCard({
-  seller,
-  service,
-  paymentMethods,
-}: ListingCardProps) {
+export function ListingCard({ seller, service, paymentMethods, onInteraction }: ListingCardProps) {
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-0">
@@ -43,9 +39,7 @@ export function ListingCard({
                   <span>{seller.rating}</span>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground">
-                {service.description}
-              </p>
+              <p className="text-sm text-muted-foreground">{service.description}</p>
             </div>
           </div>
           <div className="flex items-center justify-between">
@@ -61,7 +55,7 @@ export function ListingCard({
                 ))}
               </div>
             </div>
-            <Button className="bg-emerald-600 hover:bg-emerald-700">
+            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={onInteraction}>
               Purchase
             </Button>
           </div>
@@ -70,3 +64,4 @@ export function ListingCard({
     </Card>
   )
 }
+

@@ -3,7 +3,7 @@ import Typography from '../ui/typography'
 import { Input } from '../ui/input'
 import { Button } from '../ui/button'
 import { useDispatch, useSelector } from 'react-redux'
-import { toggleAddFundsModal } from '@/app/global.redux/stores/reducers/addfunds.reducer'
+import { toggleAddFundsModal } from '@/lib/slices/addfunds.reducer'
 import { X } from 'lucide-react'
 import {
   Select,
@@ -12,7 +12,7 @@ import {
   SelectItem,
   SelectValue,
 } from '../ui/select' // Import your custom Select components
-import { RootState } from '@/app/global.redux/stores/store'
+import { RootState } from '@/lib/stores/store'
 
 const AddFunds: React.FC = () => {
   const [amount, setAmount] = useState<string>('')

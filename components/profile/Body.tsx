@@ -1,261 +1,537 @@
-'use client'
+"use client"
 
-import React, { useState } from 'react'
-import Typography from '../ui/typography'
-import { Input } from '../ui/input'
-import { Button } from '../ui/button'
-import { Copy } from 'lucide-react'
+import React, { useState, useEffect, FC } from "react"
+import Image from "next/image"
+import { useSelector } from "react-redux"
+import { doc, getDoc, updateDoc } from "firebase/firestore"
+import {
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+  deleteObject
+} from "firebase/storage"
+
+import { db, storage } from "@/lib/firebaseConfig"
+import { RootState } from "@/lib/stores/store"
+import { useToast } from "../../hooks/use-toast"
+
+// UI & Components
+import Typography from "@/components/ui/typography"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+
+// Icons
+import { SiBinance, SiPaypal } from "react-icons/si"
+import { FaMobileAlt } from "react-icons/fa"
+import { Copy, Check, Trash2 } from "lucide-react"
+
+// Example small country code list
+const COUNTRIES = [
+  { name: "Kenya", code: "+254" },
+  { name: "United States", code: "+1" },
+  { name: "Nigeria", code: "+234" },
+  { name: "United Kingdom", code: "+44" }
+]
 
 interface FormState {
+  firstName: string
+  lastName: string
   fullName: string
   email: string
+  countryCode: string
   phoneNumber: string
   cryptoBEP20: string
   binanceId: string
   paypal: string
   mpesa: string
+  photoURL?: string
 }
 
-const Body: React.FC = () => {
+const Body: FC = () => {
+  const user = useSelector((state: RootState) => state.auth.user)
   const [formState, setFormState] = useState<FormState>({
-    fullName: 'John Doe',
-    email: 'johndoe@example.com',
-    phoneNumber: '254712345678',
-    cryptoBEP20: '0xABCDEF1234567890',
-    binanceId: '254712345678',
-    paypal: 'john.doe@paypal.com',
-    mpesa: '254700123456',
+    firstName: "",
+    lastName: "",
+    fullName: "",
+    email: "",
+    countryCode: "",
+    phoneNumber: "",
+    cryptoBEP20: "",
+    binanceId: "",
+    paypal: "",
+    mpesa: "",
+    photoURL: ""
   })
-
+  const [file, setFile] = useState<File | null>(null)
   const [errors, setErrors] = useState<Partial<FormState>>({})
+  const [loading, setLoading] = useState(false)
+  const [copiedField, setCopiedField] = useState<string>("")
+  const { toast } = useToast()
+
+  useEffect(() => {
+    if (!user?.uid) return
+    setLoading(true)
+    const fetchProfile = async () => {
+      try {
+        const userDoc = doc(db, "users", user.uid)
+        const snapshot = await getDoc(userDoc)
+        if (snapshot.exists()) {
+          const data = snapshot.data() as Partial<FormState>
+          setFormState((prev) => ({
+            ...prev,
+            ...data,
+            email: data.email ?? user.email ?? ""
+          }))
+        } else {
+          setFormState((prev) => ({
+            ...prev,
+            email: user.email || ""
+          }))
+        }
+      } catch {
+        toast({
+          description: "Failed to fetch user data.",
+          variant: "destructive"
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProfile()
+  }, [user, toast])
+
+  useEffect(() => {
+    if (formState.firstName || formState.lastName) {
+      setFormState((prev) => ({
+        ...prev,
+        fullName: `${prev.firstName} ${prev.lastName}`.trim()
+      }))
+    }
+  }, [formState.firstName, formState.lastName])
 
   const handleChange =
-    (field: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    (field: keyof FormState) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
       setFormState({ ...formState, [field]: e.target.value })
-      setErrors({ ...errors, [field]: '' }) // Clear errors on input change
+      setErrors({ ...errors, [field]: "" })
     }
 
-  const handleSave = () => {
-    // Validate inputs
-    const newErrors: Partial<FormState> = {}
-    Object.keys(formState).forEach((key) => {
-      const field = key as keyof FormState
-      if (!formState[field].trim()) {
-        newErrors[field] = `${field} cannot be empty`
-      }
-    })
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0]
+    if (selectedFile) {
+      setFile(selectedFile)
+    }
+  }
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors)
+  const handleDeletePhoto = async () => {
+    if (!user?.uid || !formState.photoURL) return
+    try {
+      setLoading(true)
+      const storageRef = ref(storage, `profilePics/${user.uid}`)
+      await deleteObject(storageRef)
+      await updateDoc(doc(db, "users", user.uid), { photoURL: "" })
+      setFormState((prev) => ({ ...prev, photoURL: "" }))
+      toast({
+        description: "Profile picture successfully deleted.",
+        variant: "default"
+      })
+    } catch {
+      toast({
+        description: "Failed to delete the profile picture.",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSave = async () => {
+    if (
+      !formState.firstName.trim() ||
+      !formState.lastName.trim() ||
+      !formState.email.trim() ||
+      !formState.countryCode ||
+      !formState.phoneNumber.trim()
+    ) {
+      setErrors({
+        firstName: !formState.firstName.trim()
+          ? "First name cannot be empty"
+          : "",
+        lastName: !formState.lastName.trim()
+          ? "Last name cannot be empty"
+          : "",
+        email: !formState.email.trim() ? "Email cannot be empty" : "",
+        countryCode: !formState.countryCode ? "Select a country code" : "",
+        phoneNumber: !formState.phoneNumber.trim()
+          ? "Phone number cannot be empty"
+          : ""
+      })
       return
     }
+    if (!user?.uid) {
+      toast({
+        description: "No user is logged in.",
+        variant: "destructive"
+      })
+      return
+    }
+    setLoading(true)
+    try {
+      let photoURL = formState.photoURL || ""
+      if (file) {
+        const storageRef = ref(storage, `profilePics/${user.uid}`)
+        const uploadTask = uploadBytesResumable(storageRef, file)
+        await new Promise<void>((resolve, reject) => {
+          uploadTask.on(
+            "state_changed",
+            null,
+            (err) => reject(err),
+            async () => {
+              photoURL = await getDownloadURL(uploadTask.snapshot.ref)
+              resolve()
+            }
+          )
+        })
+      }
+      await updateDoc(doc(db, "users", user.uid), {
+        ...formState,
+        firstName: formState.firstName.trim(),
+        lastName: formState.lastName.trim(),
+        email: formState.email.trim(),
+        countryCode: formState.countryCode,
+        phoneNumber: formState.phoneNumber.trim(),
+        cryptoBEP20: formState.cryptoBEP20.trim(),
+        binanceId: formState.binanceId.trim(),
+        paypal: formState.paypal.trim(),
+        mpesa: formState.mpesa.trim(),
+        photoURL
+      })
+      toast({
+        description: "Profile updated successfully.",
+        variant: "default"
+      })
+      setFormState((prev) => ({ ...prev, photoURL }))
+      setFile(null)
+    } catch {
+      toast({
+        description: "Failed to update profile.",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
-    alert('Changes have been saved!')
+  const handleCopy = async (field: keyof FormState) => {
+    try {
+      await navigator.clipboard.writeText(formState[field] || "")
+      setCopiedField(field)
+      setTimeout(() => setCopiedField(""), 2000)
+    } catch {
+      toast({
+        description: "Failed to copy to clipboard.",
+        variant: "destructive"
+      })
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="p-4">
+        <Typography variant="p">Loading profile...</Typography>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-6 lg:px-[1rem] px-[0.5rem] my-[0.5rem] mb-[20rem] md:mb-[15rem]">
-      <div className="flex flex-col lg:gap-[1rem] gap-[0.5rem]">
-        <Typography variant="h2" className="dark:text-white font-medium">
-          User Details
-        </Typography>
-        {/* Full Name */}
-        <div className="flex flex-col gap-[0.5rem]">
-          <Typography variant="span" className="font-semibold">
-            Full Name
-          </Typography>
-          <Input
-            type="text"
-            placeholder="Enter your full name"
-            value={formState.fullName}
-            onChange={handleChange('fullName')}
-            className="w-full"
-          />
-          {errors.fullName && (
-            <Typography
-              variant="span"
-              className="!text-red-500 capitalize text-sm"
-            >
-              {errors.fullName}
+    <div className="space-y-6 px-2 md:px-4 my-4 mb-32">
+      {/* USER DETAILS CARD */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="dark:text-white font-medium">User Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Profile Picture Upload */}
+          <div className="mb-4">
+            <Typography variant="span" className="font-semibold">
+              Profile Picture
             </Typography>
-          )}
-        </div>
-
-        {/* Email */}
-        <div className="flex flex-col gap-[0.5rem]">
-          <Typography variant="span" className="font-semibold">
-            Email Address
-          </Typography>
-          <Input
-            type="email"
-            placeholder="Enter your email address"
-            value={formState.email}
-            onChange={handleChange('email')}
-            className="w-full"
-            readOnly
-          />
-          {errors.email && (
-            <Typography
-              variant="span"
-              className="!text-red-500 capitalize text-sm"
-            >
-              {errors.email}
-            </Typography>
-          )}
-        </div>
-
-        {/* Phone Number */}
-        <div className="flex flex-col gap-[0.5rem]">
-          <Typography variant="span" className="font-semibold">
-            Phone Number
-          </Typography>
-          <div className="relative flex items-center">
-            <span className="absolute left-3 text-gray-500">+</span>
             <Input
-              type="tel"
-              placeholder=" 254712345678 (e.g., Kenya)"
-              value={
-                formState.phoneNumber.startsWith('+')
-                  ? formState.phoneNumber.slice(1)
-                  : formState.phoneNumber
-              }
-              onChange={(e) => {
-                const value = e.target.value.replace(/[^0-9]/g, '') // Only allow numeric input
-                setFormState({ ...formState, phoneNumber: `+${value}` })
-                setErrors({ ...errors, phoneNumber: '' }) // Clear error
-              }}
-              className="w-full pl-8" // Adjust padding to accommodate the "+" prefix
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="mt-1"
             />
+
+            {/* Current photo preview */}
+            {formState.photoURL && (
+              <div className="flex items-center gap-2 mt-2">
+                <Image
+                  src={formState.photoURL}
+                  alt="Profile"
+                  width={80}
+                  height={80}
+                  className="object-cover rounded-full border"
+                />
+                <Trash2
+                  onClick={handleDeletePhoto}
+                  className="text-red-500 cursor-pointer hover:text-red-700"
+                />
+              </div>
+            )}
           </div>
-          {errors.phoneNumber && (
-            <Typography
-              variant="span"
-              className="!text-red-500 capitalize text-sm"
-            >
-              {errors.phoneNumber}
+
+          {/* Full Name (read-only) */}
+          <div className="flex flex-col gap-2 mb-4">
+            <Typography variant="span" className="font-semibold">
+              Full Name (auto)
             </Typography>
-          )}
-        </div>
-      </div>
-
-      {/* Payment Methods */}
-      <div className="flex flex-col lg:gap-[1rem] gap-[0.5rem]">
-        <Typography variant="h2" className="dark:text-white font-medium">
-          Payment Methods
-        </Typography>
-
-        {/* Crypto BEP20 */}
-        <div className="flex flex-col gap-[0.5rem]">
-          <Typography variant="span" className="font-semibold">
-            Crypto (BEP20)
-          </Typography>
-          <div className="relative">
             <Input
               type="text"
-              placeholder="Enter Crypto BEP20 address"
-              value={formState.cryptoBEP20}
-              onChange={handleChange('cryptoBEP20')}
+              value={formState.fullName}
               className="w-full"
+              readOnly
             />
-            <Copy className="w-3.5 h-3.5 cursor-pointer hover:opacity-[0.77] absolute top-[0.7rem] right-[0.7rem] dark:text-[gray]" />
           </div>
-          {errors.cryptoBEP20 && (
-            <Typography
-              variant="span"
-              className="!text-red-500 capitalize text-sm"
-            >
-              {errors.cryptoBEP20}
-            </Typography>
-          )}
-        </div>
 
-        {/* Binance ID */}
-        <div className="flex flex-col gap-[0.5rem]">
-          <Typography variant="span" className="font-semibold">
-            Binance ID
-          </Typography>
-          <div className="relative">
+          {/* First & Last Names */}
+          <div className="flex flex-col md:flex-row md:space-x-2 mb-4">
+            <div className="md:w-1/2 mb-2 md:mb-0">
+              <Typography variant="span" className="font-semibold">
+                First Name
+              </Typography>
+              <Input
+                type="text"
+                placeholder="Enter first name"
+                value={formState.firstName}
+                onChange={handleChange("firstName")}
+                className="w-full mt-1"
+              />
+              {errors.firstName && (
+                <Typography variant="span" className="text-red-500 text-sm">
+                  {errors.firstName}
+                </Typography>
+              )}
+            </div>
+            <div className="md:w-1/2">
+              <Typography variant="span" className="font-semibold">
+                Last Name
+              </Typography>
+              <Input
+                type="text"
+                placeholder="Enter last name"
+                value={formState.lastName}
+                onChange={handleChange("lastName")}
+                className="w-full mt-1"
+              />
+              {errors.lastName && (
+                <Typography variant="span" className="text-red-500 text-sm">
+                  {errors.lastName}
+                </Typography>
+              )}
+            </div>
+          </div>
+
+          {/* Email */}
+          <div className="mb-4">
+            <Typography variant="span" className="font-semibold">
+              Email Address
+            </Typography>
             <Input
-              type="text"
-              placeholder="Enter Binance ID"
-              value={formState.binanceId}
-              onChange={handleChange('binanceId')}
-              className="w-full"
+              type="email"
+              placeholder="Enter your email address"
+              value={formState.email}
+              onChange={handleChange("email")}
+              className="w-full mt-1"
+              readOnly
             />
-            <Copy className="w-3.5 h-3.5 cursor-pointer hover:opacity-[0.77] dark:hover:text-white absolute top-[0.7rem] right-[0.7rem] dark:text-[gray]" />
+            {errors.email && (
+              <Typography variant="span" className="text-red-500 text-sm">
+                {errors.email}
+              </Typography>
+            )}
           </div>
-          {errors.binanceId && (
-            <Typography
-              variant="span"
-              className="!text-red-500 capitalize text-sm"
-            >
-              {errors.binanceId}
-            </Typography>
-          )}
-        </div>
 
-        {/* PayPal */}
-        <div className="flex flex-col gap-[0.5rem]">
-          <Typography variant="span" className="font-semibold">
-            PayPal
-          </Typography>
-          <div className="relative">
-            <Input
-              type="text"
-              placeholder="Enter PayPal address"
-              value={formState.paypal}
-              onChange={handleChange('paypal')}
-              className="w-full"
-            />
-            <Copy className="w-3.5 h-3.5 cursor-pointer hover:opacity-[0.77] absolute top-[0.7rem] right-[0.7rem] dark:text-[gray]" />
+          {/* Phone + Country Code */}
+          <div className="mb-4">
+            <Typography variant="span" className="font-semibold">
+              Phone Number
+            </Typography>
+            <div className="flex flex-col md:flex-row md:space-x-2 mt-1">
+              <div className="md:w-1/3 mb-2 md:mb-0">
+                <select
+                  className="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 p-2 rounded"
+                  value={formState.countryCode}
+                  onChange={(e) => {
+                    setFormState({ ...formState, countryCode: e.target.value })
+                    setErrors({ ...errors, countryCode: "" })
+                  }}
+                >
+                  <option value="">Select code</option>
+                  {COUNTRIES.map((item) => (
+                    <option key={item.code} value={item.code}>
+                      {item.name} ({item.code})
+                    </option>
+                  ))}
+                </select>
+                {errors.countryCode && (
+                  <Typography variant="span" className="text-red-500 text-sm">
+                    {errors.countryCode}
+                  </Typography>
+                )}
+              </div>
+
+              <div className="md:w-2/3">
+                <Input
+                  type="tel"
+                  placeholder="712345678"
+                  value={formState.phoneNumber}
+                  onChange={handleChange("phoneNumber")}
+                  className="w-full"
+                />
+                {errors.phoneNumber && (
+                  <Typography variant="span" className="text-red-500 text-sm">
+                    {errors.phoneNumber}
+                  </Typography>
+                )}
+              </div>
+            </div>
           </div>
-          {errors.paypal && (
-            <Typography
-              variant="span"
-              className="!text-red-500 capitalize text-sm"
-            >
-              {errors.paypal}
-            </Typography>
-          )}
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Mpesa */}
-        <div className="flex flex-col gap-[0.5rem]">
-          <Typography variant="span" className="font-semibold">
-            Mpesa
-          </Typography>
-          <div className="relative">
-            <Input
-              type="text"
-              placeholder="Enter Mpesa number"
-              value={formState.mpesa}
-              onChange={handleChange('mpesa')}
-              className="w-full"
-            />
-            <Copy className="w-3.5 h-3.5 cursor-pointer hover:opacity-[0.77] absolute top-[0.7rem] right-[0.7rem] dark:text-[gray]" />
+      {/* PAYMENT METHODS CARD */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="dark:text-white font-medium">
+            Payment Methods
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* CRYPTO (BEP20) */}
+          <div className="mb-4">
+            <div className="flex items-center space-x-2 mb-1">
+              <SiBinance size={20} className="text-yellow-500" />
+              <Typography variant="span" className="font-semibold">
+                Crypto (BEP20)
+              </Typography>
+            </div>
+            <div className="relative">
+              <Input
+                type="text"
+                placeholder="Enter Crypto BEP20 address"
+                value={formState.cryptoBEP20}
+                onChange={handleChange("cryptoBEP20")}
+                className="w-full pr-10 overflow-hidden whitespace-nowrap text-ellipsis"
+              />
+              {copiedField === "cryptoBEP20" ? (
+                <Check
+                  className="w-4 h-4 cursor-pointer absolute right-3 top-1/2 -translate-y-1/2 text-green-600"
+                />
+              ) : (
+                <Copy
+                  onClick={() => handleCopy("cryptoBEP20")}
+                  className="w-4 h-4 cursor-pointer absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                />
+              )}
+            </div>
           </div>
-          {errors.mpesa && (
-            <Typography
-              variant="span"
-              className="!text-red-500 capitalize text-sm"
-            >
-              {errors.mpesa}
-            </Typography>
-          )}
-        </div>
-      </div>
 
-      {/* Save Button */}
-      <div className="flex flex-col-reverse md:flex-row md:items-center md:justify-end md:gap-[1rem] gap-[0.5rem]">
-        <Button onClick={handleSave} variant={'hoverIcons'}>
+          {/* BINANCE ID */}
+          <div className="mb-4">
+            <div className="flex items-center space-x-2 mb-1">
+              <SiBinance size={20} className="text-yellow-500" />
+              <Typography variant="span" className="font-semibold">
+                Binance ID
+              </Typography>
+            </div>
+            <div className="relative">
+              <Input
+                type="text"
+                placeholder="Enter Binance ID"
+                value={formState.binanceId}
+                onChange={handleChange("binanceId")}
+                className="w-full"
+              />
+              {copiedField === "binanceId" ? (
+                <Check className="w-4 h-4 cursor-pointer absolute top-[0.6rem] right-[0.6rem] text-green-600" />
+              ) : (
+                <Copy
+                  className="w-4 h-4 cursor-pointer absolute top-[0.6rem] right-[0.6rem] text-gray-500"
+                  onClick={() => handleCopy("binanceId")}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* PAYPAL */}
+          <div className="mb-4">
+            <div className="flex items-center space-x-2 mb-1">
+              <SiPaypal size={20} className="text-blue-600" />
+              <Typography variant="span" className="font-semibold">
+                PayPal
+              </Typography>
+            </div>
+            <div className="relative">
+              <Input
+                type="text"
+                placeholder="Enter PayPal address"
+                value={formState.paypal}
+                onChange={handleChange("paypal")}
+                className="w-full"
+              />
+              {copiedField === "paypal" ? (
+                <Check className="w-4 h-4 cursor-pointer absolute top-[0.6rem] right-[0.6rem] text-green-600" />
+              ) : (
+                <Copy
+                  className="w-4 h-4 cursor-pointer absolute top-[0.6rem] right-[0.6rem] text-gray-500"
+                  onClick={() => handleCopy("paypal")}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* MPESA */}
+          <div className="mb-4">
+            <div className="flex items-center space-x-2 mb-1">
+              <FaMobileAlt size={18} className="text-green-600" />
+              <Typography variant="span" className="font-semibold">
+                M-PESA
+              </Typography>
+            </div>
+            <div className="relative">
+              <Input
+                type="text"
+                placeholder="Enter M-PESA number"
+                value={formState.mpesa}
+                onChange={handleChange("mpesa")}
+                className="w-full"
+              />
+              {copiedField === "mpesa" ? (
+                <Check className="w-4 h-4 cursor-pointer absolute top-[0.6rem] right-[0.6rem] text-green-600" />
+              ) : (
+                <Copy
+                  className="w-4 h-4 cursor-pointer absolute top-[0.6rem] right-[0.6rem] text-gray-500"
+                  onClick={() => handleCopy("mpesa")}
+                />
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* SAVE / BACK BUTTONS */}
+      <div className="flex flex-col-reverse md:flex-row md:justify-end items-center gap-2 mt-4">
+        <Button onClick={() => window.history.back()} variant="outline">
           Back
         </Button>
         <Button
-          className="bg-primary hover:opacity-[0.75] hover:bg-primary text-white"
           onClick={handleSave}
-          variant={'ghost'}
+          disabled={loading}
+          className="bg-primary text-white hover:bg-primary/80"
         >
-          Save Changes
+          {loading ? "Saving..." : "Save Changes"}
         </Button>
       </div>
     </div>

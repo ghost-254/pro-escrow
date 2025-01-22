@@ -66,3 +66,38 @@ body {
   padding: 0;
   box-sizing: border-box;
 }
+
+
+/* Thin scrollbar */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1; /* Adjust thumb color */
+  border-radius: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+/* Custom scrollbars for the sidebar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 100, 100, 0.4);
+  border-radius: 3px;
+}
+
+/* Sticky positioning fallback */
+.sticky {
+  position: -webkit-sticky;
+  position: sticky;
+}
+
+

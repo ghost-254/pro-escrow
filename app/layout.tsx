@@ -1,86 +1,57 @@
-import React from 'react'
-import { Inter } from 'next/font/google'
-import { cookies } from 'next/headers'
-import { createServerClient } from '@supabase/ssr'
-import { ThemeProvider } from '@/components/theme-provider'
-import { Navigation } from '@/components/navigation'
-import { BottomNav } from '@/components/bottom-nav'
-import { SidebarVisibility } from '@/components/sidebars/sidebarvisibility'
-import type { Metadata } from 'next'
-import './globals.css'
-import { Providers } from './global.redux/provider'
+// File: app/layout.tsx
 
-const inter = Inter({ subsets: ['latin'] })
+import { Inter } from "next/font/google"
+import { ThemeProvider } from "@/components/theme-provider"
+import { Navigation } from "@/components/navigation"
+import { BottomNav } from "@/components/bottom-nav"
+import { Sidebar } from "@/components/sidebar"
+import { Footer } from "@/components/footer"
+import { ToastContainer } from "react-toastify"
+import { Providers } from "./global.redux/provider"
+import { RouteGuard } from "@/components/route-guard"
+import "react-toastify/dist/ReactToastify.css"
+import "./globals.css"
+import { metadata } from "@/lib/metadata" // Import metadata
+import Head from "next/head" // Import Head component from next/head
 
-export const metadata: Metadata = {
-  title: 'Escrow Platform',
-  description: 'Secure transactions between buyers and sellers',
-}
+const inter = Inter({ subsets: ["latin"] })
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const cookieStore = await cookies()
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value || null
-        },
-      },
-    }
-  )
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${inter.className} min-h-screen bg-background antialiased `}
-      >
+      <Head>
+        <title>{metadata.title as string}</title> {/* Type assertion */}
+        <meta name="description" content={metadata.description as string} /> {/* Type assertion */}
+      </Head>
+      <body className={`${inter.className} max-h-screen bg-background antialiased`}>
         <Providers>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="dark"
-            enableSystem={false}
-            storageKey="escrow-theme"
-          >
-            <div
-              style={{
-                position: 'relative',
-                width: '100%',
-                height: '100vh',
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <Navigation session={session} />
-              <div style={{ height: '100%', width: '100%' }}>
-                <SidebarVisibility>
-                  <div
-                    style={{
-                      height: '100%',
-                      width: '100%',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <main>{children}</main>
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="escrow-theme">
+            <RouteGuard>
+              <div className="flex flex-col min-h-screen">
+                <Navigation />
+                <div className="flex flex-grow z-999">
+                  <aside className="hidden lg:block w-64 border-r bg-muted">
+                    <Sidebar />
+                  </aside>
+                  <div className="flex-1 flex flex-col">
+                    <main className="flex-1">{children}</main>
+                    <Footer />
                   </div>
-                </SidebarVisibility>
+                </div>
+                <div className="md:hidden">
+                  <BottomNav />
+                </div>
               </div>
-              <BottomNav />
-            </div>
+            </RouteGuard>
           </ThemeProvider>
+          <ToastContainer position="bottom-right" theme="colored" />
         </Providers>
       </body>
     </html>
   )
 }
+

@@ -1,44 +1,43 @@
-import React from 'react'
+//app/page.tsx
+
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useSelector, useDispatch } from 'react-redux'
+import { RootState } from '@/lib/stores/store'
+import { setUser } from '@/lib/slices/authSlice'
+import { auth } from '@/lib/firebaseConfig'
+import { onAuthStateChanged } from 'firebase/auth'
 import { ListingCard } from '@/components/listing-card'
 import { ListingFilters } from '@/components/listing-filters'
-import { redirect } from 'next/navigation'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { Button } from '@/components/ui/button'
 
-export default async function Home() {
-  // Resolve the cookies promise
-  const cookieStore = await cookies()
+export default function Home() {
+  const router = useRouter()
+  const dispatch = useDispatch()
+  const user = useSelector((state: RootState) => state.auth.user)
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value || null
-        },
-      },
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      dispatch(setUser(currentUser))
+    })
+
+    return () => unsubscribe()
+  }, [dispatch])
+
+  const handleInteraction = () => {
+    if (!user) {
+      router.push('/auth')
     }
-  )
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  if (!session) {
-    redirect('/auth')
   }
 
   return (
     <div className="flex flex-col gap-6 pb-16">
-      <div className="bg-primary/5 p-4">
+      <div className="bg-primary/10 p-4">
         <div className="mx-auto max-w-6xl">
-          <h1 className="text-2xl font-bold tracking-tight">
-            Secure Escrow Services
-          </h1>
-          <p className="text-muted-foreground">
-            Find trusted sellers and secure your transactions
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-primary">Secure Xcrow Services</h1>
+          <p className="text-muted-foreground">Find trusted sellers and secure your transactions</p>
         </div>
       </div>
       <div className="container">
@@ -46,35 +45,43 @@ export default async function Home() {
         <div className="mt-4 grid gap-4">
           <ListingCard
             seller={{
-              name: 'TrustedSeller',
-              rating: '98%',
+              name: "TrustedSeller",
+              rating: "98%",
               orders: 2645,
-              avatar: '/placeholder.svg',
+              avatar: "/placeholder.svg"
             }}
             service={{
-              title: 'Social Media Account Transfer',
-              price: '1,000.00',
-              currency: 'USD',
-              description: 'Verified Instagram account with 100k+ followers',
+              title: "Social Media Account Transfer",
+              price: "1,000.00",
+              currency: "USD",
+              description: "Verified Instagram account with 100k+ followers"
             }}
-            paymentMethods={['Bank Transfer', 'PayPal']}
+            paymentMethods={["Bank Transfer", "PayPal"]}
+            onInteraction={handleInteraction}
           />
           <ListingCard
             seller={{
-              name: 'VerifiedEscrow',
-              rating: '99%',
+              name: "VerifiedEscrow",
+              rating: "99%",
               orders: 1221,
-              avatar: '/placeholder.svg',
+              avatar: "/placeholder.svg"
             }}
             service={{
-              title: 'Website Domain Transfer',
-              price: '5,000.00',
-              currency: 'USD',
-              description: 'Premium .com domain, 10+ years old',
+              title: "Website Domain Transfer",
+              price: "5,000.00",
+              currency: "USD",
+              description: "Premium .com domain, 10+ years old"
             }}
-            paymentMethods={['Bank Transfer', 'Crypto']}
+            paymentMethods={["Bank Transfer", "Crypto"]}
+            onInteraction={handleInteraction}
           />
         </div>
+        {!user && (
+          <div className="mt-8 text-center">
+            <p className="mb-4 text-lg">Sign in to interact with listings and access all features.</p>
+            <Button onClick={() => router.push('/auth')}>Sign In / Sign Up</Button>
+          </div>
+        )}
       </div>
     </div>
   )

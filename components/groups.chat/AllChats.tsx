@@ -7,7 +7,7 @@ import { Users, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Typography from '../ui/typography'
 import { useDispatch } from 'react-redux'
-import { toggleShowDetailedChatInfoModal } from '@/app/global.redux/stores/reducers/chat.moreinfo.reducer'
+import { toggleShowDetailedChatInfoModal } from '@/lib/slices/chat.moreinfo.reducer'
 
 type Members = {
   count: number

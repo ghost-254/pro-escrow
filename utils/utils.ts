@@ -1,3 +1,5 @@
+//utils/utils.ts
+
 /**
  * Returns a color based on the provided letter.
  * @param {string} letter - The letter to get the color for.
