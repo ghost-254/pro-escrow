@@ -1,20 +1,29 @@
-"use client"
+'use client'
 
-import React from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import React from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import {
-  Plus, Home, History, Wallet,
-  HelpCircle, Shield, BadgeCheck,
-    AlertCircle, X,
-  CreditCard, Bell, User,
-  Users
-} from "lucide-react"
-import { useDispatch } from "react-redux"
-import { toggleTransactModal } from "@/lib/slices/transact.reducer"
+  Plus,
+  Home,
+  History,
+  Wallet,
+  HelpCircle,
+  Shield,
+  BadgeCheck,
+  AlertCircle,
+  X,
+  CreditCard,
+  Bell,
+  User,
+  Users,
+} from 'lucide-react'
+import { useDispatch } from 'react-redux'
+import { toggleTransactModal } from '@/lib/slices/transact.reducer'
+import Typography from './ui/typography'
 
 interface SidebarProps {
   isMobile?: boolean
@@ -34,24 +43,25 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
   const MenuItem = ({
     href,
     icon: Icon,
-    label
+    label,
   }: {
     href: string
     icon: React.ElementType
     label: string
   }) => {
-    const isActive = pathname === href
+    const isActive = href === pathname
 
     // We'll check if it's specifically the "/groups" link
-    const isGroupsLink = href === "/groups"
+    const isGroupsLink = href === '/groups'
 
     return (
       <Link href={href} onClick={isMobile ? onClose : undefined}>
         <Button
           variant="ghost"
           className={cn(
-            "w-full justify-start relative", // relative for possible badge
-            isActive && "bg-muted font-semibold"
+            'w-full justify-start relative', // relative for possible badge
+            isActive &&
+              'bg-[#dddddd] dark:bg-gray-600 font-semibold hover:bg-[#dddddd] hover:dark:bg-gray-600'
           )}
         >
           <Icon className="mr-2 h-4 w-4" />
@@ -86,7 +96,7 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
         <div className="sticky top-0 z-10 bg-muted border-b p-4">
           {isMobile && (
             <div className="flex items-center justify-between mb-4">
-              <span className="font-semibold">Menu</span>
+              <Typography variant="span">Menu</Typography>
               <Button variant="ghost" size="icon" onClick={onClose}>
                 <X className="h-4 w-4" />
               </Button>
@@ -95,7 +105,7 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
 
           <Button
             onClick={handleShowTransactModal}
-            className="w-full justify-start bg-primary text-primary-foreground hover:bg-primary/90"
+            className="w-full justify-start bg-primary text-white hover:bg-primary/90"
           >
             <Plus className="mr-2 h-4 w-4" />
             Create Xcrow Group
@@ -109,12 +119,20 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
             <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">
               MAIN MENU
             </h4>
-            <nav className="space-y-1">
+            <nav className="space-y-1 flex flex-col gap-[0.3rem]">
               <MenuItem href="/" icon={Home} label="Dashboard" />
               <MenuItem href="/groups" icon={Users} label="Chats" />
-              <MenuItem href="/transactions" icon={CreditCard} label="Transactions" />
+              <MenuItem
+                href="/transactions"
+                icon={CreditCard}
+                label="Transactions"
+              />
               <MenuItem href="/wallet" icon={Wallet} label="Wallet" />
-              <MenuItem href="/notifications" icon={Bell} label="Notifications" />
+              <MenuItem
+                href="/notifications"
+                icon={Bell}
+                label="Notifications"
+              />
               <MenuItem href="/history" icon={History} label="History" />
             </nav>
           </div>
@@ -124,7 +142,7 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
             <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">
               ESCROW SERVICES
             </h4>
-            <nav className="space-y-1">
+            <nav className="space-y-1 flex flex-col gap-[0.3rem]">
               <MenuItem href="/orders" icon={Shield} label="Active Escrows" />
               <MenuItem href="/orders" icon={BadgeCheck} label="Completed" />
               <MenuItem href="/orders" icon={AlertCircle} label="Disputes" />
@@ -143,7 +161,7 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
             </nav>
           </div>
           */}
-          
+
           {/* ACCOUNT */}
           <div>
             <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">
@@ -151,7 +169,7 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
             </h4>
             <nav className="space-y-1">
               <MenuItem href="/profile" icon={User} label="Profile" />
-             {/* <MenuItem href="/security" icon={Lock} label="Security" />
+              {/* <MenuItem href="/security" icon={Lock} label="Security" />
               <MenuItem href="/referrals" icon={Gift} label="Referrals" />*/}
             </nav>
           </div>

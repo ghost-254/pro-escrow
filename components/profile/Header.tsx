@@ -144,7 +144,7 @@ function Header() {
             variant="h1"
             className="text-[1.1rem] font-bold dark:text-white"
           >
-            USD {balance.toFixed(2)}
+            USD {balance?.toFixed(2)}
           </Typography>
         </div>
       </div>

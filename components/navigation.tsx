@@ -1,21 +1,21 @@
-"use client"
+'use client'
 
-import Link from "next/link"
-import Image from "next/image"
-import { useSelector } from "react-redux"
-import { useRouter } from "next/navigation"
-import { Menu } from "lucide-react"
-import { useState, useEffect } from "react"
+import Link from 'next/link'
+import Image from 'next/image'
+import { useSelector } from 'react-redux'
+import { useRouter } from 'next/navigation'
+import { Menu } from 'lucide-react'
+import { useState, useEffect } from 'react'
 
 // If you're using shadcn/ui:
-import { useTheme } from "next-themes"
+import { useTheme } from 'next-themes'
 // or if you have a custom setup, import the correct useTheme hook
 
-import type { RootState } from "@/lib/stores/store"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { Button } from "@/components/ui/button"
-import { UserMenu } from "@/components/user-menu"
-import { MobileSidebar } from "@/components/mobile-sidebar"
+import type { RootState } from '@/lib/stores/store'
+import { ThemeToggle } from '@/components/theme-toggle'
+import { Button } from '@/components/ui/button'
+import { UserMenu } from '@/components/user-menu'
+import { MobileSidebar } from '@/components/mobile-sidebar'
 
 export function Navigation() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -23,7 +23,12 @@ export function Navigation() {
   const router = useRouter()
 
   // This helps avoid a "theme flash" or SSR mismatch:
-  const { theme } = useTheme()
+  const { theme, setTheme } = useTheme()
+
+  const handleChangetheme = () => {
+    setTheme('light') //when navigating to login make it light
+  }
+
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
     setMounted(true)
@@ -31,7 +36,7 @@ export function Navigation() {
 
   const handleInteraction = () => {
     if (!user) {
-      router.push("/auth")
+      router.push('/auth')
     }
   }
 
@@ -41,20 +46,21 @@ export function Navigation() {
   }
 
   // Decide which logo to show
-  const logoSrc = theme === "dark"
-    ? "/logo11X.png"    // Dark mode logo
-    : "/logo11xx.png"   // Light mode logo
+  const logoSrc =
+    theme === 'dark'
+      ? '/logo11X.png' // Dark mode logo
+      : '/logo11xx.png' // Light mode logo
 
   return (
-    <header className="sticky top-0 right-0 z-50 w-full border-t bg-background h-14 ">
-      <div className="container flex h-full items-center">
+    <header className="sticky left-0 bg-background z-[12] top-0 right-0 w-full border-t  h-14 ">
+      <div className="w-full h-full lg:p-[1rem] p-[0.5rem] flex justify-between items-center">
         {/* Logo / Brand */}
         <Link href="/" className="flex items-center space-x-2">
           <Image
             src={logoSrc}
-            alt="Platform Logo"
-            width={120}
-            height={120}
+            alt="Xcrow Logo"
+            width={90}
+            height={90}
             className="object-contain"
             priority
           />
@@ -75,7 +81,7 @@ export function Navigation() {
           </Button>
           <Button
             variant="ghost"
-            className="text-secondary hover:text-secondary-foreground hover:bg-secondary hidden lg:inline-flex"
+            className="hover:text-secondary-foreground text-secondary hover:text-white hover:bg-secondary hidden lg:inline-flex"
             onClick={handleInteraction}
           >
             Buy
@@ -89,7 +95,10 @@ export function Navigation() {
             <UserMenu />
           ) : (
             <Link href="/auth">
-              <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
+              <Button
+                onClick={handleChangetheme}
+                className="bg-accent text-accent-foreground hover:bg-accent/90"
+              >
                 Sign In
               </Button>
             </Link>
@@ -102,14 +111,17 @@ export function Navigation() {
             className="lg:hidden"
             onClick={() => setSidebarOpen(true)}
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-6 w-6" />
             <span className="sr-only">Toggle menu</span>
           </Button>
         </div>
       </div>
 
       {/* Mobile Sidebar Overlay */}
-      <MobileSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <MobileSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
     </header>
   )
 }

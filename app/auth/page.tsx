@@ -1,29 +1,28 @@
-"use client"
+'use client'
 
-import React, { useState, useEffect, FormEvent, JSX } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { toast } from "react-toastify"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import React, { useState, useEffect, FormEvent, JSX } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { toast } from 'react-toastify'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import Checkbox from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
-import { Eye, EyeOff } from "lucide-react"
-import { auth, db } from "@/lib/firebaseConfig"
+} from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import Checkbox from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import { Eye, EyeOff } from 'lucide-react'
+import { auth, db } from '@/lib/firebaseConfig'
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
-} from "firebase/auth"
-import { doc, setDoc } from "firebase/firestore"
+} from 'firebase/auth'
+import { doc, setDoc } from 'firebase/firestore'
 
 // shadcn/ui Dialog
 import {
@@ -33,25 +32,31 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog"
+} from '@/components/ui/dialog'
+import Typography from '@/components/ui/typography'
+import { cn } from '@/lib/utils'
+import Image from 'next/image'
+import { getTimeOfDay } from '@/lib/dateTime'
+
+const logo = '/logo11xx.png'
 
 export default function AuthPage(): JSX.Element {
-  const [activeTab, setActiveTab] = useState<"signin" | "signup">("signin")
+  const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin')
   const [isLoading, setIsLoading] = useState<boolean>(false)
 
   // Sign In States
-  const [signInEmail, setSignInEmail] = useState("")
-  const [signInPassword, setSignInPassword] = useState("")
-  const [signInEmailError, setSignInEmailError] = useState("")
-  const [signInPasswordError, setSignInPasswordError] = useState("")
+  const [signInEmail, setSignInEmail] = useState('')
+  const [signInPassword, setSignInPassword] = useState('')
+  const [signInEmailError, setSignInEmailError] = useState('')
+  const [signInPasswordError, setSignInPasswordError] = useState('')
 
   // Sign Up States
-  const [firstName, setFirstName] = useState("")
-  const [lastName, setLastName] = useState("")
-  const [phoneNumber, setPhoneNumber] = useState("")
-  const [signUpEmail, setSignUpEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [signUpEmail, setSignUpEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
 
   // Real-time password criteria
   const [isEightChars, setIsEightChars] = useState(false)
@@ -60,12 +65,12 @@ export default function AuthPage(): JSX.Element {
   const [hasSymbol, setHasSymbol] = useState(false)
 
   // Show errors
-  const [firstNameError, setFirstNameError] = useState("")
-  const [lastNameError, setLastNameError] = useState("")
-  const [phoneNumberError, setPhoneNumberError] = useState("")
-  const [signUpEmailError, setSignUpEmailError] = useState("")
-  const [passwordError, setPasswordError] = useState("")
-  const [confirmPasswordError, setConfirmPasswordError] = useState("")
+  const [firstNameError, setFirstNameError] = useState('')
+  const [lastNameError, setLastNameError] = useState('')
+  const [phoneNumberError, setPhoneNumberError] = useState('')
+  const [signUpEmailError, setSignUpEmailError] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [confirmPasswordError, setConfirmPasswordError] = useState('')
 
   // Show/hide password fields
   const [showPassword, setShowPassword] = useState(false)
@@ -85,15 +90,15 @@ export default function AuthPage(): JSX.Element {
   // ----------------- VALIDATIONS -----------------
   const validateEmail = (email: string): string => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!email) return "Email is required."
-    if (!emailRegex.test(email)) return "Invalid email address."
-    return ""
+    if (!email) return 'Email is required.'
+    if (!emailRegex.test(email)) return 'Invalid email address.'
+    return ''
   }
 
   const validatePassword = (pw: string): string => {
-    if (!pw) return "Password is required."
-    if (pw.length < 8) return "Password must be at least 8 characters."
-    return ""
+    if (!pw) return 'Password is required.'
+    if (pw.length < 8) return 'Password must be at least 8 characters.'
+    return ''
   }
 
   const checkPasswordCriteria = (pw: string) => {
@@ -118,13 +123,13 @@ export default function AuthPage(): JSX.Element {
     setIsLoading(true)
     try {
       await signInWithEmailAndPassword(auth, signInEmail, signInPassword)
-      toast.success("Signed in successfully!")
+      toast.success('Signed in successfully!')
       setTimeout(() => {
-        router.push("/")
+        router.push('/')
       }, 1500)
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "An unknown error occurred"
+        error instanceof Error ? error.message : 'An unknown error occurred'
       toast.error(`Error signing in: ${errorMessage}`)
       setIsLoading(false)
     }
@@ -136,31 +141,31 @@ export default function AuthPage(): JSX.Element {
 
     // First name
     if (!firstName) {
-      setFirstNameError("First name is required (no pseudo).")
+      setFirstNameError('First name is required (no pseudo).')
       valid = false
     } else {
-      setFirstNameError("")
+      setFirstNameError('')
     }
 
     // Last name
     if (!lastName) {
-      setLastNameError("Last name is required (no pseudo).")
+      setLastNameError('Last name is required (no pseudo).')
       valid = false
     } else {
-      setLastNameError("")
+      setLastNameError('')
     }
 
     // Phone number
     if (!phoneNumber) {
-      setPhoneNumberError("Phone number is required.")
+      setPhoneNumberError('Phone number is required.')
       valid = false
     } else {
       const phoneRegex = /^[0-9]{7,15}$/
       if (!phoneRegex.test(phoneNumber)) {
-        setPhoneNumberError("Invalid phone number format.")
+        setPhoneNumberError('Invalid phone number format.')
         valid = false
       } else {
-        setPhoneNumberError("")
+        setPhoneNumberError('')
       }
     }
 
@@ -176,13 +181,13 @@ export default function AuthPage(): JSX.Element {
 
     // Confirm password
     if (!confirmPassword) {
-      setConfirmPasswordError("Please confirm your password.")
+      setConfirmPasswordError('Please confirm your password.')
       valid = false
     } else if (confirmPassword !== password) {
-      setConfirmPasswordError("Passwords do not match.")
+      setConfirmPasswordError('Passwords do not match.')
       valid = false
     } else {
-      setConfirmPasswordError("")
+      setConfirmPasswordError('')
     }
 
     return valid
@@ -199,7 +204,7 @@ export default function AuthPage(): JSX.Element {
   // Step 2: actually create account in Firebase
   const handleConfirmCreate = async () => {
     if (!confirmCheck) {
-      toast.error("Please confirm your details first.")
+      toast.error('Please confirm your details first.')
       return
     }
 
@@ -219,7 +224,7 @@ export default function AuthPage(): JSX.Element {
       })
 
       // Save in Firestore
-      await setDoc(doc(db, "users", user.uid), {
+      await setDoc(doc(db, 'users', user.uid), {
         firstName,
         lastName,
         phoneNumber,
@@ -227,14 +232,14 @@ export default function AuthPage(): JSX.Element {
         createdAt: new Date().toISOString(),
       })
 
-      toast.success("Account created successfully!")
+      toast.success('Account created successfully!')
       setIsDialogOpen(false)
       setTimeout(() => {
-        router.push("/")
+        router.push('/')
       }, 1500)
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "An unknown error occurred"
+        error instanceof Error ? error.message : 'An unknown error occurred'
       toast.error(`Error creating account: ${errorMessage}`)
       setIsLoading(false)
     }
@@ -257,37 +262,62 @@ export default function AuthPage(): JSX.Element {
         bg-center
         bg-cover
         bg-no-repeat
-        dark:bg-gray-900
       "
       style={{
-        backgroundImage: 'url("/auth.jpg")',
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-    }}
+        background: '#f5f5f5',
+      }}
     >
-
-      <Card className="w-full max-w-md dark:bg-gray-800">
+      {/* Logo / Brand */}
+      <div className="flex items-center space-x-2 py-[1rem]">
+        <Image
+          src={logo}
+          alt="Platform Logo"
+          width={90}
+          height={90}
+          className="object-contain"
+          priority
+        />
+        {/* If you only want the image, remove this span.
+              If you need an accessible text label, keep it as sr-only. */}
+        <span className="sr-only">Xcrows</span>
+      </div>
+      <Card className=" w-[96%] mb-[10rem] lg:mb-0 md:max-w-md bg-white shadow-lg border-0">
         <CardHeader>
-          <CardTitle>
-            {activeTab === "signin" ? "Welcome Back!" : "Join Xcrow Today!"}
-          </CardTitle>
+          <Typography variant="h1" className="font-bold text-gray-600">
+            {activeTab === 'signin' ? 'Welcome Back!' : 'Join Xcrow Today!'}
+          </Typography>
           <CardDescription>
-            {activeTab === "signin"
-              ? "Sign in to your account"
-              : "Create an account to get started"}
+            {activeTab === 'signin'
+              ? `Good ${getTimeOfDay()}, sign in to your account`
+              : `Good ${getTimeOfDay()}, create an account to get started`}
           </CardDescription>
         </CardHeader>
 
         <CardContent>
           <Tabs
             value={activeTab}
-            onValueChange={(val) => setActiveTab(val as "signin" | "signup")}
+            onValueChange={(val) => setActiveTab(val as 'signin' | 'signup')}
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin">Sign In</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 bg-gray-50 font-bold rounded-lg shadow-sm">
+              <TabsTrigger
+                value="signin"
+                className={cn(
+                  'px-4 py-1 text-purple-600 hover:text-purple-800 rounded-lg transition-colors',
+                  'data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 shadow-sm'
+                )}
+              >
+                Sign In
+              </TabsTrigger>
+              <TabsTrigger
+                value="signup"
+                className={cn(
+                  'px-4 py-1 text-purple-600 hover:text-purple-800 rounded-lg transition-colors',
+                  'data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 shadow-sm'
+                )}
+              >
+                Sign Up
+              </TabsTrigger>
             </TabsList>
 
             {/* ------------ SIGN IN ------------- */}
@@ -314,7 +344,7 @@ export default function AuthPage(): JSX.Element {
                     <Input
                       id="signinPassword"
                       placeholder="Password"
-                      type={showPassword ? "text" : "password"}
+                      type={showPassword ? 'text' : 'password'}
                       autoCapitalize="none"
                       disabled={isLoading}
                       value={signInPassword}
@@ -328,15 +358,28 @@ export default function AuthPage(): JSX.Element {
                     <button
                       type="button"
                       onClick={handleToggleShowPassword}
-                      className="absolute right-2 top-2 text-gray-400
+                      className="absolute right-2 top-[0.8rem] text-gray-400
                         dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100"
                     >
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
 
-                  <Button className="w-full" type="submit" disabled={isLoading}>
-                    {isLoading ? "Signing In..." : "Sign In"}
+                  <div className="w-full text-end">
+                    <Typography
+                      variant="span"
+                      className="text-primary cursor-pointer hover:opacity-[0.77]"
+                    >
+                      Forgot password?
+                    </Typography>
+                  </div>
+
+                  <Button
+                    className="w-full h-[2.8rem]"
+                    type="submit"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Signing In...' : 'Sign In'}
                   </Button>
                 </div>
               </form>
@@ -411,7 +454,7 @@ export default function AuthPage(): JSX.Element {
                     <Input
                       id="password"
                       placeholder="Password"
-                      type={showPassword ? "text" : "password"}
+                      type={showPassword ? 'text' : 'password'}
                       autoCapitalize="none"
                       disabled={isLoading}
                       value={password}
@@ -425,7 +468,7 @@ export default function AuthPage(): JSX.Element {
                     <button
                       type="button"
                       onClick={handleToggleShowPassword}
-                      className="absolute right-2 top-2 text-gray-400
+                      className="absolute right-2 top-[0.8rem] text-gray-400
                         dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100"
                     >
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -437,8 +480,8 @@ export default function AuthPage(): JSX.Element {
                     <li
                       className={
                         isEightChars
-                          ? "text-green-600 dark:text-green-400"
-                          : "text-red-600"
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-red-600'
                       }
                     >
                       At least 8 characters
@@ -446,8 +489,8 @@ export default function AuthPage(): JSX.Element {
                     <li
                       className={
                         hasUpperCase
-                          ? "text-green-600 dark:text-green-400"
-                          : "text-red-600"
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-red-600'
                       }
                     >
                       At least 1 uppercase letter
@@ -455,8 +498,8 @@ export default function AuthPage(): JSX.Element {
                     <li
                       className={
                         hasNumber
-                          ? "text-green-600 dark:text-green-400"
-                          : "text-red-600"
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-red-600'
                       }
                     >
                       At least 1 number
@@ -464,8 +507,8 @@ export default function AuthPage(): JSX.Element {
                     <li
                       className={
                         hasSymbol
-                          ? "text-green-600 dark:text-green-400"
-                          : "text-red-600"
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-red-600'
                       }
                     >
                       At least 1 symbol
@@ -476,7 +519,7 @@ export default function AuthPage(): JSX.Element {
                     <Input
                       id="confirmPassword"
                       placeholder="Confirm Password"
-                      type={showConfirmPassword ? "text" : "password"}
+                      type={showConfirmPassword ? 'text' : 'password'}
                       disabled={isLoading}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
@@ -489,7 +532,7 @@ export default function AuthPage(): JSX.Element {
                     <button
                       type="button"
                       onClick={handleToggleShowConfirmPassword}
-                      className="absolute right-2 top-2 text-gray-400
+                      className="absolute right-2 top-[0.8rem] text-gray-400
                         dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100"
                     >
                       {showConfirmPassword ? (
@@ -502,24 +545,33 @@ export default function AuthPage(): JSX.Element {
 
                   {/* Terms */}
                   <div className="flex items-center space-x-2 mt-2">
-                    <Checkbox id="terms" required />
+                    <Checkbox
+                      id="terms"
+                      required
+                      className="w-[1.5rem h-[1.5rem]"
+                    />
+
                     <label
                       htmlFor="terms"
                       className="text-sm text-gray-500 dark:text-gray-400"
                     >
-                      I agree to the{" "}
+                      I agree to the{' '}
                       <Link href="/terms" className="underline">
                         Terms of Service
-                      </Link>{" "}
-                      and{" "}
+                      </Link>{' '}
+                      and{' '}
                       <Link href="/privacy" className="underline">
                         Privacy Policy
                       </Link>
                     </label>
                   </div>
 
-                  <Button className="w-full" type="submit" disabled={isLoading}>
-                    {isLoading ? "Please wait..." : "Review & Create"}
+                  <Button
+                    className="w-full h-[2.8rem]"
+                    type="submit"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Please wait...' : 'Review & Create'}
                   </Button>
                 </div>
               </form>
@@ -534,7 +586,8 @@ export default function AuthPage(): JSX.Element {
           <DialogHeader>
             <DialogTitle>Confirm Your Details</DialogTitle>
             <DialogDescription className="dark:text-gray-300">
-              Please verify all information is correct before creating your account.
+              Please verify all information is correct before creating your
+              account.
             </DialogDescription>
           </DialogHeader>
 
@@ -576,7 +629,7 @@ export default function AuthPage(): JSX.Element {
               disabled={isLoading}
               className="bg-primary text-primary-foreground hover:bg-primary/80"
             >
-              {isLoading ? "Creating..." : "Confirm & Create"}
+              {isLoading ? 'Creating...' : 'Confirm & Create'}
             </Button>
           </DialogFooter>
         </DialogContent>
