@@ -358,7 +358,7 @@ export default function AuthPage(): JSX.Element {
                     <button
                       type="button"
                       onClick={handleToggleShowPassword}
-                      className="absolute right-2 top-[0.8rem] text-gray-400
+                      className="absolute right-2 top-[0.3rem] md:top-[-0.2rem] lg:top-[-0.2rem] text-gray-400
                         dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100"
                     >
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
