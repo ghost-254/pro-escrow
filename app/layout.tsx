@@ -8,7 +8,7 @@ import { Sidebar } from '@/components/sidebar'
 import { Footer } from '@/components/footer'
 import { ToastContainer } from 'react-toastify'
 import { Providers } from './global.redux/provider'
-import { RouteGuard } from '@/components/route-guard'
+// import { RouteGuard } from '@/components/route-guard'
 import 'react-toastify/dist/ReactToastify.css'
 import './globals.css'
 import { metadata } from '@/lib/metadata' // Import metadata
@@ -48,7 +48,7 @@ export default function RootLayout({
             enableSystem={false}
             storageKey="escrow-theme"
           >
-            <RouteGuard>
+            {/* <RouteGuard> */}
               <div className="flex flex-col gap-[0.5rem] max-h-screen">
                 {!isAuthPage && <Navigation />}
                 <div className="flex w-full z-10">
@@ -72,7 +72,7 @@ export default function RootLayout({
                   </div>
                 )}
               </div>
-            </RouteGuard>
+            {/* </RouteGuard> */}
           </ThemeProvider>
           <ToastContainer position="bottom-right" theme="colored" />
         </Providers>

@@ -68,7 +68,7 @@ const Orders: React.FC = () => {
         {currentOrders?.map((order) => (
           <div
             key={order.id}
-            className="w-full shadow-md rounded-md p-[0.5rem] border"
+            className="w-full shadow-md rounded-md p-[1rem] border"
           >
             <div className="w-full flex flex-col gap-[1rem]">
               <div className="flex justify-between  border-b-[1px] pb-[0.5rem] border-[#dddddd] dark:border-[#202020]">
@@ -104,7 +104,7 @@ const Orders: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-[0.5rem]">
+              <div className="flex flex-col gap-[0.7rem]">
                 <div className="flex items-center gap-[0.5rem]">
                   <Typography variant="p" className="font-medium">
                     Title:
