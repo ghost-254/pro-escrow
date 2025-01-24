@@ -26,6 +26,7 @@ export default function RootLayout({
       <Head>
         <title>{metadata.title as string}</title> {/* Type assertion */}
         <meta name="description" content={metadata.description as string} /> {/* Type assertion */}
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
       </Head>
       <body className={`${inter.className} max-h-screen bg-background antialiased`}>
         <Providers>

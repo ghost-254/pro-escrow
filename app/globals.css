@@ -100,4 +100,11 @@ body {
   position: sticky;
 }
 
+/* Add this new style for the orange hover effect */
+.hover\:bg-orange-100:hover {
+  background-color: rgba(255, 237, 213, 0.5);
+}
 
+.dark .hover\:bg-orange-900:hover {
+  background-color: rgba(154, 52, 18, 0.5);
+}

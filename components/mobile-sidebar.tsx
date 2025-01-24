@@ -11,8 +11,7 @@ import { signOut } from "firebase/auth"
 import {
   X, LogOut, Plus, Home, History, Wallet,
   CreditCard, Bell, Shield, BadgeCheck,
-  AlertCircle, BarChart3, FileText, Zap, Lock, Gift,
-  Settings, HelpCircle, Users
+  AlertCircle, Lock, HelpCircle, Users
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -230,7 +229,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
               </nav>
             </div>
 
-            {/* TOOLS & REPORTS */}
+            {/* TOOLS & REPORTS 
             <div>
               <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">
                 TOOLS & REPORTS
@@ -242,6 +241,8 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
               </nav>
             </div>
 
+            */}
+
             {/* ACCOUNT */}
             <div>
               <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">
@@ -249,8 +250,8 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
               </h4>
               <nav className="space-y-1">
                 <MenuItem href="/profile" icon={Lock} label="Profile" />
-                <MenuItem href="/security" icon={Lock} label="Security" />
-                <MenuItem href="/referrals" icon={Gift} label="Referrals" />
+                 {/*<MenuItem href="/security" icon={Lock} label="Security" />
+                <MenuItem href="/referrals" icon={Gift} label="Referrals" />*/}
               </nav>
             </div>
           </div>
@@ -258,7 +259,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
 
         {/* Bottom Section */}
         <div className="flex-none border-t p-4 bg-muted space-y-1">
-          <MenuItem href="/settings" icon={Settings} label="Settings" />
+          {/*<MenuItem href="/settings" icon={Settings} label="Settings" />*/}
           <MenuItem href="/support" icon={HelpCircle} label="Support" />
         </div>
       </div>

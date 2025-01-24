@@ -7,10 +7,10 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
-  Plus, Home, History, Wallet, Settings, 
+  Plus, Home, History, Wallet,
   HelpCircle, Shield, BadgeCheck,
-  FileText, BarChart3, AlertCircle, X,
-  CreditCard, Bell, User, Lock, Gift, Zap,
+    AlertCircle, X,
+  CreditCard, Bell, User,
   Users
 } from "lucide-react"
 import { useDispatch } from "react-redux"
@@ -131,7 +131,7 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
             </nav>
           </div>
 
-          {/* TOOLS & REPORTS */}
+          {/* TOOLS & REPORTS 
           <div>
             <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">
               TOOLS & REPORTS
@@ -142,7 +142,8 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
               <MenuItem href="/vpns-proxies" icon={Zap} label="VPNs & Proxies" />
             </nav>
           </div>
-
+          */}
+          
           {/* ACCOUNT */}
           <div>
             <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">
@@ -150,15 +151,15 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
             </h4>
             <nav className="space-y-1">
               <MenuItem href="/profile" icon={User} label="Profile" />
-              <MenuItem href="/security" icon={Lock} label="Security" />
-              <MenuItem href="/referrals" icon={Gift} label="Referrals" />
+             {/* <MenuItem href="/security" icon={Lock} label="Security" />
+              <MenuItem href="/referrals" icon={Gift} label="Referrals" />*/}
             </nav>
           </div>
         </div>
 
         {/* Footer (Sticky at bottom) */}
         <div className="sticky bottom-0 mb-0 z-50 bg-muted border-t p-4 space-y-1">
-          <MenuItem href="/settings" icon={Settings} label="Settings" />
+          {/* <MenuItem href="/settings" icon={Settings} label="Settings" /> */}
           <MenuItem href="/support" icon={HelpCircle} label="Support" />
         </div>
       </ScrollArea>

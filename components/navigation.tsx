@@ -46,7 +46,7 @@ export function Navigation() {
     : "/logo11xx.png"   // Light mode logo
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-14">
+    <header className="sticky top-0 right-0 z-50 w-full border-t bg-background h-14 ">
       <div className="container flex h-full items-center">
         {/* Logo / Brand */}
         <Link href="/" className="flex items-center space-x-2">
