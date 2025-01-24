@@ -323,7 +323,7 @@ export default function AuthPage(): JSX.Element {
             {/* ------------ SIGN IN ------------- */}
             <TabsContent value="signin">
               <form onSubmit={handleSignInSubmit}>
-                <div className="space-y-4">
+                <div className="md:space-y-4 space-y-2 ">
                   <Input
                     id="signinEmail"
                     placeholder="Email"
@@ -340,7 +340,7 @@ export default function AuthPage(): JSX.Element {
                     </p>
                   )}
 
-                  <div className="relative">
+                  <div className="relative md:space-y-4 space-y-2">
                     <Input
                       id="signinPassword"
                       placeholder="Password"

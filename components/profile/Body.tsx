@@ -271,7 +271,7 @@ const Body: FC = () => {
             <Typography variant="span" className="font-semibold">
               Profile Picture
             </Typography>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
               {/* Label and Hidden Input */}
               <label
                 htmlFor="profile-pic-upload"
@@ -437,7 +437,7 @@ const Body: FC = () => {
         </CardHeader>
         <CardContent className="flex flex-col gap-[1rem]">
           {/* CRYPTO (BEP20) */}
-          <div className="flex flex-col gap-[0.5rem]">
+          <div className="flex flex-col gap-[0.3rem]">
             <div className="flex items-center space-x-2 mb-1">
               <SiBinance size={20} className="text-yellow-500" />
               <Typography variant="span" className="font-semibold">
@@ -464,7 +464,7 @@ const Body: FC = () => {
           </div>
 
           {/* BINANCE ID */}
-          <div className="flex flex-col gap-[0.5rem]">
+          <div className="flex flex-col gap-[0.3rem]">
             <div className="flex items-center space-x-2 mb-1">
               <SiBinance size={20} className="text-yellow-500" />
               <Typography variant="span" className="font-semibold">
@@ -491,7 +491,7 @@ const Body: FC = () => {
           </div>
 
           {/* PAYPAL */}
-          <div className="flex flex-col gap-[0.5rem]">
+          <div className="flex flex-col gap-[0.3rem]">
             <div className="flex items-center space-x-2 mb-1">
               <SiPaypal size={20} className="text-blue-600" />
               <Typography variant="span" className="font-semibold">
@@ -518,7 +518,7 @@ const Body: FC = () => {
           </div>
 
           {/* MPESA */}
-          <div className="flex flex-col gap-[0.5rem]">
+          <div className="flex flex-col gap-[0.3rem]">
             <div className="flex items-center space-x-2 mb-1">
               <FaMobileAlt size={18} className="text-green-600" />
               <Typography variant="span" className="font-semibold">
