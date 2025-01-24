@@ -125,9 +125,9 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
               ESCROW SERVICES
             </h4>
             <nav className="space-y-1">
-              <MenuItem href="/active-escrows" icon={Shield} label="Active Escrows" />
-              <MenuItem href="/completed" icon={BadgeCheck} label="Completed" />
-              <MenuItem href="/disputes" icon={AlertCircle} label="Disputes" />
+              <MenuItem href="/orders" icon={Shield} label="Active Escrows" />
+              <MenuItem href="/orders" icon={BadgeCheck} label="Completed" />
+              <MenuItem href="/orders" icon={AlertCircle} label="Disputes" />
             </nav>
           </div>
 
