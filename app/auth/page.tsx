@@ -422,7 +422,7 @@ export default function AuthPage(): JSX.Element {
 
                   <Input
                     id="phone"
-                    placeholder="Phone Number"
+                    placeholder="Phone Number (e.g., 254712345678)"
                     type="tel"
                     disabled={isLoading}
                     value={phoneNumber}
