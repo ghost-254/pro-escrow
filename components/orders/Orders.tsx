@@ -63,7 +63,7 @@ const Orders: React.FC = () => {
   }
 
   return (
-    <div className="w-full max-h-screen mt-2 overflow-y-auto pb-[17rem] md:pb-[13rem]">
+    <div className="w-full max-h-screen mt-2 overflow-y-auto pb-[17rem] md:pb-[3rem]">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-[1rem] p-[0.5rem] lg:p-[1rem]">
         {currentOrders?.map((order) => (
           <div
