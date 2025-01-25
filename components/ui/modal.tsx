@@ -26,9 +26,9 @@ const Modal: React.FC<ModalProps> = ({
   return (
     <Dialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed animate__animated animate__fadeIn z-[5] inset-0 bg-black bg-opacity-[0.6] dark:bg-opacity-[0.8]" />
+        <Dialog.Overlay className="fixed animate__animated animate__fadeIn z-[25] inset-0 bg-black bg-opacity-[0.6] dark:bg-opacity-[0.8]" />
         <Dialog.Content
-          className={`fixed animate__animated animate__fadeInDownBig overflow-y-auto z-[7] bg-white dark:bg-gray-900 rounded-md shadow-lg ${className}`}
+          className={`fixed animate__animated animate__fadeInDownBig overflow-y-auto z-[26] bg-white dark:bg-gray-900 rounded-md shadow-lg ${className}`}
           style={{
             width,
             maxHeight,

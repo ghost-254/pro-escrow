@@ -47,7 +47,7 @@ function Header({ handleBackToChats }: HeaderProps) {
             onClick={handleOpenModal}
             className="cursor-pointer font-medium max-w-[90%] hover:opacity-[0.77] flex items-center gap-1"
           >
-            {truncate(text, 80)}
+            {truncate(text, 50)}
           </Typography>
         </div>
 

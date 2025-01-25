@@ -24,6 +24,7 @@ export default function RootLayout({
 }) {
   const pathname = usePathname()
   const isAuthPage = pathname.startsWith('/auth')
+  const isGroupsPage = pathname.startsWith('/groups')
   return (
     <html lang="en" suppressHydrationWarning>
       <Head>
@@ -49,29 +50,30 @@ export default function RootLayout({
             storageKey="escrow-theme"
           >
             {/* <RouteGuard> */}
-              <div className="flex flex-col gap-[0.5rem] max-h-screen">
-                {!isAuthPage && <Navigation />}
-                <div className="flex w-full z-10">
-                  {!isAuthPage && (
-                    <aside className="hidden lg:block w-[25%] border-r bg-muted">
-                      <Sidebar />
-                    </aside>
-                  )}
-                  <div
-                    className={
-                      isAuthPage ? 'w-full' : 'flex w-full lg:w-[75%] flex-col'
-                    }
-                  >
-                    <main>{children}</main>
-                    {!isAuthPage && <Footer />}
-                  </div>
-                </div>
+            <div className="flex flex-col gap-[0.5rem] max-h-screen">
+              {!isAuthPage && <Navigation />}
+              <div className="flex w-full z-10">
                 {!isAuthPage && (
+                  <aside className="hidden lg:block w-[25%] border-r bg-muted">
+                    <Sidebar />
+                  </aside>
+                )}
+                <div
+                  className={
+                    isAuthPage ? 'w-full' : 'flex w-full lg:w-[75%] flex-col'
+                  }
+                >
+                  <main>{children}</main>
+                  {!isAuthPage || (!isGroupsPage && <Footer />)}
+                </div>
+              </div>
+              {!isAuthPage ||
+                (!isGroupsPage && (
                   <div className="md:hidden">
                     <BottomNav />
                   </div>
-                )}
-              </div>
+                ))}
+            </div>
             {/* </RouteGuard> */}
           </ThemeProvider>
           <ToastContainer position="bottom-right" theme="colored" />

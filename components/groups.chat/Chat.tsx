@@ -16,7 +16,7 @@ function Chat({ handleBackToChats }: ChatProps) {
       <div className="max-h-[100vh] overflow-y-auto">
         <Body />
       </div>
-      <div className="fixed w-full lg:w-[65%] z-[2] mb-0 bottom-0 right-0">
+      <div className="fixed w-full lg:w-[50%] z-[2] mb-0 bottom-0 right-0">
         <Footer />
       </div>
     </div>

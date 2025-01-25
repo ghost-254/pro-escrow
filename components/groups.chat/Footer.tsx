@@ -80,7 +80,7 @@ const Footer: React.FC = () => {
       )}
 
       {/* Input and Send Button Section */}
-      <div className="w-full flex items-center gap-4">
+      <div className="w-full flex items-center md:gap-4 gap-[0.5rem]">
         {/* File Input */}
         <label htmlFor="file-input">
           <Paperclip className="w-4 h-4 cursor-pointer" />
@@ -95,7 +95,7 @@ const Footer: React.FC = () => {
         />
 
         {/* Text Input */}
-        <div className="w-full border-[1px] border-gray-300 dark:border-gray-700 rounded-[10px]">
+        <div className="w-full border rounded-[10px]">
           <Input
             id="message"
             className="w-full h-[2.5rem] px-3"

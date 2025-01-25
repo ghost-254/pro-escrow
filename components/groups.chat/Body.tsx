@@ -18,7 +18,7 @@ function Body() {
         <Typography
           variant="p"
           style={{ padding: '0.3rem 0.5rem' }}
-          className="lg:max-w-[70%] mt-[0.5rem] lg:mt-0 w-full text-sm rounded-md bg-[#f1d9d9] dark:bg-[#ff6969] self-center dark:text-white text-[#ff4f4f]"
+          className="w-auto text-sm rounded-md bg-[#f1d9d9] dark:bg-[#ff6969] self-center dark:text-white text-[#ff4f4f]"
         >
           This chat is monitored to ensure secure communication while
           maintaining anonymity for all parties.
