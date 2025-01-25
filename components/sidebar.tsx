@@ -90,7 +90,7 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full mb-[5rem]  overflow-hidden">
       <ScrollArea className="flex-1">
         {/* Header (Sticky at top) */}
         <div className="sticky top-0 z-10 bg-muted border-b p-4">

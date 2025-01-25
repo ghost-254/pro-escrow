@@ -47,20 +47,22 @@ export default function RootLayout({
             enableSystem={false}
             storageKey="escrow-theme"
           >
-            <div className="flex flex-col gap-[0.5rem] max-h-screen">
+            <div className="flex flex-col gap-[0.5rem] overflow-hidden max-h-screen">
               {!isAuthPage && <Navigation />}
-              <div className="flex w-full z-10">
+              <div className="flex w-full z-10 ">
                 {/* {!isAuthPage && ( */}
-                  <aside className="hidden lg:block w-[25%] border-r bg-muted">
-                    <Sidebar />
-                  </aside>
+                <aside className="hidden h-screen overflow-y-scroll lg:block w-[30%] border-r bg-muted">
+                  <Sidebar />
+                </aside>
                 {/* )} */}
                 <div
                   className={
-                    isAuthPage ? 'w-full' : 'flex w-full lg:w-[75%] flex-col'
+                    isAuthPage
+                      ? 'w-full'
+                      : 'flex w-full lg:w-[70%] pb-[5rem] flex-col max-h-screen overflow-y-auto'
                   }
                 >
-                  <main>{children}</main>
+                  <main >{children}</main>
                   {!shouldHideFooterAndNav && <Footer />}
                 </div>
               </div>

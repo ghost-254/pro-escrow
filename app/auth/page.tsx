@@ -259,10 +259,12 @@ export default function AuthPage(): JSX.Element {
         items-center
         bg-center
         bg-cover
-        bg-no-repeat
+        bg-no-repeat,
       "
       style={{
         minHeight: '100vh',
+        maxHeight: '100vh', // Limit the height to the viewport
+        overflowY: 'auto', // Enable scrolling if content overflows vertically
         background: '#f5f5f5',
       }}
     >
@@ -280,7 +282,7 @@ export default function AuthPage(): JSX.Element {
               If you need an accessible text label, keep it as sr-only. */}
         <span className="sr-only">Xcrows</span>
       </div>
-      <Card className=" w-[96%] mb-[10rem] lg:mb-0 md:max-w-md bg-white shadow-lg border-0">
+      <Card className=" w-[96%] md:max-w-md bg-white shadow-lg border-0">
         <CardHeader>
           <Typography variant="h1" className="font-bold text-gray-600">
             {activeTab === 'signin' ? 'Welcome Back!' : 'Join Xcrow Today!'}
