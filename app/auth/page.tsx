@@ -253,8 +253,6 @@ export default function AuthPage(): JSX.Element {
   return (
     <div
       className="
-        min-h-screen
-        h-full
         flex
         flex-col
         justify-center
@@ -264,6 +262,7 @@ export default function AuthPage(): JSX.Element {
         bg-no-repeat
       "
       style={{
+        minHeight: '100vh',
         background: '#f5f5f5',
       }}
     >

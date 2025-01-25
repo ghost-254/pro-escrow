@@ -12,7 +12,7 @@ import './globals.css'
 import { metadata } from '@/lib/metadata' // Import metadata
 import Head from 'next/head' // Import Head component from next/head
 import { usePathname } from 'next/navigation'
-
+// import { RouteGuard } from '@/components/route-guard'
 const inter = Inter({ subsets: ['latin'] })
 
 export default function RootLayout({
@@ -50,11 +50,11 @@ export default function RootLayout({
             <div className="flex flex-col gap-[0.5rem] max-h-screen">
               {!isAuthPage && <Navigation />}
               <div className="flex w-full z-10">
-                {!isAuthPage && (
+                {/* {!isAuthPage && ( */}
                   <aside className="hidden lg:block w-[25%] border-r bg-muted">
                     <Sidebar />
                   </aside>
-                )}
+                {/* )} */}
                 <div
                   className={
                     isAuthPage ? 'w-full' : 'flex w-full lg:w-[75%] flex-col'
