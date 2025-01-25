@@ -37,7 +37,7 @@ function DetailedChatInfo() {
 
   return (
     <div className="w-full flex flex-col gap-2">
-      <div className="p-2 md:p-4 flex sticky top-0 bg-background z-[2] dark:bg-gray-900 justify-between items-center border-b">
+      <div className="p-[1rem] flex sticky top-0 bg-background z-[2] dark:bg-gray-900 justify-between items-center border-b">
         <Typography className="max-w-[90%] font-semibold" variant="p">
           {text}
         </Typography>
@@ -50,19 +50,21 @@ function DetailedChatInfo() {
         </button>
       </div>
 
-      <div className="lg:hidden w-full border-b pb-4 px-2 flex flex-wrap gap-2">
+      <div className="lg:hidden w-full justify-end border-b pb-4 px-[1rem] flex flex-wrap gap-2">
         <Button title="Orders" variant={'hoverIcons'}>
           <ClipboardList className="w-4 h-4" />
         </Button>
-        <Button variant="secondary" className="text-white flex-1">
-          Mark Delivered
-        </Button>
-        <Button variant="destructive" className="text-white flex-1">
-          Cancel
-        </Button>
+        <div className="flex items-center gap-[1rem]">
+          <Button variant="secondary" className="text-white flex-1 md:w-auto">
+            Mark Delivered
+          </Button>
+          <Button variant="destructive" className="text-white flex-1 md:w-auto">
+            Cancel
+          </Button>
+        </div>
       </div>
 
-      <div className="w-full lg:px-4 px-[0.5rem] border-b pb-4">
+      <div className="w-full lg:px-4 px-[1rem] border-b pb-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
           <div className="flex items-center gap-2">
             <Typography variant="p" className="text-sm">
@@ -74,7 +76,7 @@ function DetailedChatInfo() {
           </div>
           <Button
             variant="destructive"
-            className="mt-2 md:mt-0 flex items-center text-white dark:bg-red-500 hover:opacity-90"
+            className="mt-2 md:mt-0 w-full md:w-auto flex items-center text-white dark:bg-red-500 hover:opacity-90"
           >
             <LogOut className="w-4 h-4" />
             Leave group
@@ -82,9 +84,12 @@ function DetailedChatInfo() {
         </div>
       </div>
 
-      <div className="w-full px-2 md:px-4 border-b pb-4">
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-2">
-          <Button variant="secondary" className="text-white cursor-default">
+      <div className="w-full px-[1rem] md:px-4 border-b pb-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-[1rem]">
+          <Button
+            variant="secondary"
+            className="text-white cursor-default w-full md:w-auto"
+          >
             00h:15m:30s
           </Button>
           <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -100,7 +105,7 @@ function DetailedChatInfo() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 py-2 px-[0.5rem] lg:px-4">
+      <div className="flex flex-col gap-4 py-2 px-[1rem] lg:px-4">
         <Typography variant="h1" className="font-bold text-lg">
           Members ({members.length})
         </Typography>
@@ -108,9 +113,9 @@ function DetailedChatInfo() {
           {members.map((member, index) => (
             <div
               key={index}
-              className="flex flex-col gap-[0.5rem] md:flex-row justify-between items-start md:items-center border-b pb-2"
+              className="flex flex-col gap-[1rem] md:flex-row justify-between items-start md:items-center border-b pb-2"
             >
-              <div className=" flex items-center gap-2">
+              <div className=" flex items-center gap-[0.5rem]">
                 <div
                   style={{
                     backgroundColor: getColorForLetter(member.name[0]),

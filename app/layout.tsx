@@ -8,7 +8,7 @@ import { Sidebar } from '@/components/sidebar'
 import { Footer } from '@/components/footer'
 import { ToastContainer } from 'react-toastify'
 import { Providers } from './global.redux/provider'
-import { RouteGuard } from '@/components/route-guard'
+// import { RouteGuard } from '@/components/route-guard'
 import 'react-toastify/dist/ReactToastify.css'
 import './globals.css'
 import { metadata } from '@/lib/metadata' // Import metadata
@@ -24,6 +24,7 @@ export default function RootLayout({
 }) {
   const pathname = usePathname()
   const isAuthPage = pathname.startsWith('/auth')
+  const isGroupsPage = pathname.startsWith('/groups')
   return (
     <html lang="en" suppressHydrationWarning>
       <Head>
@@ -48,31 +49,32 @@ export default function RootLayout({
             enableSystem={false}
             storageKey="escrow-theme"
           >
-            <RouteGuard>
-              <div className="flex flex-col gap-[0.5rem] max-h-screen">
-                {!isAuthPage && <Navigation />}
-                <div className="flex w-full z-10">
-                  {!isAuthPage && (
-                    <aside className="hidden lg:block w-[25%] border-r bg-muted">
-                      <Sidebar />
-                    </aside>
-                  )}
-                  <div
-                    className={
-                      isAuthPage ? 'w-full' : 'flex w-full lg:w-[75%] flex-col'
-                    }
-                  >
-                    <main>{children}</main>
-                    {!isAuthPage && <Footer />}
-                  </div>
-                </div>
+            {/* <RouteGuard> */}
+            <div className="flex flex-col gap-[0.5rem] max-h-screen">
+              {!isAuthPage && <Navigation />}
+              <div className="flex w-full z-10">
                 {!isAuthPage && (
+                  <aside className="hidden lg:block w-[25%] border-r bg-muted">
+                    <Sidebar />
+                  </aside>
+                )}
+                <div
+                  className={
+                    isAuthPage ? 'w-full' : 'flex w-full lg:w-[75%] flex-col'
+                  }
+                >
+                  <main>{children}</main>
+                  {!isAuthPage || (!isGroupsPage && <Footer />)}
+                </div>
+              </div>
+              {!isAuthPage ||
+                (!isGroupsPage && (
                   <div className="md:hidden">
                     <BottomNav />
                   </div>
-                )}
-              </div>
-            </RouteGuard>
+                ))}
+            </div>
+            {/* </RouteGuard> */}
           </ThemeProvider>
           <ToastContainer position="bottom-right" theme="colored" />
         </Providers>
