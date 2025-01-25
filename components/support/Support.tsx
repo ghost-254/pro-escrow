@@ -86,7 +86,7 @@ const Support: React.FC = () => {
 
   return (
     <ScrollArea className="h-[calc(100vh-4rem)]">
-      <div className="container mx-auto py-6 px-4 md:py-12 bg-slate-200">
+      <div className="container mx-auto py-6 px-4 md:py-12 dark:bg-gray-800">
         <h1 className="text-2xl md:text-3xl font-bold text-center mb-6">Xcrow Support Center</h1>
         <p className="text-lg md:text-xl text-center text-muted-foreground mb-8">
           We're here to help you with any questions or issues you may have.
@@ -158,31 +158,31 @@ const Support: React.FC = () => {
               <CardContent>
                 <Accordion type="single" collapsible className="w-full">
                   <AccordionItem value="item-1">
-                    <AccordionTrigger>How does Xcrow's escrow service work?</AccordionTrigger>
-                    <AccordionContent>
+                    <AccordionTrigger className="font-bold">How does Xcrow's escrow service work?</AccordionTrigger>
+                    <AccordionContent className="opacity-[0.77]">
                       Xcrow's escrow service facilitates secure transactions between buyers and sellers. The buyer
                       deposits funds, which are held securely until the seller delivers the agreed-upon service or
                       product. Once both parties confirm satisfaction, the funds are released to the seller.
                     </AccordionContent>
                   </AccordionItem>
                   <AccordionItem value="item-2">
-                    <AccordionTrigger>What fees does Xcrow charge?</AccordionTrigger>
-                    <AccordionContent>
+                    <AccordionTrigger className="font-bold">What fees does Xcrow charge?</AccordionTrigger>
+                    <AccordionContent className="opacity-[0.77]">
                       Xcrow charges a small percentage fee on successful transactions. The exact fee structure depends
                       on the transaction amount and type. Please refer to our pricing page for detailed information.
                     </AccordionContent>
                   </AccordionItem>
                   <AccordionItem value="item-3">
-                    <AccordionTrigger>How does Xcrow handle disputes?</AccordionTrigger>
-                    <AccordionContent>
+                    <AccordionTrigger className="font-bold">How does Xcrow handle disputes?</AccordionTrigger>
+                    <AccordionContent className="opacity-[0.77]">
                       In case of a dispute, our team reviews the transaction details and communication history in the
                       Xcrow group chat. We work with both parties to reach a fair resolution based on the evidence
                       provided.
                     </AccordionContent>
                   </AccordionItem>
                   <AccordionItem value="item-4">
-                    <AccordionTrigger>Is my personal and financial information secure with Xcrow?</AccordionTrigger>
-                    <AccordionContent>
+                    <AccordionTrigger className="font-bold">Is my personal and financial information secure with Xcrow?</AccordionTrigger>
+                    <AccordionContent className="opacity-[0.77]">
                       Yes, Xcrow uses industry-standard encryption and security measures to protect your personal and
                       financial information. We are compliant with relevant data protection regulations and never share
                       your data with third parties without your consent.

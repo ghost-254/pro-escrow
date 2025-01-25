@@ -51,7 +51,7 @@ export default function RootLayout({
               {!isAuthPage && <Navigation />}
               <div className="flex w-full z-10 ">
                 {/* {!isAuthPage && ( */}
-                <aside className="hidden h-screen overflow-y-scroll lg:block w-[25%] border-r bg-muted">
+                <aside className="hidden h-screen overflow-y-scroll lg:block lg:w-[30%] xl:w-[25%] border-r bg-muted">
                   <Sidebar />
                 </aside>
                 {/* )} */}
@@ -59,10 +59,10 @@ export default function RootLayout({
                   className={
                     isAuthPage
                       ? 'w-full'
-                      : 'flex w-full lg:w-[75%] pb-[5rem] flex-col max-h-screen overflow-y-auto'
+                      : 'flex w-full lg:w-[70%] xl:w-[75%] pb-[5rem] flex-col max-h-screen overflow-y-auto'
                   }
                 >
-                  <main >{children}</main>
+                  <main>{children}</main>
                   {!shouldHideFooterAndNav && <Footer />}
                 </div>
               </div>
