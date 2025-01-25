@@ -255,11 +255,7 @@ export default function AuthPage(): JSX.Element {
       className="
         flex
         flex-col
-        justify-center
         items-center
-        bg-center
-        bg-cover
-        bg-no-repeat,
       "
       style={{
         minHeight: '100vh',
@@ -269,7 +265,7 @@ export default function AuthPage(): JSX.Element {
       }}
     >
       {/* Logo / Brand */}
-      <div className="flex items-center space-x-2 py-[1rem]">
+      <div className="flex items-center space-x-2 py-[1rem] mt-[4rem] md:mt-[10rem] lg:mt-[2rem]">
         <Image
           src={logo}
           alt="Platform Logo"
@@ -282,7 +278,7 @@ export default function AuthPage(): JSX.Element {
               If you need an accessible text label, keep it as sr-only. */}
         <span className="sr-only">Xcrows</span>
       </div>
-      <Card className=" w-[96%] md:max-w-md bg-white shadow-lg border-0">
+      <Card className="w-[96%] md:max-w-md bg-white shadow-lg border-0">
         <CardHeader>
           <Typography variant="h1" className="font-bold text-gray-600">
             {activeTab === 'signin' ? 'Welcome Back!' : 'Join Xcrow Today!'}
