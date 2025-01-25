@@ -1,4 +1,5 @@
-'use client'
+// app/layout.tsx
+
 import { Inter } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Navigation } from '@/components/navigation'
@@ -7,12 +8,12 @@ import { Sidebar } from '@/components/sidebar'
 import { Footer } from '@/components/footer'
 import { ToastContainer } from 'react-toastify'
 import { Providers } from './global.redux/provider'
+import { RouteGuard } from '@/components/route-guard'
 import 'react-toastify/dist/ReactToastify.css'
 import './globals.css'
-import { metadata } from '@/lib/metadata' // Import metadata
-import Head from 'next/head' // Import Head component from next/head
-import { usePathname } from 'next/navigation'
-// import { RouteGuard } from '@/components/route-guard'
+import Head from 'next/head'
+import { metadata } from '@/lib/metadata'
+
 const inter = Inter({ subsets: ['latin'] })
 
 export default function RootLayout({
@@ -20,16 +21,10 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const pathname = usePathname()
-  const isAuthPage = pathname.startsWith('/auth')
-  const isGroupsPage = pathname.startsWith('/groups')
-
-  // Combine conditions to determine if we should hide footer and bottom navigation
-  const shouldHideFooterAndNav = isAuthPage || isGroupsPage
-
   return (
     <html lang="en" suppressHydrationWarning>
-      <Head>
+
+    <Head>
         <title>{metadata.title as string}</title>
         <meta name="description" content={metadata.description as string} />
         <meta
@@ -37,9 +32,8 @@ export default function RootLayout({
           content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"
         />
       </Head>
-      <body
-        className={`${inter.className} w-full max-h-screen bg-background antialiased`}
-      >
+
+      <body className={`${inter.className} min-h-screen bg-background antialiased`}>
         <Providers>
           <ThemeProvider
             attribute="class"
@@ -47,31 +41,31 @@ export default function RootLayout({
             enableSystem={false}
             storageKey="escrow-theme"
           >
-            <div className="flex flex-col gap-[0.5rem] overflow-hidden max-h-screen">
-              {!isAuthPage && <Navigation />}
-              <div className="flex w-full z-10 ">
-                {/* {!isAuthPage && ( */}
-                <aside className="hidden h-screen overflow-y-scroll lg:block lg:w-[30%] xl:w-[25%] border-r bg-muted">
+            <RouteGuard>
+              {/* Main Header */}
+              <Navigation />
+
+              {/* Page Content */}
+              <div className="flex">
+                {/* Desktop Sidebar (hidden on small and medium screens) */}
+                <div className="hidden lg:block border-r bg-muted h-[calc(120vh-56px)] w-64">
                   <Sidebar />
-                </aside>
-                {/* )} */}
-                <div
-                  className={
-                    isAuthPage
-                      ? 'w-full'
-                      : 'flex w-full lg:w-[70%] xl:w-[75%] pb-[5rem] flex-col max-h-screen overflow-y-auto'
-                  }
-                >
-                  <main>{children}</main>
-                  {!shouldHideFooterAndNav && <Footer />}
+                </div>
+
+                {/* Main Content and Footer */}
+                <div className="flex-1 flex flex-col min-h-screen">
+                  <main className="flex-1">
+                    {children}
+                  </main>
+                  <Footer />
+
+                  {/* Bottom Navigation (Mobile) */}
+                  <div className="lg:hidden">
+                    <BottomNav />
+                  </div>
                 </div>
               </div>
-              {!shouldHideFooterAndNav && (
-                <div className="md:hidden">
-                  <BottomNav />
-                </div>
-              )}
-            </div>
+            </RouteGuard>
           </ThemeProvider>
           <ToastContainer position="bottom-right" theme="colored" />
         </Providers>

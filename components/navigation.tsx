@@ -6,11 +6,7 @@ import { useSelector } from 'react-redux'
 import { useRouter } from 'next/navigation'
 import { Menu } from 'lucide-react'
 import { useState, useEffect } from 'react'
-
-// If you're using shadcn/ui:
 import { useTheme } from 'next-themes'
-// or if you have a custom setup, import the correct useTheme hook
-
 import type { RootState } from '@/lib/stores/store'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'

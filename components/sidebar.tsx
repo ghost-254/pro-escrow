@@ -9,14 +9,12 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Plus,
   Home,
-  History,
   Wallet,
   HelpCircle,
   Shield,
   BadgeCheck,
   AlertCircle,
   X,
-  CreditCard,
   Bell,
   User,
   Users,
@@ -122,18 +120,12 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
             <nav className="space-y-1 flex flex-col gap-[0.3rem]">
               <MenuItem href="/" icon={Home} label="Dashboard" />
               <MenuItem href="/groups" icon={Users} label="Chats" />
-              <MenuItem
-                href="/transactions"
-                icon={CreditCard}
-                label="Transactions"
-              />
               <MenuItem href="/wallet" icon={Wallet} label="Wallet" />
               <MenuItem
                 href="/notifications"
                 icon={Bell}
                 label="Notifications"
               />
-              <MenuItem href="/history" icon={History} label="History" />
             </nav>
           </div>
 

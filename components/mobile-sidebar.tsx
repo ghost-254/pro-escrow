@@ -13,9 +13,7 @@ import {
   LogOut,
   Plus,
   Home,
-  History,
   Wallet,
-  CreditCard,
   Bell,
   Shield,
   BadgeCheck,
@@ -223,18 +221,8 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
               <nav className="space-y-1">
                 <MenuItem href="/" icon={Home} label="Dashboard" />
                 <MenuItem href="/groups" icon={Users} label="Chats" />
-                <MenuItem
-                  href="/transactions"
-                  icon={CreditCard}
-                  label="Transactions"
-                />
                 <MenuItem href="/wallet" icon={Wallet} label="Wallet" />
-                <MenuItem
-                  href="/notifications"
-                  icon={Bell}
-                  label="Notifications"
-                />
-                <MenuItem href="/history" icon={History} label="History" />
+                <MenuItem href="/notifications" icon={Bell} label="Notifications" />
               </nav>
             </div>
 

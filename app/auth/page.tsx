@@ -285,8 +285,8 @@ export default function AuthPage(): JSX.Element {
           </Typography>
           <CardDescription>
             {activeTab === 'signin'
-              ? `Good ${getTimeOfDay()}, sign in to your account`
-              : `Good ${getTimeOfDay()}, create an account to get started`}
+              ? `Good ${getTimeOfDay()} 👋, sign in to your account`
+              : `Good ${getTimeOfDay()} 👋, create an account to get started`}
           </CardDescription>
         </CardHeader>
 
