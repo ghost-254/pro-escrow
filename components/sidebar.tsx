@@ -31,6 +31,7 @@ interface SidebarProps {
 export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const dispatch = useDispatch()
+  const unreadNotification = 4
 
   const handleShowTransactModal = () => {
     dispatch(toggleTransactModal())
@@ -121,11 +122,18 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
               <MenuItem href="/" icon={Home} label="Dashboard" />
               <MenuItem href="/groups" icon={Users} label="Chats" />
               <MenuItem href="/wallet" icon={Wallet} label="Wallet" />
-              <MenuItem
-                href="/notifications"
-                icon={Bell}
-                label="Notifications"
-              />
+              <div className="relative">
+                <MenuItem
+                  href="/notifications"
+                  icon={Bell}
+                  label="Notifications"
+                />
+                {unreadNotification && (
+                  <div className="absolute top-[0.25rem] bg-primary grid rounded-full justify-center place-items-center w-[1.7rem] text-[0.75rem] h-[1.7rem] text-white right-[01rem]">
+                    {unreadNotification}
+                  </div>
+                )}
+              </div>
             </nav>
           </div>
 

@@ -144,7 +144,10 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
   )
 
   return (
-    <div className="fixed inset-0 z-[15] flex bg-black/50" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-[15] flex bg-black/50"
+      onClick={onClose}
+    >
       {/* Sidebar Panel */}
       <div
         className="relative w-[70%] md:w-[50%] h-screen bg-muted flex flex-col"
@@ -222,7 +225,16 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                 <MenuItem href="/" icon={Home} label="Dashboard" />
                 <MenuItem href="/groups" icon={Users} label="Chats" />
                 <MenuItem href="/wallet" icon={Wallet} label="Wallet" />
-                <MenuItem href="/notifications" icon={Bell} label="Notifications" />
+                <div className="relative">
+                  <MenuItem
+                    href="/notifications"
+                    icon={Bell}
+                    label="Notifications"
+                  />
+                  <div className="absolute top-[0.25rem] bg-primary grid rounded-full justify-center place-items-center w-[1.7rem] text-[0.75rem] h-[1.7rem] text-white right-[01rem]">
+                    4
+                  </div>
+                </div>
               </nav>
             </div>
 

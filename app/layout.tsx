@@ -1,5 +1,4 @@
-// app/layout.tsx
-
+'use client'
 import { Inter } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Navigation } from '@/components/navigation'
@@ -13,6 +12,7 @@ import 'react-toastify/dist/ReactToastify.css'
 import './globals.css'
 import Head from 'next/head'
 import { metadata } from '@/lib/metadata'
+import { usePathname } from 'next/navigation'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -21,10 +21,16 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const pathname = usePathname()
+  const isAuthPage = pathname.startsWith('/auth')
+  const isGroupsPage = pathname.startsWith('/groups')
+
+  // Combine conditions to determine if footer and bottom navigation should be hidden
+  const shouldHideFooterAndNav = isAuthPage || isGroupsPage
+
   return (
     <html lang="en" suppressHydrationWarning>
-
-    <Head>
+      <Head>
         <title>{metadata.title as string}</title>
         <meta name="description" content={metadata.description as string} />
         <meta
@@ -33,7 +39,9 @@ export default function RootLayout({
         />
       </Head>
 
-      <body className={`${inter.className} min-h-screen bg-background antialiased`}>
+      <body
+        className={`${inter.className} min-h-screen bg-background antialiased`}
+      >
         <Providers>
           <ThemeProvider
             attribute="class"
@@ -42,27 +50,35 @@ export default function RootLayout({
             storageKey="escrow-theme"
           >
             <RouteGuard>
-              {/* Main Header */}
-              <Navigation />
+              {/* Header Navigation */}
+              {!isAuthPage && <Navigation />}
 
               {/* Page Content */}
               <div className="flex">
-                {/* Desktop Sidebar (hidden on small and medium screens) */}
-                <div className="hidden lg:block border-r bg-muted h-[calc(120vh-56px)] w-64">
-                  <Sidebar />
-                </div>
-
-                {/* Main Content and Footer */}
-                <div className="flex-1 flex flex-col min-h-screen">
-                  <main className="flex-1">
-                    {children}
-                  </main>
-                  <Footer />
-
-                  {/* Bottom Navigation (Mobile) */}
-                  <div className="lg:hidden">
-                    <BottomNav />
+                {/* Desktop Sidebar */}
+                {/* {!isAuthPage && ( */}
+                  <div className="hidden  lg:block border-r bg-muted h-[calc(100vh-56px)] w-64">
+                    <Sidebar />
                   </div>
+                {/* )} */}
+
+                {/* Main Content Area */}
+                <div
+                  className={`flex-1 flex flex-col ${
+                    isAuthPage ? 'w-full' : 'lg:w-auto'
+                  }`}
+                >
+                  <main className="flex-1">{children}</main>
+
+                  {/* Footer */}
+                  {!shouldHideFooterAndNav && <Footer />}
+
+                  {/* Bottom Navigation (Mobile Only) */}
+                  {!shouldHideFooterAndNav && (
+                    <div className="lg:hidden">
+                      <BottomNav />
+                    </div>
+                  )}
                 </div>
               </div>
             </RouteGuard>

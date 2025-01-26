@@ -67,7 +67,7 @@ export default function Home() {
               size="lg"
               className="bg-white text-primary hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700"
             >
-              Get Started
+              Create Escrow Now
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </div>

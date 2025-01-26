@@ -70,7 +70,7 @@ export function Navigation() {
           {/* Desktop-only Buttons */}
           <Button
             variant="ghost"
-            className="text-primary hover:text-primary-foreground hover:bg-primary hidden lg:inline-flex"
+            className="text-primary  hover:text-primary-foreground hover:text-white hover:bg-primary hidden lg:inline-flex"
             onClick={handleInteraction}
           >
             Sell

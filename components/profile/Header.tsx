@@ -1,21 +1,15 @@
-"use client"
+'use client'
 
-import React, { useEffect, useState } from "react"
-import { useDispatch, useSelector } from "react-redux"
-import { doc, getDoc } from "firebase/firestore"
-import { db } from "@/lib/firebaseConfig"
-import { RootState } from "@/lib/stores/store"
-import Image from "next/image"
+import React, { useEffect, useState } from 'react'
+import { useSelector } from 'react-redux'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebaseConfig'
+import { RootState } from '@/lib/stores/store'
+import Image from 'next/image'
 
-import { Button } from "@/components/ui/button"
-import Typography from "@/components/ui/typography"
-import { Plus } from "lucide-react"
-
-import {
-  resetAddFundsModal,
-  setAddFundsType,
-  toggleAddFundsModal
-} from "@/lib/slices/addfunds.reducer"
+import { Button } from '@/components/ui/button'
+import Typography from '@/components/ui/typography'
+import { ExternalLink } from 'lucide-react'
 
 import {
   Dialog,
@@ -23,56 +17,45 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter
-} from "@/components/ui/dialog"
-import { useToast } from "../../hooks/use-toast"
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { useToast } from '../../hooks/use-toast'
 
 function Header() {
-  const dispatch = useDispatch()
   const user = useSelector((state: RootState) => state.auth.user)
   const { toast } = useToast()
 
-  const [firstName, setFirstName] = useState("User")
-  const [lastName, setLastName] = useState("")
-  const [photoURL, setPhotoURL] = useState("")
+  const [firstName, setFirstName] = useState('User')
+  const [lastName, setLastName] = useState('')
+  const [photoURL, setPhotoURL] = useState('')
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const balance: number = 0
-
-  const handleAddFunds = () => {
-    dispatch(resetAddFundsModal())
-    dispatch(toggleAddFundsModal())
-  }
-  const handleDeposit = () => handleAddFunds()
-  const handleWithdrawal = () => {
-    dispatch(setAddFundsType("withdraw"))
-    dispatch(toggleAddFundsModal())
-  }
 
   useEffect(() => {
     if (!user?.uid) return
     const fetchUserProfile = async () => {
       try {
-        const docRef = doc(db, "users", user.uid)
+        const docRef = doc(db, 'users', user.uid)
         const snapshot = await getDoc(docRef)
         if (snapshot.exists()) {
           const data = snapshot.data()
-          setFirstName(data.firstName || "User")
-          setLastName(data.lastName || "")
-          setPhotoURL(data.photoURL || "")
+          setFirstName(data.firstName || 'User')
+          setLastName(data.lastName || '')
+          setPhotoURL(data.photoURL || '')
         }
       } catch {
         toast({
-          description: "Failed to fetch user profile.",
-          variant: "destructive",
-          duration: 3000
+          description: 'Failed to fetch user profile.',
+          variant: 'destructive',
+          duration: 3000,
         })
       }
     }
     fetchUserProfile()
   }, [user?.uid, toast])
 
-  const initials = (firstName[0] || "") + (lastName[0] || "")
+  const initials = (firstName[0] || '') + (lastName[0] || '')
   const userInitials = initials.toUpperCase()
 
   return (
@@ -98,7 +81,7 @@ function Header() {
                   onClick={() => setIsDialogOpen(true)}
                   className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center text-sm font-bold text-gray-700 dark:text-gray-100 cursor-pointer"
                 >
-                  {userInitials || "U"}
+                  {userInitials || 'U'}
                 </div>
               )}
             </DialogTrigger>
@@ -124,7 +107,10 @@ function Header() {
               )}
 
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                >
                   Close
                 </Button>
               </DialogFooter>
@@ -146,22 +132,9 @@ function Header() {
           >
             USD {balance?.toFixed(2)}
           </Typography>
+          <ExternalLink className="w-4 h-4 !ml-[0.7rem] cursor-pointer hover:opacity-[0.7]" />
         </div>
-      </div>
-
-      <div className="flex space-x-4">
-        <Button
-          onClick={handleDeposit}
-          variant="secondary"
-          className="text-white flex items-center"
-        >
-          <Plus className="w-3 h-3 mr-1" />
-          Add Funds
-        </Button>
-
-        <Button onClick={handleWithdrawal} variant="destructive">
-          Withdraw
-        </Button>
+      
       </div>
     </div>
   )
