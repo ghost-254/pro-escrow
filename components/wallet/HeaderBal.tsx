@@ -11,12 +11,18 @@ function HeaderBal({
   isWithdraw,
   setIsdeposit,
   setIsWithdraw,
+  handleRefetch,
+  currency,
+  isRefresh,
 }: {
   balance: number
   frozenBalance: number
+  currency: string
   isDeposit: boolean
+  isRefresh: boolean
   isWithdraw: boolean
   setIsdeposit: (value: boolean) => void
+  handleRefetch: (value: null) => void
   setIsWithdraw: (value: boolean) => void
 }) {
   return (
@@ -32,20 +38,36 @@ function HeaderBal({
           <div className="flex flex-col gap-[1rem]">
             <div className="flex flex-col gap-[0.5rem]">
               <div>
-                <p className="text-sm text-muted-foreground">Available Balance</p>
+                <p className="text-sm text-muted-foreground">
+                  Available Balance
+                </p>
                 <p className="text-xl md:text-2xl font-bold">
-                  ${balance.toFixed(2)}
+                  {isRefresh
+                    ? currency + ' ' + '0.00' // Show 0 if refreshing
+                    : currency +
+                      new Intl.NumberFormat('en-US', {
+                        style: 'decimal', // Use 'decimal' instead of 'currency'
+                      }).format(balance)}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Frozen Balance</p>
                 <p className="text-xl md:text-2xl font-bold">
-                  ${frozenBalance.toFixed(2)}
+                  {isRefresh
+                    ? currency + ' ' + '0.00' // Show 0 if refreshing
+                    : currency +
+                      new Intl.NumberFormat('en-US', {
+                        style: 'decimal', // Use 'decimal' instead of 'currency'
+                      }).format(frozenBalance)}
                 </p>
               </div>
             </div>
             <div className="flex w-full flex-col md:flex-row md:w-auto gap-[0.5rem] md:gap-2">
-              <Button variant="outline" size="sm">
+              <Button
+                onClick={() => handleRefetch(null)}
+                variant="outline"
+                size="sm"
+              >
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Refresh
               </Button>

@@ -252,20 +252,15 @@ export default function AuthPage(): JSX.Element {
 
   return (
     <div
-      className="
-        flex
-        flex-col
-        items-center
-      "
+      className="flex flex-col items-center justify-center"
       style={{
-        minHeight: '100vh',
-        maxHeight: '100vh', // Limit the height to the viewport
-        overflowY: 'auto', // Enable scrolling if content overflows vertically
+        minHeight: '100vh', // Ensure the container takes full viewport height
         background: '#f5f5f5',
+        overflowY: 'auto', // Enable vertical scrolling if content overflows
       }}
     >
       {/* Logo / Brand */}
-      <div className="flex items-center space-x-2 py-[1rem] mt-[4rem] md:mt-[10rem] lg:mt-[2rem]">
+      <div className="flex items-center space-x-2 py-[1rem] ">
         <Image
           src={logo}
           alt="Platform Logo"
