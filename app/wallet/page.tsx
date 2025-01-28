@@ -26,7 +26,7 @@ export default function WalletPage() {
     if (userId) {
       fetchUserWalletById(userId)
     }
-  }, [userId])
+  }, [userId, fetchUserWalletById])
 
   const handleRefetch = async () => {
     if (userId) {
