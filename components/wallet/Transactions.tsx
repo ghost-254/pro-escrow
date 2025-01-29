@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+/* eslint-disable react-hooks/exhaustive-deps */
+import React, { useEffect, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -19,114 +20,61 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ChevronDown, Search } from 'lucide-react'
+import useTransaction from 'hooks/useTransaction'
+import { useSelector } from 'react-redux'
+import { RootState } from '@/lib/stores/store'
+import { Timestamp } from 'firebase/firestore'
 
 function Transactions() {
-  const [showAllTransactions, setShowAllTransactions] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('All')
+  const [showAllTransactions, setShowAllTransactions] = useState<boolean>(false)
+  const [searchTerm, setSearchTerm] = useState<string>('')
+  const [statusFilter, setStatusFilter] = useState<string>('All')
+  const [transactionTypeFilter, setTransactionTypeFilter] =
+    useState<string>('All')
 
-  const transactions = [
-    {
-      id: 1,
-      type: 'Deposit',
-      amount: 1000,
-      date: '2023-07-01',
-      status: 'Completed',
-    },
-    {
-      id: 2,
-      type: 'Withdrawal',
-      amount: 500,
-      date: '2023-06-28',
-      status: 'Pending',
-    },
-    {
-      id: 3,
-      type: 'Deposit',
-      amount: 2000,
-      date: '2023-06-25',
-      status: 'Completed',
-    },
-    {
-      id: 4,
-      type: 'Withdrawal',
-      amount: 750,
-      date: '2023-06-20',
-      status: 'Failed',
-    },
-    {
-      id: 5,
-      type: 'Deposit',
-      amount: 1500,
-      date: '2023-06-15',
-      status: 'Completed',
-    },
-    {
-      id: 6,
-      type: 'Withdrawal',
-      amount: 1000,
-      date: '2023-06-10',
-      status: 'Completed',
-    },
-    {
-      id: 7,
-      type: 'Deposit',
-      amount: 3000,
-      date: '2023-06-05',
-      status: 'Pending',
-    },
-    {
-      id: 8,
-      type: 'Withdrawal',
-      amount: 250,
-      date: '2023-06-01',
-      status: 'Completed',
-    },
-    {
-      id: 9,
-      type: 'Deposit',
-      amount: 500,
-      date: '2023-05-28',
-      status: 'Failed',
-    },
-    {
-      id: 10,
-      type: 'Withdrawal',
-      amount: 2000,
-      date: '2023-05-25',
-      status: 'Completed',
-    },
-    {
-      id: 11,
-      type: 'Deposit',
-      amount: 1750,
-      date: '2023-05-20',
-      status: 'Completed',
-    },
-    {
-      id: 12,
-      type: 'Withdrawal',
-      amount: 800,
-      date: '2023-05-15',
-      status: 'Pending',
-    },
-  ]
+  // Get user detail from Redux store
+  const userDetail = useSelector((state: RootState) => state.auth.user)
+  const userId: string | undefined = userDetail?.uid // Handle possible undefined value
 
-  const filteredTransactions = transactions.filter((transaction) => {
-    const matchesSearch =
-      transaction.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      transaction.amount.toString().includes(searchTerm) ||
-      transaction.date.includes(searchTerm) ||
-      transaction.status.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesFilter =
-      statusFilter === 'All' || transaction.status === statusFilter
+  // Transaction fetching hook
+  const { transactions, fetchTransactionsByUserIdAndConditions } =
+    useTransaction()
 
-    return matchesSearch && matchesFilter
-  })
+  // Fetch transactions when userId or filters change
+  useEffect(() => {
+    if (userId) {
+      fetchTransactionsByUserIdAndConditions(
+        userId,
+        transactionTypeFilter,
+        statusFilter
+      )
+    }
+  }, [userId, transactionTypeFilter, statusFilter])
+
+  // const filteredTransactions = transactions.filter((transaction) => {
+  //   const matchesSearch =
+  //     transaction.transactionType
+  //       .toLowerCase()
+  //       .includes(searchTerm.toLowerCase()) ||
+  //     transaction.amount.toString().includes(searchTerm) ||
+  //     transaction.createdAt.toLocaleDateString().includes(searchTerm) || // Assuming createdAt is a Firebase timestamp
+  //     transaction.transactionStatus
+  //       .toLowerCase()
+  //       .includes(searchTerm.toLowerCase())
+
+  //   const matchesStatus =
+  //     statusFilter === 'All' || transaction.transactionStatus === statusFilter
+
+  //   const matchesType =
+  //     transactionTypeFilter === 'All' ||
+  //     transaction.transactionType === transactionTypeFilter
+
+  //   return matchesSearch && matchesStatus && matchesType
+  // })
 
   const displayedTransactions = showAllTransactions
-    ? filteredTransactions
-    : filteredTransactions.slice(0, 10)
+    ? transactions
+    : transactions.slice(0, 10)
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -161,41 +109,76 @@ function Transactions() {
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-40">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All</SelectItem>
-                <SelectItem value="Completed">Completed</SelectItem>
-                <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="Failed">Failed</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-[1rem]">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full md:w-40">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Failed">Failed</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={transactionTypeFilter}
+                onValueChange={setTransactionTypeFilter}
+              >
+                <SelectTrigger className="w-full md:w-40">
+                  <SelectValue placeholder="Filter by type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All</SelectItem>
+                  <SelectItem value="Deposit">Deposit</SelectItem>
+                  <SelectItem value="Withdrawal">Withdrawal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="overflow-x-auto">
-            <Table >
-              <TableHeader >
-                <TableRow>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody >
-                {displayedTransactions.map((transaction) => (
-                  <TableRow key={transaction.id}>
-                    <TableCell>{transaction.type}</TableCell>
-                    <TableCell>${transaction.amount.toFixed(2)}</TableCell>
-                    <TableCell>{transaction.date}</TableCell>
-                    <TableCell>{getStatusBadge(transaction.status)}</TableCell>
+
+          {/* Display "No data available" if there are no transactions */}
+          {transactions?.length === 0 ? (
+            <div className="text-center my-4">No data available</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>#Ref</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Method</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          {filteredTransactions.length > 10 && !showAllTransactions && (
+                </TableHeader>
+                <TableBody>
+                  {displayedTransactions.map((transaction) => (
+                    <TableRow key={transaction.reference}>
+                      <TableCell>{transaction.reference}</TableCell>
+                      <TableCell>{transaction.transactionType}</TableCell>
+                      <TableCell>{transaction.paymentMethod}</TableCell>
+                      <TableCell>USD{transaction.amount.toFixed(2)}</TableCell>
+                      <TableCell>
+                        {transaction.createdAt instanceof Timestamp
+                          ? new Date(
+                              transaction.createdAt.seconds * 1000
+                            ).toLocaleString()
+                          : 'Invalid Date'}
+                      </TableCell>
+
+                      <TableCell>
+                        {getStatusBadge(transaction.transactionStatus)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {transactions.length > 10 && !showAllTransactions && (
             <div className="mt-4 text-center">
               <Button
                 variant="outline"

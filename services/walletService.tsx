@@ -42,7 +42,6 @@ export const fetchWallets = async (): Promise<Wallet[]> => {
 export const fetchWalletByUserId = async (
   userId: string
 ): Promise<Wallet | null> => {
-
   const walletsCollection = collection(db, 'wallet')
 
   const snapshot = await getDocs(walletsCollection)
@@ -63,12 +62,66 @@ export const addWallet = async (
 }
 
 // Update a wallet
-export const updateWallet = async (
-  id: string,
-  updatedData: Partial<Wallet>
+export const updateWalletDeposit = async (
+  userId: string,
+  incomingAmount: number
 ): Promise<void> => {
-  const walletDoc = doc(db, 'wallets', id)
-  await updateDoc(walletDoc, updatedData)
+  try {
+    const walletCollection = collection(db, 'wallet')
+
+    // Fetch all documents in the wallet collection
+    const snapshot = await getDocs(walletCollection)
+
+    // Find the wallet document matching the given userId
+    const walletDoc = snapshot.docs?.find((doc) => doc.data().userId === userId)
+
+    if (!walletDoc) {
+      return
+    }
+
+    // Extract the document reference and current balance
+    const walletDocRef = doc(db, 'wallet', walletDoc.id)
+    const walletData = walletDoc.data()
+    const currentBalance = walletData.walletBalance || 0 // Default to 0 if undefined
+    // Calculate the new balance
+    const newBalance = currentBalance + incomingAmount
+
+    // Update the wallet document with the new balance
+    await updateDoc(walletDocRef, { walletBalance: newBalance })
+  } catch (error) {
+    console.error('Error updating wallet:', error)
+  }
+}
+
+export const updateWalletWithdrawal = async (
+  userId: string,
+  incomingAmount: number
+): Promise<void> => {
+  try {
+    const walletCollection = collection(db, 'wallet')
+
+    // Fetch all documents in the wallet collection
+    const snapshot = await getDocs(walletCollection)
+
+    // Find the wallet document matching the given userId
+    const walletDoc = snapshot.docs?.find((doc) => doc.data().userId === userId)
+
+    if (!walletDoc) {
+      return
+    }
+
+    // Extract the document reference and current balance
+    const walletDocRef = doc(db, 'wallet', walletDoc.id)
+    const walletData = walletDoc.data()
+    const currentBalance = walletData.walletBalance || 0 // Default to 0 if undefined
+    // Calculate the new balance
+    const newBalance = currentBalance - incomingAmount
+
+    // Update the wallet document with the new balance
+    await updateDoc(walletDocRef, { walletBalance: newBalance })
+  } catch (error) {
+    console.error('Error updating wallet:', error)
+  }
 }
 
 // Delete a wallet

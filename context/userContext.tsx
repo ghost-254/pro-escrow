@@ -5,6 +5,7 @@ import * as userService from "../services/userService";
 // Define the context type
 export interface UserContextProps {
   fetchUsers: typeof userService.fetchUsers;
+  fetchUserById: typeof userService.fetchUserById;
   addUser: typeof userService.addUser;
   updateUser: typeof userService.updateUser;
   deleteUser: typeof userService.deleteUser;

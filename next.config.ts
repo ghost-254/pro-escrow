@@ -7,7 +7,11 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    domains: ['avatars.mds.yandex.net', 'firebasestorage.googleapis.com'], // Added Firebase Storage domain
+    domains: [
+      'avatars.mds.yandex.net',
+      'firebasestorage.googleapis.com',
+      'encrypted-tbn0.gstatic.com',
+    ], // Added Firebase Storage domain
   },
 }
 

@@ -6,6 +6,7 @@ import {
   doc,
   updateDoc,
   deleteDoc,
+  getDoc,
 } from 'firebase/firestore'
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { db, auth } from '@/lib/firebaseConfig'
@@ -23,6 +24,16 @@ export const fetchUsers = async (): Promise<User[]> => {
   const snapshot = await getDocs(usersCollection)
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as User)
 }
+
+// Fetch user by ID
+export const fetchUserById = async (id: string): Promise<User | null> => {
+  const userDoc = doc(db, 'users', id);
+  const snapshot = await getDoc(userDoc);
+  if (snapshot.exists()) {
+    return { id: snapshot.id, ...snapshot.data() } as User;
+  }
+  return null;
+};
 
 // Add a user
 export const addUser = async (userData: Omit<User, 'id'>): Promise<void> => {

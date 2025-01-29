@@ -1,5 +1,4 @@
-// app/wallet/page.tsx
-
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -26,13 +25,15 @@ export default function WalletPage() {
     if (userId) {
       fetchUserWalletById(userId)
     }
-  }, [userId, fetchUserWalletById])
+  }, [userId])
 
   const handleRefetch = async () => {
     if (userId) {
       setIsRefetch(true)
       await refreshWallet(userId)
-      setIsRefetch(false)
+      setTimeout(() => {
+        setIsRefetch(false)
+      }, 1000)
     }
   }
 

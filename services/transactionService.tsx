@@ -6,6 +6,8 @@ import {
   updateDoc,
   deleteDoc,
   Timestamp,
+  query,
+  where,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebaseConfig'
 
@@ -46,19 +48,62 @@ export const fetchTransactionByUserId = async (
   )
 
   return transactionDoc
-    ? ({ ...transactionDoc.data(), id: transactionDoc.id } as unknown as Transaction)
+    ? ({
+        ...transactionDoc.data(),
+        id: transactionDoc.id,
+      } as unknown as Transaction)
     : null
 }
 
+// Fetch transactions that match userId and other conditions
+// Fetch transactions that match userId and other conditions
+export const fetchTransactionsByUserIdAndConditions = async (filters: {
+  userId: string
+  transactionType: string
+  status: string
+}): Promise<Transaction[]> => {
+  const { userId, transactionType, status } = filters // Destructure the filters object
+
+  const transactionsCollection = collection(db, 'transactions')
+
+  // Create an array to hold the conditions
+  const conditions = [where('userId', '==', userId)]
+
+  if (transactionType !== 'All') {
+    conditions.push(where('transactionType', '==', transactionType))
+  }
+
+  if (status !== 'All') {
+    conditions.push(where('transactionStatus', '==', status))
+  }
+
+  // Create the query with the dynamically added conditions
+  const q = query(transactionsCollection, ...conditions)
+
+  // Get the matching documents
+  const snapshot = await getDocs(q)
+
+  return snapshot.docs.map((doc) => {
+    const data = doc.data() as Transaction
+    return { ...data, id: doc.id } // Add the document id to the transaction data
+  })
+}
+
 // Deposit a transaction
-export const depositTransaction = async (
+export const depositPayment = async (
   transactionData: Omit<Transaction, 'id'>
 ): Promise<void> => {
   const transactionsCollection = collection(db, 'transactions')
 
+  // Convert transactionDetails from Map to Object
+  const transactionDetailsObj = Object.fromEntries(
+    transactionData?.transactionDetails
+  )
+
   // Create a transaction object with 'Deposit' as transactionType
   const transaction = {
     ...transactionData,
+    transactionDetails: transactionDetailsObj, // Save as plain object
     transactionType: 'Deposit', // Mark the transaction as a deposit
     createdAt: Timestamp.fromDate(new Date()), // Set created timestamp
     updatedAt: Timestamp.fromDate(new Date()), // Set updated timestamp
@@ -73,15 +118,21 @@ export const withdrawalTransaction = async (
 ): Promise<void> => {
   const transactionsCollection = collection(db, 'transactions')
 
+  // Convert transactionDetails from Map to Object
+  const transactionDetailsObj = Object.fromEntries(
+    transactionData?.transactionDetails
+  )
+
   // Create a transaction object with 'Withdrawal' as transactionType
   const transaction = {
     ...transactionData,
-    transactionType: 'Withdrawal', // Mark the transaction as a withdrawal
+    transactionDetails: transactionDetailsObj, // Save as plain object
+    transactionType: 'Withdraw', // Mark the transaction as a withdrawal
     createdAt: Timestamp.fromDate(new Date()), // Set created timestamp
     updatedAt: Timestamp.fromDate(new Date()), // Set updated timestamp
   }
 
-  await addDoc(transactionsCollection, transaction)
+  await addDoc(transactionsCollection, transaction) // Save the withdrawal transaction
 }
 
 // Update a transaction

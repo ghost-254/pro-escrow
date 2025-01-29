@@ -1,9 +1,14 @@
 import React, { createContext, ReactNode, useState } from 'react'
 import {
   fetchTransactionByUserId,
-  // addTransaction, // Function to add new transaction
-  updateTransaction, // Function to update an existing transaction
+  depositPayment,
+  withdrawalTransaction,
+  fetchTransactionsByUserIdAndConditions, // Import the function
 } from '../services/transactionService'
+import {
+  updateWalletDeposit,
+  updateWalletWithdrawal,
+} from 'services/walletService'
 
 interface Transaction {
   amount: number
@@ -21,20 +26,27 @@ interface Transaction {
 
 interface TransactionContextProps {
   transaction: Transaction | null
+  transactions: Transaction[] // New state to store multiple transactions
   isLoading: boolean
+  isTransacting: boolean
   fetchUserTransactionById: (userId: string) => Promise<void>
   refreshTransaction: (userId: string) => Promise<void>
   updateTransaction: (id: string, data: Partial<Transaction>) => Promise<void>
   depositTransaction: (
     userId: string,
     amount: number,
-    paymentMethod: string
+    transactionDetails: { paymentMethod: string; paymentDetails: string }
   ) => Promise<void>
   withdrawTransaction: (
     userId: string,
     amount: number,
-    paymentMethod: string
+    transactionDetails: { paymentMethod: string; paymentDetails: string }
   ) => Promise<void>
+  fetchTransactionsByUserIdAndConditions: (
+    userId: string,
+    transactionType: string,
+    transactionStatus: string
+  ) => Promise<void> // Modify the function to not return an array directly
 }
 
 export const TransactionContext = createContext<
@@ -45,7 +57,9 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [transaction, setTransaction] = useState<Transaction | null>(null)
+  const [transactions, setTransactions] = useState<Transaction[]>([]) // New state for transactions
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [isTransacting, setIsTransacting] = useState<boolean>(false)
 
   // Fetch the transaction by userId
   const fetchUserTransactionById = async (userId: string) => {
@@ -54,14 +68,35 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
       const transactionData = await fetchTransactionByUserId(userId)
 
       if (transactionData) {
-        // Only set the state if transactionData is not null
         setTransaction(transactionData)
       } else {
         console.log('No transaction found for this user')
-        setTransaction(null) // Optionally set the state to null if no transaction is found
+        setTransaction(null)
       }
     } catch (error) {
       console.error('Failed to fetch transaction data:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Fetch transactions by userId and conditions (new function)
+  const fetchTransactions = async (
+    userId: string,
+    transactionType: string,
+    transactionStatus: string
+  ) => {
+    setIsLoading(true)
+    try {
+      // Pass an object with userId, transactionType, and transactionStatus
+      const fetchedTransactions = await fetchTransactionsByUserIdAndConditions({
+        userId,
+        transactionType,
+        status: transactionStatus, // Pass transactionStatus as status
+      })
+      setTransactions(fetchedTransactions) // Store the fetched transactions in state
+    } catch (error) {
+      console.error('Failed to fetch transactions:', error)
     } finally {
       setIsLoading(false)
     }
@@ -86,30 +121,29 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
   const depositTransaction = async (
     userId: string,
     amount: number,
-    paymentMethod: string
+    transactionDetails: { paymentMethod: string; paymentDetails: string }
   ) => {
-    setIsLoading(true)
+    setIsTransacting(true)
     try {
-      const newTransaction: Omit<Transaction, 'id'> = {
+      const transactionData: Omit<Transaction, 'id'> = {
         amount,
         createdAt: new Date(),
-        paymentMethod,
-        transactionDetails: new Map(),
-        reference: `ref-${Math.random().toString(36).substr(2, 9)}`, // Generate a random reference
-        transactionFee: 0, // You can calculate fees as needed
+        transactionDetails: new Map(Object.entries(transactionDetails)),
+        reference: `ref-${Math.random().toString(36).substr(2, 9)}`,
+        transactionFee: 0,
         transactionStatus: 'Completed',
         transactionType: 'Deposit',
         updatedAt: new Date(),
         userId,
+        paymentMethod: transactionDetails.paymentMethod,
       }
 
-      // Add deposit transaction
-      // await addTransaction(newTransaction)
-      await fetchUserTransactionById(userId) // Refresh transaction after deposit
+      await depositPayment(transactionData)
+      await updateWalletDeposit(userId, transactionData.amount)
     } catch (error) {
       console.error('Failed to process deposit transaction:', error)
     } finally {
-      setIsLoading(false)
+      setIsTransacting(false)
     }
   }
 
@@ -117,30 +151,29 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
   const withdrawTransaction = async (
     userId: string,
     amount: number,
-    paymentMethod: string
+    transactionDetails: { paymentMethod: string; paymentDetails: string }
   ) => {
-    setIsLoading(true)
+    setIsTransacting(true)
     try {
-      const newTransaction: Omit<Transaction, 'id'> = {
-        amount: -amount, // For withdrawals, the amount will be negative
+      const transactionData: Omit<Transaction, 'id'> = {
+        amount: amount,
         createdAt: new Date(),
-        paymentMethod,
-        transactionDetails: new Map(),
-        reference: `ref-${Math.random().toString(36).substr(2, 9)}`, // Generate a random reference
-        transactionFee: 0, // You can calculate fees as needed
+        transactionDetails: new Map(Object.entries(transactionDetails)),
+        reference: `ref-${Math.random().toString(36).substr(2, 9)}`,
+        transactionFee: 0,
         transactionStatus: 'Completed',
-        transactionType: 'Withdrawal',
+        transactionType: 'Withdraw',
         updatedAt: new Date(),
         userId,
+        paymentMethod: transactionDetails.paymentMethod,
       }
 
-      // Add withdrawal transaction
-      // await addTransaction(newTransaction)
-      await fetchUserTransactionById(userId) // Refresh transaction after withdrawal
+      await withdrawalTransaction(transactionData)
+      await updateWalletWithdrawal(userId, transactionData.amount)
     } catch (error) {
       console.error('Failed to process withdrawal transaction:', error)
     } finally {
-      setIsLoading(false)
+      setIsTransacting(false)
     }
   }
 
@@ -148,12 +181,15 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
     <TransactionContext.Provider
       value={{
         transaction,
+        transactions, // Provide the transactions array to the context
         isLoading,
         fetchUserTransactionById,
         refreshTransaction,
         updateTransaction,
         depositTransaction,
         withdrawTransaction,
+        isTransacting,
+        fetchTransactionsByUserIdAndConditions: fetchTransactions, // Provide the modified function
       }}
     >
       {children}

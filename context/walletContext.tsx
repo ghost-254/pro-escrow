@@ -45,7 +45,7 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({
   }
 
   const refreshWallet = async (userId: string) => {
-    await fetchWalletByUserId(userId)
+    await fetchUserWalletById(userId)
   }
 
   const updateWallet = async (userId: string, data: Partial<Wallet>) => {
