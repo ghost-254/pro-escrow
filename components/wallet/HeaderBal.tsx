@@ -25,6 +25,16 @@ function HeaderBal({
   handleRefetch: (value: null) => void
   setIsWithdraw: (value: boolean) => void
 }) {
+  const handleDeposit = () => {
+    setIsWithdraw(false)
+    setIsdeposit(true)
+  }
+
+  const handleWithdraw = () => {
+    setIsdeposit(false)
+    setIsWithdraw(true)
+  }
+
   return (
     <div>
       <Card className="col-span-1 md:col-span-2">
@@ -79,10 +89,7 @@ function HeaderBal({
                     ? 'bg-primary text-white hover:opacity-[0.77] hover:bg-primary hover:text-white'
                     : ''
                 }`}
-                onClick={() => {
-                  setIsdeposit(true)
-                  setIsWithdraw(false)
-                }}
+                onClick={handleDeposit}
               >
                 <ArrowDownLeft className="mr-2 h-4 w-4" />
                 Deposit
@@ -95,10 +102,7 @@ function HeaderBal({
                     : ''
                 }`}
                 size="sm"
-                onClick={() => {
-                  setIsWithdraw(true)
-                  setIsdeposit(false)
-                }}
+                onClick={handleWithdraw}
               >
                 <ArrowUpRight className="mr-2 h-4 w-4" />
                 Withdraw

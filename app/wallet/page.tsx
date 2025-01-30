@@ -20,6 +20,7 @@ export default function WalletPage() {
   const { wallet, fetchUserWalletById, refreshWallet } = useWallet()
   const user = useSelector((state: RootState) => state?.auth.user)
   const userId = user?.uid
+  
   // Check if the wallet or userId is null or undefined before attempting to fetch
   useEffect(() => {
     if (userId) {

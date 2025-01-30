@@ -139,6 +139,9 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
       }
 
       await depositPayment(transactionData)
+      console.log(transactionData.amount);
+      console.log(transactionData);
+      
       await updateWalletDeposit(userId, transactionData.amount)
     } catch (error) {
       console.error('Failed to process deposit transaction:', error)

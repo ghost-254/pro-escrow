@@ -51,6 +51,7 @@ function DepositAndWithdraw({
   const [user, setUser] = useState<any | null>(null)
   const userDetail = useSelector((state: RootState) => state.auth.user)
   const userId: string | undefined = userDetail?.uid // Handle possible undefined value
+  console.log(userId)
 
   useEffect(() => {
     if (!userId) {
@@ -150,6 +151,7 @@ function DepositAndWithdraw({
         paymentMethod: selectedMethod?.value || '',
         paymentDetails: selectedMethod?.detail || '',
       }
+      console.log(isDeposit)
 
       if (isDeposit) {
         await depositTransaction(userId, amount, transactionDetails)

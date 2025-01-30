@@ -53,12 +53,48 @@ export const fetchWalletByUserId = async (
     : null
 }
 
-// Add a wallet
-export const addWallet = async (
-  walletData: Omit<Wallet, 'id'>
+// Function to create a new wallet for a user
+export const createWallet = async (
+  userId: string,
+  currency: string = 'USD'
 ): Promise<void> => {
-  const walletsCollection = collection(db, 'wallets')
-  await addDoc(walletsCollection, walletData)
+  if (!userId) {
+    console.error('User ID is required to create a wallet!')
+    return
+  }
+
+  try {
+    const walletsCollection = collection(db, 'wallet')
+    const snapshot = await getDocs(walletsCollection)
+
+    // Check if the user already has a wallet
+    const existingWallet = snapshot.docs.find(
+      (doc) => doc.data().userId === userId
+    )
+    if (existingWallet) {
+      console.warn(`Wallet already exists for userId: ${userId}`)
+      return
+    }
+
+    // Create new wallet object
+    const newWallet = {
+      userId,
+      currency,
+      walletBalance: 0,
+      frozenBalance: 0,
+      totalDeposits: 0,
+      totalWithdrawal: 0,
+      transactionCount: 0,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    }
+
+    // Add new wallet to Firestore
+    await addDoc(walletsCollection, newWallet)
+    console.log(`New wallet created for userId: ${userId}`)
+  } catch (error) {
+    console.error('Error creating wallet:', error)
+  }
 }
 
 // Update a wallet
@@ -66,28 +102,37 @@ export const updateWalletDeposit = async (
   userId: string,
   incomingAmount: number
 ): Promise<void> => {
+  if (!userId) {
+    console.error('User ID is missing!')
+    return
+  }
+
   try {
     const walletCollection = collection(db, 'wallet')
-
-    // Fetch all documents in the wallet collection
     const snapshot = await getDocs(walletCollection)
 
-    // Find the wallet document matching the given userId
-    const walletDoc = snapshot.docs?.find((doc) => doc.data().userId === userId)
-
-    if (!walletDoc) {
+    if (snapshot.empty) {
+      console.error('No wallets found in the database.')
       return
     }
 
-    // Extract the document reference and current balance
+    const walletDoc = snapshot.docs.find((doc) => doc.data().userId === userId)
+
+    if (!walletDoc) {
+      console.error(`No wallet found for userId: ${userId}`)
+      return
+    }
+
     const walletDocRef = doc(db, 'wallet', walletDoc.id)
     const walletData = walletDoc.data()
-    const currentBalance = walletData.walletBalance || 0 // Default to 0 if undefined
-    // Calculate the new balance
+    console.log('Wallet Data:', walletData)
+
+    const currentBalance = walletData.walletBalance ?? 0
     const newBalance = currentBalance + incomingAmount
 
-    // Update the wallet document with the new balance
     await updateDoc(walletDocRef, { walletBalance: newBalance })
+
+    console.log(`Wallet updated successfully! New Balance: ${newBalance}`)
   } catch (error) {
     console.error('Error updating wallet:', error)
   }

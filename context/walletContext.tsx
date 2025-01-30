@@ -1,5 +1,5 @@
 import React, { createContext, ReactNode, useState } from 'react'
-import { fetchWalletByUserId } from '../services/walletService'
+import { createWallet, fetchWalletByUserId } from '../services/walletService'
 interface Wallet {
   createdAt: Date
   currency: string
@@ -18,6 +18,7 @@ interface WalletContextProps {
   fetchUserWalletById: (userId: string) => Promise<void>
   refreshWallet: (userId: string) => Promise<void>
   updateWallet: (userId: string, data: Partial<Wallet>) => Promise<void>
+  createUserWallet: (userId: string) => Promise<void> // Add this line
 }
 
 export const WalletContext = createContext<WalletContextProps | undefined>(
@@ -29,6 +30,15 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [wallet, setWallet] = useState<Wallet | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
+
+  const createUserWallet = async (userId: string) => {
+    try {
+      await createWallet(userId)
+      await fetchUserWalletById(userId) // Refresh wallet after creation
+    } catch (error) {
+      console.error('Failed to create wallet:', error)
+    }
+  }
 
   // Rename the function to avoid conflict
   const fetchUserWalletById = async (userId: string) => {
@@ -65,6 +75,7 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({
         fetchUserWalletById,
         refreshWallet,
         updateWallet,
+        createUserWallet,
       }}
     >
       {children}
