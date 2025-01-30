@@ -1,13 +1,14 @@
 import React, { createContext, ReactNode, useState } from 'react'
 import {
-  fetchTransactionByUserId,
-  depositPayment,
-  withdrawalTransaction,
-  fetchTransactionsByUserIdAndConditions, // Import the function
+  getUserLatestTransaction,
+  recordDepositTransaction,
+  recordWithdrawalTransaction,
+  getUserTransactionsByFilter,
+  getUserTransactions, // Import the function
 } from '../services/transactionService'
 import {
-  updateWalletDeposit,
-  updateWalletWithdrawal,
+  processWalletDeposit,
+  processWalletWithdrawal,
 } from 'services/walletService'
 
 interface Transaction {
@@ -29,24 +30,21 @@ interface TransactionContextProps {
   transactions: Transaction[] // New state to store multiple transactions
   isLoading: boolean
   isTransacting: boolean
-  fetchUserTransactionById: (userId: string) => Promise<void>
-  refreshTransaction: (
-    userId: string,
-    transactionType: string,
-    transactionStatus: string
-  ) => Promise<void>
-  updateTransaction: (id: string, data: Partial<Transaction>) => Promise<void>
-  depositTransaction: (
+  getUserTransactionById: (userId: string) => Promise<void>
+  refreshUserTransactions: (userId: string) => Promise<void>
+  modifyTransaction: (id: string, data: Partial<Transaction>) => Promise<void>
+  processDepositTransaction: (
     userId: string,
     amount: number,
     transactionDetails: { paymentMethod: string; paymentDetails: string }
   ) => Promise<void>
-  withdrawTransaction: (
+  processWithdrawalTransaction: (
     userId: string,
     amount: number,
     transactionDetails: { paymentMethod: string; paymentDetails: string }
   ) => Promise<void>
-  fetchTransactionsByUserIdAndConditions: (
+  getUserTransactionsByFilter: (
+    searchTerm: string,
     userId: string,
     transactionType: string,
     transactionStatus: string
@@ -66,10 +64,10 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
   const [isTransacting, setIsTransacting] = useState<boolean>(false)
 
   // Fetch the transaction by userId
-  const fetchUserTransactionById = async (userId: string) => {
+  const getUserTransactionById = async (userId: string) => {
     setIsLoading(true)
     try {
-      const transactionData = await fetchTransactionByUserId(userId)
+      const transactionData = await getUserLatestTransaction(userId)
 
       if (transactionData) {
         setTransaction(transactionData)
@@ -86,6 +84,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
 
   // Fetch transactions by userId and conditions (new function)
   const fetchTransactions = async (
+    searchTerm: string,
     userId: string,
     transactionType: string,
     transactionStatus: string
@@ -93,7 +92,8 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
     setIsLoading(true)
     try {
       // Pass an object with userId, transactionType, and transactionStatus
-      const fetchedTransactions = await fetchTransactionsByUserIdAndConditions({
+      const fetchedTransactions = await getUserTransactionsByFilter({
+        searchTerm,
         userId,
         transactionType,
         status: transactionStatus, // Pass transactionStatus as status
@@ -107,26 +107,30 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
   }
 
   // Refresh the transaction data
-  const refreshTransaction = async (
-    userId: string,
-    transactionType: string,
-    transactionStatus: string
-  ) => {
-    await fetchTransactions(userId, transactionType, transactionStatus)
+  const refreshUserTransactions = async (userId: string) => {
+    setIsLoading(true)
+    try {
+      const fetchedTransactions = await getUserTransactions(userId) // Fetch all transactions
+      setTransactions(fetchedTransactions) // Store in state
+    } catch (error) {
+      console.error('Failed to fetch user transactions:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   // Update a transaction's data
-  const updateTransaction = async (id: string, data: Partial<Transaction>) => {
+  const modifyTransaction = async (id: string, data: Partial<Transaction>) => {
     try {
-      await updateTransaction(id, data)
-      await fetchUserTransactionById(data.userId || '')
+      await modifyTransaction(id, data)
+      await getUserLatestTransaction(data.userId || '')
     } catch (error) {
       console.error('Failed to update transaction data:', error)
     }
   }
 
   // Handle deposit transaction
-  const depositTransaction = async (
+  const processDepositTransaction = async (
     userId: string,
     amount: number,
     transactionDetails: { paymentMethod: string; paymentDetails: string }
@@ -146,11 +150,9 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
         paymentMethod: transactionDetails.paymentMethod,
       }
 
-      await depositPayment(transactionData)
-      console.log(transactionData.amount)
-      console.log(transactionData)
+      await recordDepositTransaction(transactionData)
 
-      await updateWalletDeposit(userId, transactionData.amount)
+      await processWalletDeposit(userId, transactionData.amount)
     } catch (error) {
       console.error('Failed to process deposit transaction:', error)
     } finally {
@@ -159,7 +161,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
   }
 
   // Handle withdrawal transaction
-  const withdrawTransaction = async (
+  const processWithdrawalTransaction = async (
     userId: string,
     amount: number,
     transactionDetails: { paymentMethod: string; paymentDetails: string }
@@ -179,8 +181,8 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
         paymentMethod: transactionDetails.paymentMethod,
       }
 
-      await withdrawalTransaction(transactionData)
-      await updateWalletWithdrawal(userId, transactionData.amount)
+      await recordWithdrawalTransaction(transactionData)
+      await processWalletWithdrawal(userId, transactionData.amount)
     } catch (error) {
       console.error('Failed to process withdrawal transaction:', error)
     } finally {
@@ -194,13 +196,13 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
         transaction,
         transactions, // Provide the transactions array to the context
         isLoading,
-        fetchUserTransactionById,
-        refreshTransaction,
-        updateTransaction,
-        depositTransaction,
-        withdrawTransaction,
+        getUserTransactionById,
+        refreshUserTransactions,
+        modifyTransaction,
+        processDepositTransaction,
+        processWithdrawalTransaction,
         isTransacting,
-        fetchTransactionsByUserIdAndConditions: fetchTransactions, // Provide the modified function
+        getUserTransactionsByFilter: fetchTransactions, // Provide the modified function
       }}
     >
       {children}

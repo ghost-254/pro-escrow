@@ -42,7 +42,7 @@ import useWallet from 'hooks/useWallet'
 const logo = '/logo11xx.png'
 
 export default function AuthPage(): JSX.Element {
-  const { createUserWallet } = useWallet()
+  const { initializeUserWallet } = useWallet()
   
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin')
   const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -236,7 +236,7 @@ export default function AuthPage(): JSX.Element {
       })
 
       // Create a wallet for the user
-      await createUserWallet(user.uid)
+      await initializeUserWallet(user.uid)
 
       toast.success('Account created successfully!')
       setIsDialogOpen(false)

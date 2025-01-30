@@ -20,6 +20,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { useToast } from '../../hooks/use-toast'
+import useWallet from 'hooks/useWallet'
+import Link from 'next/link'
 
 function Header() {
   const user = useSelector((state: RootState) => state.auth.user)
@@ -30,7 +32,8 @@ function Header() {
   const [photoURL, setPhotoURL] = useState('')
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const balance: number = 0
+  const { wallet } = useWallet()
+  const balance = wallet?.walletBalance
 
   useEffect(() => {
     if (!user?.uid) return
@@ -132,9 +135,10 @@ function Header() {
           >
             USD {balance?.toFixed(2)}
           </Typography>
-          <ExternalLink className="w-4 h-4 !ml-[0.7rem] cursor-pointer hover:opacity-[0.7]" />
+          <Link href={'/wallet'}>
+            <ExternalLink className="w-4 h-4 !ml-[0.7rem] cursor-pointer hover:opacity-[0.7]" />
+          </Link>
         </div>
-      
       </div>
     </div>
   )

@@ -8,6 +8,7 @@ import {
   Timestamp,
   query,
   where,
+  orderBy,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebaseConfig'
 
@@ -25,7 +26,7 @@ interface Transaction {
 }
 
 // Fetch all transactions
-export const fetchTransactions = async (): Promise<Transaction[]> => {
+export const getAllTransactions = async (): Promise<Transaction[]> => {
   const transactionsCollection = collection(db, 'transactions')
 
   const snapshot = await getDocs(transactionsCollection)
@@ -36,7 +37,7 @@ export const fetchTransactions = async (): Promise<Transaction[]> => {
 }
 
 // Fetch a transaction by userId ||Single
-export const fetchTransactionByUserId = async (
+export const getUserLatestTransaction = async (
   userId: string
 ): Promise<Transaction | null> => {
   const transactionsCollection = collection(db, 'transactions')
@@ -55,29 +56,61 @@ export const fetchTransactionByUserId = async (
     : null
 }
 
-// Fetch transactions that match userId and other conditions ||ALL
-export const fetchTransactionsByUserIdAndConditions = async (filters: {
+// fetch All transactions that matches userId
+export const getUserTransactions = async (
   userId: string
-  transactionType: string
-  status: string
+): Promise<Transaction[]> => {
+  const transactionsCollection = collection(db, 'transactions')
+
+  // Create a query to fetch transactions where userId matches
+  const q = query(
+    transactionsCollection,
+    where('userId', '==', userId),
+    orderBy('createdAt', 'desc')
+  )
+
+  // Get the documents that match the query
+  const snapshot = await getDocs(q)
+
+  // Map the documents to an array of transactions
+  return snapshot.docs.map((doc) => {
+    const data = doc.data() as Transaction
+    return { ...data, id: doc.id } // Add the document id to each transaction
+  })
+}
+
+// Fetch transactions that match userId and other conditions ||ALL + FILTERS
+export const getUserTransactionsByFilter = async (filters: {
+  searchTerm: string
+  userId: string
+  transactionType?: string
+  status?: string
 }): Promise<Transaction[]> => {
-  const { userId, transactionType, status } = filters // Destructure the filters object
+  const { searchTerm, userId, transactionType, status } = filters // Destructure the filters object
 
   const transactionsCollection = collection(db, 'transactions')
 
   // Create an array to hold the conditions
   const conditions = [where('userId', '==', userId)]
 
-  if (transactionType !== 'All') {
+  if (searchTerm) {
+    conditions.push(where('reference', '==', searchTerm))
+  }
+
+  if (transactionType && transactionType !== 'All') {
     conditions.push(where('transactionType', '==', transactionType))
   }
 
-  if (status !== 'All') {
+  if (status && status !== 'All') {
     conditions.push(where('transactionStatus', '==', status))
   }
 
-  // Create the query with the dynamically added conditions
-  const q = query(transactionsCollection, ...conditions)
+  // Create the query with the dynamically added conditions and sort by timestamp
+  const q = query(
+    transactionsCollection,
+    ...conditions,
+    orderBy('createdAt', 'desc') // Sort by createdAt in descending order (newest first)
+  )
 
   // Get the matching documents
   const snapshot = await getDocs(q)
@@ -89,7 +122,7 @@ export const fetchTransactionsByUserIdAndConditions = async (filters: {
 }
 
 // Deposit a transaction
-export const depositPayment = async (
+export const recordDepositTransaction = async (
   transactionData: Omit<Transaction, 'id'>
 ): Promise<void> => {
   const transactionsCollection = collection(db, 'transactions')
@@ -112,7 +145,7 @@ export const depositPayment = async (
 }
 
 // Withdraw a transaction
-export const withdrawalTransaction = async (
+export const recordWithdrawalTransaction = async (
   transactionData: Omit<Transaction, 'id'>
 ): Promise<void> => {
   const transactionsCollection = collection(db, 'transactions')
@@ -135,7 +168,7 @@ export const withdrawalTransaction = async (
 }
 
 // Update a transaction
-export const updateTransaction = async (
+export const modifyTransactionRecord = async (
   id: string,
   updatedData: Partial<Transaction>
 ): Promise<void> => {
@@ -144,7 +177,7 @@ export const updateTransaction = async (
 }
 
 // Delete a transaction
-export const deleteTransaction = async (id: string): Promise<void> => {
+export const removeTransactionRecord = async (id: string): Promise<void> => {
   const transactionDoc = doc(db, 'transactions', id)
   await deleteDoc(transactionDoc)
 }

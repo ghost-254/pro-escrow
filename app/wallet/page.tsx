@@ -14,24 +14,24 @@ import { useSelector } from 'react-redux'
 import { RootState } from '@/lib/stores/store'
 
 export default function WalletPage() {
-  const [isDeposit, setIsdeposit] = useState(false)
+  const [isDeposit, setIsdeposit] = useState(true)
   const [isWithdraw, setIsWithdraw] = useState(false)
   const [isRefetch, setIsRefetch] = useState(false)
-  const { wallet, fetchUserWalletById, refreshWallet } = useWallet()
+  const { wallet, getUserWallet, refreshUserWallet } = useWallet()
   const user = useSelector((state: RootState) => state?.auth.user)
   const userId = user?.uid
   
   // Check if the wallet or userId is null or undefined before attempting to fetch
   useEffect(() => {
     if (userId) {
-      fetchUserWalletById(userId)
+      getUserWallet(userId)
     }
   }, [userId])
 
   const handleRefetch = async () => {
     if (userId) {
       setIsRefetch(true)
-      await refreshWallet(userId)
+      await refreshUserWallet(userId)
       setTimeout(() => {
         setIsRefetch(false)
       }, 1000)

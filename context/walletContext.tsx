@@ -1,5 +1,5 @@
 import React, { createContext, ReactNode, useState } from 'react'
-import { createWallet, fetchWalletByUserId } from '../services/walletService'
+import { initializeWallet, getUserWalletById } from '../services/walletService'
 interface Wallet {
   createdAt: Date
   currency: string
@@ -15,10 +15,10 @@ interface Wallet {
 interface WalletContextProps {
   wallet: Wallet | null
   isLoading: boolean
-  fetchUserWalletById: (userId: string) => Promise<void>
-  refreshWallet: (userId: string) => Promise<void>
-  updateWallet: (userId: string, data: Partial<Wallet>) => Promise<void>
-  createUserWallet: (userId: string) => Promise<void> // Add this line
+  getUserWallet: (userId: string) => Promise<void>
+  refreshUserWallet: (userId: string) => Promise<void>
+  modifyUserWallet: (userId: string, data: Partial<Wallet>) => Promise<void>
+  initializeUserWallet: (userId: string) => Promise<void> // Add this line
 }
 
 export const WalletContext = createContext<WalletContextProps | undefined>(
@@ -31,20 +31,19 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({
   const [wallet, setWallet] = useState<Wallet | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
 
-  const createUserWallet = async (userId: string) => {
+  const initializeUserWallet = async (userId: string) => {
     try {
-      await createWallet(userId)
-      await fetchUserWalletById(userId) // Refresh wallet after creation
+      await initializeWallet(userId)
     } catch (error) {
       console.error('Failed to create wallet:', error)
     }
   }
 
   // Rename the function to avoid conflict
-  const fetchUserWalletById = async (userId: string) => {
+  const getUserWallet = async (userId: string) => {
     setIsLoading(true)
     try {
-      const walletData = await fetchWalletByUserId(userId) // Call the service function
+      const walletData = await getUserWalletById(userId) // Call the service function
 
       setWallet(walletData as unknown as Wallet)
     } catch (error) {
@@ -54,14 +53,13 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({
     }
   }
 
-  const refreshWallet = async (userId: string) => {
-    await fetchUserWalletById(userId)
+  const refreshUserWallet = async (userId: string) => {
+    await getUserWallet(userId)
   }
 
-  const updateWallet = async (userId: string, data: Partial<Wallet>) => {
+  const modifyUserWallet = async (userId: string, data: Partial<Wallet>) => {
     try {
-      await updateWallet(userId, data)
-      await fetchWalletByUserId(userId) // Refresh wallet after update
+      await modifyUserWallet(userId, data)
     } catch (error) {
       console.error('Failed to update wallet data:', error)
     }
@@ -72,10 +70,10 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({
       value={{
         wallet,
         isLoading,
-        fetchUserWalletById,
-        refreshWallet,
-        updateWallet,
-        createUserWallet,
+        getUserWallet,
+        refreshUserWallet,
+        modifyUserWallet,
+        initializeUserWallet,
       }}
     >
       {children}

@@ -25,13 +25,12 @@ export interface Wallet {
 }
 
 // Fetch all wallets
-export const fetchWallets = async (): Promise<Wallet[]> => {
+export const getAllWallets = async (): Promise<Wallet[]> => {
   const walletsCollection = collection(db, 'wallets')
 
   const snapshot = await getDocs(walletsCollection)
   return snapshot.docs.map((doc) => {
     const data = doc.data() as Wallet
-    console.log(data)
 
     // Return the data and manually add the 'id' field to avoid overwriting
     return { ...data, id: doc.id } // Add the document id to the wallet data
@@ -39,7 +38,7 @@ export const fetchWallets = async (): Promise<Wallet[]> => {
 }
 
 // Fetch a wallet by user_id
-export const fetchWalletByUserId = async (
+export const getUserWalletById = async (
   userId: string
 ): Promise<Wallet | null> => {
   const walletsCollection = collection(db, 'wallet')
@@ -54,7 +53,7 @@ export const fetchWalletByUserId = async (
 }
 
 // Function to create a new wallet for a user
-export const createWallet = async (
+export const initializeWallet = async (
   userId: string,
   currency: string = 'USD'
 ): Promise<void> => {
@@ -98,7 +97,7 @@ export const createWallet = async (
 }
 
 // Update a wallet
-export const updateWalletDeposit = async (
+export const processWalletDeposit = async (
   userId: string,
   incomingAmount: number
 ): Promise<void> => {
@@ -138,7 +137,7 @@ export const updateWalletDeposit = async (
   }
 }
 
-export const updateWalletWithdrawal = async (
+export const processWalletWithdrawal = async (
   userId: string,
   incomingAmount: number
 ): Promise<void> => {
@@ -170,7 +169,7 @@ export const updateWalletWithdrawal = async (
 }
 
 // Delete a wallet
-export const deleteWallet = async (id: string): Promise<void> => {
+export const removeWallet = async (id: string): Promise<void> => {
   const walletDoc = doc(db, 'wallets', id)
   await deleteDoc(walletDoc)
 }

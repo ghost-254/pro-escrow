@@ -25,7 +25,7 @@ function HeaderBal({
   handleRefetch: (value: null) => void
   setIsWithdraw: (value: boolean) => void
 }) {
-  const handleDeposit = () => {
+  const ag = () => {
     setIsWithdraw(false)
     setIsdeposit(true)
   }
@@ -89,7 +89,7 @@ function HeaderBal({
                     ? 'bg-primary text-white hover:opacity-[0.77] hover:bg-primary hover:text-white'
                     : ''
                 }`}
-                onClick={handleDeposit}
+                onClick={ag}
               >
                 <ArrowDownLeft className="mr-2 h-4 w-4" />
                 Deposit

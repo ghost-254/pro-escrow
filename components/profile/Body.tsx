@@ -528,7 +528,7 @@ const Body: FC = () => {
             <div className="relative">
               <Input
                 type="text"
-                placeholder="Enter M-PESA number"
+                placeholder="Enter M-PESA number eg., 254712345678"
                 value={formState.mpesa}
                 onChange={handleChange('mpesa')}
                 className="w-full"

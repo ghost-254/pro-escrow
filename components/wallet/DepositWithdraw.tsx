@@ -23,8 +23,8 @@ import { RootState } from '@/lib/stores/store'
 import useAuth from 'hooks/useAuth'
 import useTransaction from 'hooks/useTransaction'
 import useWallet from 'hooks/useWallet'
-import { useToast } from 'hooks/use-toast'
 import { useRouter } from 'next/navigation'
+import { toast } from 'react-toastify'
 
 function DepositAndWithdraw({
   isDeposit,
@@ -36,14 +36,13 @@ function DepositAndWithdraw({
   setIswithdraw: (value: boolean) => void
 }) {
   const { fetchUserById } = useAuth()
-  const { toast } = useToast()
   const router = useRouter()
-  const { refreshWallet, wallet } = useWallet()
+  const { refreshUserWallet, wallet } = useWallet()
   const {
-    depositTransaction,
-    withdrawTransaction,
+    processDepositTransaction,
+    processWithdrawalTransaction,
     isTransacting,
-    // refreshTransaction,
+    refreshUserTransactions,
   } = useTransaction()
 
   const [shakeHeader, setShakeHeader] = useState(false)
@@ -68,7 +67,7 @@ function DepositAndWithdraw({
         const fetchedUser = await fetchUserById(userId)
         setUser(fetchedUser)
       } catch (error) {
-        console.error('Error fetching user by ID:', error)
+        toast.error('Error fetching user by ID' + error)
       }
     }
 
@@ -81,7 +80,7 @@ function DepositAndWithdraw({
     if (!isNaN(parsedValue)) {
       setAmount(parsedValue) // Only set if it's a valid number
     } else {
-      console.log('Invalid number input')
+      toast.error('Invalid number input')
     }
   }
 
@@ -89,9 +88,12 @@ function DepositAndWithdraw({
     const selectedOption = options?.find((option) => option?.value === value)
 
     if (selectedOption) {
-      setSelectedMethod(selectedOption)
-    } else if (value === 'na') {
-      router.push('/profile') // Navigate to /profile if "N/A" is clicked
+      // Check if the label contains "N/A"
+      if (selectedOption.label.includes('N/A')) {
+        router.push('/profile') // Navigate to /profile if the label contains "N/A"
+      } else {
+        setSelectedMethod(selectedOption) // Set the selected method
+      }
     }
   }
 
@@ -107,6 +109,11 @@ function DepositAndWithdraw({
           value: 'mpesa',
           detail: '0742845204 - Kennedy Wandia',
         },
+        {
+          label: 'Binance ID',
+          value: 'binanceid',
+          detail: '3767343445',
+        },
       ]
     : [
         {
@@ -115,13 +122,13 @@ function DepositAndWithdraw({
           detail: user?.mpesa || 'N/A',
         },
         {
-          label: `PayPal (${user?.paypal || 'N/A'})`,
+          label: `Binance ID (${user?.binanceDd || 'N/A'})`,
           value: 'paypal',
-          detail: user?.paypal || 'N/A',
+          detail: user?.binanceId || 'N/A',
         },
         {
-          label: `BEP20 (${user?.cryptoBEP20 || 'N/A'})`,
-          value: 'bep20',
+          label: `Cryptocurrency (${user?.cryptoBEP20 || 'N/A'})`,
+          value: 'cryptocurrency',
           detail: user?.cryptoBEP20 || 'N/A',
         },
       ]
@@ -166,40 +173,28 @@ function DepositAndWithdraw({
         paymentMethod: selectedMethod?.value || '',
         paymentDetails: selectedMethod?.detail || '',
       }
-      console.log(isDeposit)
 
       if (isDeposit) {
-        await depositTransaction(userId, amount, transactionDetails)
-        alert('successful')
-        toast({
-          description: 'Wallet updated successfully.',
-          variant: 'default',
-        })
-        await refreshWallet(userId)
-        // await refreshTransaction(userId, '', '')
+        await processDepositTransaction(userId, amount, transactionDetails)
+        toast.success('Deposit submitted')
+        await refreshUserWallet(userId)
+        await refreshUserTransactions(userId)
       } else {
         if (
           wallet &&
           wallet.walletBalance !== undefined &&
           amount > wallet.walletBalance
         ) {
-          alert('Insufficient balance')
-          toast({
-            description: 'Insufficient balance',
-            variant: 'default',
-          })
+          toast.error('Insufficient balance')
+
           return
         }
-        await withdrawTransaction(userId, amount, transactionDetails)
-        // await refreshTransaction(userId, '', '')
+        await processWithdrawalTransaction(userId, amount, transactionDetails)
+        await refreshUserTransactions(userId)
 
-        alert('Wallet updated successfully.')
+        toast.success('Withdrawal submitted')
 
-        toast({
-          description: 'Wallet updated successfully.',
-          variant: 'default',
-        })
-        await refreshWallet(userId)
+        await refreshUserWallet(userId)
       }
     }
   }
@@ -244,12 +239,7 @@ function DepositAndWithdraw({
                 {options.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.detail === 'N/A' ? (
-                      <span
-                        style={{
-                          cursor: 'pointer',
-                        }}
-                        onClick={() => router.push('/profile')}
-                      >
+                      <span style={{ cursor: 'pointer' }}>
                         {option.label} (click to update)
                       </span>
                     ) : (

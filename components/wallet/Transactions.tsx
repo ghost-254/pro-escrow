@@ -28,6 +28,7 @@ import { Timestamp } from 'firebase/firestore'
 function Transactions() {
   const [showAllTransactions, setShowAllTransactions] = useState<boolean>(false)
   const [searchTerm, setSearchTerm] = useState<string>('')
+
   const [statusFilter, setStatusFilter] = useState<string>('All')
   const [transactionTypeFilter, setTransactionTypeFilter] =
     useState<string>('All')
@@ -37,44 +38,23 @@ function Transactions() {
   const userId: string | undefined = userDetail?.uid // Handle possible undefined value
 
   // Transaction fetching hook
-  const { transactions, fetchTransactionsByUserIdAndConditions } =
-    useTransaction()
+  const { transactions, getUserTransactionsByFilter } = useTransaction()
 
   // Fetch transactions when userId or filters change
   useEffect(() => {
     if (userId) {
-      fetchTransactionsByUserIdAndConditions(
+      getUserTransactionsByFilter(
+        searchTerm,
         userId,
         transactionTypeFilter,
         statusFilter
       )
     }
-  }, [userId, transactionTypeFilter, statusFilter])
-
-  // const filteredTransactions = transactions.filter((transaction) => {
-  //   const matchesSearch =
-  //     transaction.transactionType
-  //       .toLowerCase()
-  //       .includes(searchTerm.toLowerCase()) ||
-  //     transaction.amount.toString().includes(searchTerm) ||
-  //     transaction.createdAt.toLocaleDateString().includes(searchTerm) || // Assuming createdAt is a Firebase timestamp
-  //     transaction.transactionStatus
-  //       .toLowerCase()
-  //       .includes(searchTerm.toLowerCase())
-
-  //   const matchesStatus =
-  //     statusFilter === 'All' || transaction.transactionStatus === statusFilter
-
-  //   const matchesType =
-  //     transactionTypeFilter === 'All' ||
-  //     transaction.transactionType === transactionTypeFilter
-
-  //   return matchesSearch && matchesStatus && matchesType
-  // })
+  }, [userId, searchTerm, transactionTypeFilter, statusFilter])
 
   const displayedTransactions = showAllTransactions
     ? transactions
-    : transactions.slice(0, 10)
+    : transactions?.slice(0, 10)
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -98,18 +78,18 @@ function Transactions() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-            <div className="relative w-full md:w-64">
+          <div className=" w-full flex flex-col gap-[0.5rem] md:flex-row justify-between items-center mb-4 ">
+            <div className="relative w-full mb-[0.5rem] md:mb-0 md:w-64">
               <Input
                 type="text"
-                placeholder="Search transactions"
+                placeholder="Search eg., ref-ghkkgiz2d"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             </div>
-            <div className="flex items-center gap-[1rem]">
+            <div className="w-full flex flex-col md:flex-row md:items-center gap-[0.5rem]">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full md:w-40">
                   <SelectValue placeholder="Filter by status" />
