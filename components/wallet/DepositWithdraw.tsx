@@ -24,6 +24,7 @@ import useAuth from 'hooks/useAuth'
 import useTransaction from 'hooks/useTransaction'
 import useWallet from 'hooks/useWallet'
 import { useToast } from 'hooks/use-toast'
+import { useRouter } from 'next/navigation'
 
 function DepositAndWithdraw({
   isDeposit,
@@ -36,9 +37,14 @@ function DepositAndWithdraw({
 }) {
   const { fetchUserById } = useAuth()
   const { toast } = useToast()
+  const router = useRouter()
   const { refreshWallet, wallet } = useWallet()
-  const { depositTransaction, withdrawTransaction, isTransacting } =
-    useTransaction()
+  const {
+    depositTransaction,
+    withdrawTransaction,
+    isTransacting,
+    // refreshTransaction,
+  } = useTransaction()
 
   const [shakeHeader, setShakeHeader] = useState(false)
   const [amount, setAmount] = useState<any>('')
@@ -51,7 +57,6 @@ function DepositAndWithdraw({
   const [user, setUser] = useState<any | null>(null)
   const userDetail = useSelector((state: RootState) => state.auth.user)
   const userId: string | undefined = userDetail?.uid // Handle possible undefined value
-  console.log(userId)
 
   useEffect(() => {
     if (!userId) {
@@ -77,6 +82,16 @@ function DepositAndWithdraw({
       setAmount(parsedValue) // Only set if it's a valid number
     } else {
       console.log('Invalid number input')
+    }
+  }
+
+  const handleValueChange = (value: string | null) => {
+    const selectedOption = options?.find((option) => option?.value === value)
+
+    if (selectedOption) {
+      setSelectedMethod(selectedOption)
+    } else if (value === 'na') {
+      router.push('/profile') // Navigate to /profile if "N/A" is clicked
     }
   }
 
@@ -155,11 +170,13 @@ function DepositAndWithdraw({
 
       if (isDeposit) {
         await depositTransaction(userId, amount, transactionDetails)
+        alert('successful')
         toast({
           description: 'Wallet updated successfully.',
           variant: 'default',
         })
         await refreshWallet(userId)
+        // await refreshTransaction(userId, '', '')
       } else {
         if (
           wallet &&
@@ -174,6 +191,8 @@ function DepositAndWithdraw({
           return
         }
         await withdrawTransaction(userId, amount, transactionDetails)
+        // await refreshTransaction(userId, '', '')
+
         alert('Wallet updated successfully.')
 
         toast({
@@ -217,23 +236,25 @@ function DepositAndWithdraw({
             <Label htmlFor="method">
               {isDeposit ? 'Deposit Method' : 'Withdraw Method'}
             </Label>
-            <Select
-              onValueChange={(value) => {
-                const selectedOption = options?.find(
-                  (option) => option?.value === value
-                )
-                if (selectedOption) {
-                  setSelectedMethod(selectedOption)
-                }
-              }}
-            >
+            <Select onValueChange={handleValueChange}>
               <SelectTrigger id="method">
                 <SelectValue placeholder="Select method" />
               </SelectTrigger>
               <SelectContent>
                 {options.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
-                    {option.label}
+                    {option.detail === 'N/A' ? (
+                      <span
+                        style={{
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => router.push('/profile')}
+                      >
+                        {option.label} (click to update)
+                      </span>
+                    ) : (
+                      option.label
+                    )}
                   </SelectItem>
                 ))}
               </SelectContent>

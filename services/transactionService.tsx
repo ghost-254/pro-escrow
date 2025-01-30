@@ -35,7 +35,7 @@ export const fetchTransactions = async (): Promise<Transaction[]> => {
   })
 }
 
-// Fetch a transaction by userId
+// Fetch a transaction by userId ||Single
 export const fetchTransactionByUserId = async (
   userId: string
 ): Promise<Transaction | null> => {
@@ -55,8 +55,7 @@ export const fetchTransactionByUserId = async (
     : null
 }
 
-// Fetch transactions that match userId and other conditions
-// Fetch transactions that match userId and other conditions
+// Fetch transactions that match userId and other conditions ||ALL
 export const fetchTransactionsByUserIdAndConditions = async (filters: {
   userId: string
   transactionType: string

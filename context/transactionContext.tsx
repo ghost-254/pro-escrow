@@ -30,7 +30,11 @@ interface TransactionContextProps {
   isLoading: boolean
   isTransacting: boolean
   fetchUserTransactionById: (userId: string) => Promise<void>
-  refreshTransaction: (userId: string) => Promise<void>
+  refreshTransaction: (
+    userId: string,
+    transactionType: string,
+    transactionStatus: string
+  ) => Promise<void>
   updateTransaction: (id: string, data: Partial<Transaction>) => Promise<void>
   depositTransaction: (
     userId: string,
@@ -103,8 +107,12 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
   }
 
   // Refresh the transaction data
-  const refreshTransaction = async (userId: string) => {
-    await fetchUserTransactionById(userId)
+  const refreshTransaction = async (
+    userId: string,
+    transactionType: string,
+    transactionStatus: string
+  ) => {
+    await fetchTransactions(userId, transactionType, transactionStatus)
   }
 
   // Update a transaction's data
@@ -139,9 +147,9 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
       }
 
       await depositPayment(transactionData)
-      console.log(transactionData.amount);
-      console.log(transactionData);
-      
+      console.log(transactionData.amount)
+      console.log(transactionData)
+
       await updateWalletDeposit(userId, transactionData.amount)
     } catch (error) {
       console.error('Failed to process deposit transaction:', error)
