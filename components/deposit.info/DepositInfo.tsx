@@ -56,7 +56,7 @@ const DepositInfo: React.FC<DepositInfoProps> = ({
 }) => {
   // Access transaction data from Redux store
   const transactionDetails = useSelector(
-    (state: RootState) => state?.transaction
+    (state: RootState) => state.transact // Corrected to `transact`
   )
   const [inputValue, setInputValue] = useState(
     transactionDetails?.paymentDetails || ''

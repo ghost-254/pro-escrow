@@ -1,4 +1,4 @@
-// store.js
+// store.ts
 'use client'
 import { configureStore } from '@reduxjs/toolkit'
 import transactReducer from '@/lib/slices/transact.reducer'
