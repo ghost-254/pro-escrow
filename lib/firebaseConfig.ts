@@ -1,10 +1,11 @@
 // lib/firebaseConfig.js
 
 import { initializeApp } from "firebase/app"
-import { getAuth } from "firebase/auth"
+import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth"
 import { getFirestore } from "firebase/firestore"
 import { getStorage } from "firebase/storage"
 
+// Web app's Firebase configuration
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -21,6 +22,16 @@ const app = initializeApp(firebaseConfig)
 const auth = getAuth(app)
 const db = getFirestore(app)
 const storage = getStorage(app)
+const firestore = getFirestore(app);
+
+// Set persistence to local
+setPersistence(auth, browserLocalPersistence)
+  .then(() => {
+    // Persistence set successfully
+  })
+  .catch((error) => {
+      throw new Error('An error occured: ' + error)
+  })
 
 // Export them for your app usage
-export { app, auth, db, storage }
+export { app, auth, db, storage, firestore }

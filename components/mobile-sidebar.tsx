@@ -225,16 +225,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                 <MenuItem href="/" icon={Home} label="Dashboard" />
                 <MenuItem href="/groups" icon={Users} label="Chats" />
                 <MenuItem href="/wallet" icon={Wallet} label="Wallet" />
-                <div className="relative">
-                  <MenuItem
-                    href="/notifications"
-                    icon={Bell}
-                    label="Notifications"
-                  />
-                  <div className="absolute top-[0.25rem] bg-primary grid rounded-full justify-center place-items-center w-[1.7rem] text-[0.75rem] h-[1.7rem] text-white right-[01rem]">
-                    4
-                  </div>
-                </div>
+                <MenuItem href="/notifications" icon={Bell} label="Notifications" />
               </nav>
             </div>
 

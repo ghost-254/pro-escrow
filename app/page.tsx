@@ -15,7 +15,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   ArrowRight,
   DollarSign,
@@ -41,7 +40,7 @@ export default function Home() {
 
   const handleGetStarted = () => {
     if (user) {
-      router.push('/xcrow-groups')
+      router.push('/group-chat')
     } else {
       setTheme('light') //when navigating to login make it light
 
@@ -50,7 +49,7 @@ export default function Home() {
   }
 
   return (
-    <ScrollArea className="h-[calc(100vh-4rem)]">
+  
       <div className="flex flex-col gap-12 pb-8">
         {/* Hero Section with updated gradient */}
         <section className="bg-gradient-to-r from-primary via-green-500 to-secondary text-white dark:from-primary-dark dark:via-green-700 dark:to-secondary-dark py-20">
@@ -197,7 +196,7 @@ export default function Home() {
         </section>
 
         {/* CTA Section */}
-        <section className="container mx-auto text-center px-4 pb-8">
+        <section className="container mx-auto text-center px-4 pb-8 mb-5">
           <h2 className="text-3xl font-bold mb-6">
             Ready to Transact with Confidence?
           </h2>
@@ -215,6 +214,5 @@ export default function Home() {
           </Button>
         </section>
       </div>
-    </ScrollArea>
   )
 }

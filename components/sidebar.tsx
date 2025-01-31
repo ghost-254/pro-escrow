@@ -1,11 +1,11 @@
-'use client'
+"use client"
 
-import React from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
+import React, { useEffect, useState } from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Plus,
   Home,
@@ -18,10 +18,19 @@ import {
   Bell,
   User,
   Users,
-} from 'lucide-react'
-import { useDispatch } from 'react-redux'
-import { toggleTransactModal } from '@/lib/slices/transact.reducer'
-import Typography from './ui/typography'
+} from "lucide-react"
+import { useDispatch, useSelector } from "react-redux"
+import type { RootState } from "@/lib/stores/store"
+import { toggleTransactModal } from "@/lib/slices/transact.reducer"
+import Typography from "@/components/ui/typography"
+import { db } from "@/lib/firebaseConfig"
+import {
+  collection,
+  onSnapshot,
+  query,
+  where,
+  orderBy,
+} from "firebase/firestore"
 
 interface SidebarProps {
   isMobile?: boolean
@@ -31,47 +40,96 @@ interface SidebarProps {
 export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const dispatch = useDispatch()
-  const unreadNotification = 4
+  const user = useSelector((state: RootState) => state.auth.user)
+
+  const [unreadCount, setUnreadCount] = useState<number>(0)
+
+  // Real-time unread notifications for this user
+  useEffect(() => {
+    if (!user?.uid) {
+      return () => {
+        /* no cleanup needed when user is not available */
+      }
+    }
+
+    const notifsRef = collection(db, "notifications")
+    const notificationsQuery = query(
+      notifsRef,
+      where("userId", "==", user.uid),
+      where("read", "==", false),
+      orderBy("createdAt", "desc")
+    )
+
+    const unsubscribe = onSnapshot(notificationsQuery, (snapshot) => {
+      setUnreadCount(snapshot.size)
+    })
+
+    return () => {
+      unsubscribe()
+    }
+  }, [user?.uid])
 
   const handleShowTransactModal = () => {
     dispatch(toggleTransactModal())
     if (isMobile && onClose) onClose()
   }
 
-  // A reusable MenuItem
+  // Reusable link item
   const MenuItem = ({
     href,
     icon: Icon,
     label,
+    showNewBadge = false,
+    isNotifications = false,
   }: {
     href: string
     icon: React.ElementType
     label: string
+    showNewBadge?: boolean
+    isNotifications?: boolean
   }) => {
     const isActive = href === pathname
-
-    // We'll check if it's specifically the "/groups" link
-    const isGroupsLink = href === '/groups'
 
     return (
       <Link href={href} onClick={isMobile ? onClose : undefined}>
         <Button
           variant="ghost"
           className={cn(
-            'w-full justify-start relative', // relative for possible badge
+            "w-full justify-start relative",
             isActive &&
-              'bg-[#dddddd] dark:bg-gray-600 font-semibold hover:bg-[#dddddd] hover:dark:bg-gray-600'
+              "bg-[#dddddd] dark:bg-gray-600 font-semibold hover:bg-[#dddddd] hover:dark:bg-gray-600"
           )}
         >
           <Icon className="mr-2 h-4 w-4" />
-          {label}
-          {/* Show green "NEW" badge ONLY for /groups item */}
-          {isGroupsLink && (
+          <span className="flex items-center">
+            {label}
+            {/* Show unread notifications count if it's the Notifications menu */}
+            {isNotifications && unreadCount > 0 && (
+              <span
+                className="
+                  ml-2
+                  flex
+                  items-center
+                  justify-center
+                  h-5
+                  w-5
+                  text-[0.7rem]
+                  rounded-full
+                  font-bold
+                  bg-red-600
+                  text-white
+                "
+              >
+                {unreadCount}
+              </span>
+            )}
+          </span>
+
+          {/* Optionally show a "NEW" badge (e.g. for group chats) */}
+          {showNewBadge && (
             <span
               className="
-                absolute
-                top-2
-                right-4
+                ml-2
                 text-[0.6rem]
                 px-1
                 rounded
@@ -89,9 +147,9 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
   }
 
   return (
-    <div className="flex flex-col h-full mb-[5rem]  overflow-hidden">
+    <div className="flex flex-col h-full mb-[5rem] overflow-hidden">
       <ScrollArea className="flex-1">
-        {/* Header (Sticky at top) */}
+        {/* Header */}
         <div className="sticky top-0 z-10 bg-muted border-b p-4">
           {isMobile && (
             <div className="flex items-center justify-between mb-4">
@@ -102,13 +160,15 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
             </div>
           )}
 
-          <Button
-            onClick={handleShowTransactModal}
-            className="w-full justify-start bg-primary text-white hover:bg-primary/90"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Create Xcrow Group
-          </Button>
+          <Link href="/create-group">
+            <Button
+              onClick={handleShowTransactModal}
+              className="w-full justify-start bg-primary text-white hover:bg-primary/90"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Create Xcrow Group
+            </Button>
+          </Link>
         </div>
 
         {/* Scrollable Content */}
@@ -120,20 +180,19 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
             </h4>
             <nav className="space-y-1 flex flex-col gap-[0.3rem]">
               <MenuItem href="/" icon={Home} label="Dashboard" />
-              <MenuItem href="/groups" icon={Users} label="Chats" />
-              <MenuItem href="/wallet" icon={Wallet} label="Wallet" />
-              <div className="relative">
-                <MenuItem
-                  href="/notifications"
-                  icon={Bell}
-                  label="Notifications"
-                />
-                {unreadNotification && (
-                  <div className="absolute top-[0.25rem] bg-primary grid rounded-full justify-center place-items-center w-[1.7rem] text-[0.75rem] h-[1.7rem] text-white right-[01rem]">
-                    {unreadNotification}
-                  </div>
-                )}
-              </div>
+              <MenuItem
+                href="/group-chat"
+                icon={Users}
+                label="Group Chats"
+                showNewBadge
+              />
+              <MenuItem href="/wallet" icon={Wallet} label="My Wallet" />
+              <MenuItem
+                href="/notifications"
+                icon={Bell}
+                label="Notifications"
+                isNotifications
+              />
             </nav>
           </div>
 
@@ -144,23 +203,10 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
             </h4>
             <nav className="space-y-1 flex flex-col gap-[0.3rem]">
               <MenuItem href="/orders" icon={Shield} label="Active Escrows" />
-              <MenuItem href="/orders" icon={BadgeCheck} label="Completed" />
-              <MenuItem href="/orders" icon={AlertCircle} label="Disputes" />
+              <MenuItem href="/completed" icon={BadgeCheck} label="Completed" />
+              <MenuItem href="/disputes" icon={AlertCircle} label="Disputes" />
             </nav>
           </div>
-
-          {/* TOOLS & REPORTS 
-          <div>
-            <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">
-              TOOLS & REPORTS
-            </h4>
-            <nav className="space-y-1">
-              <MenuItem href="/analytics" icon={BarChart3} label="Analytics" />
-              <MenuItem href="/documents" icon={FileText} label="Documents" />
-              <MenuItem href="/vpns-proxies" icon={Zap} label="VPNs & Proxies" />
-            </nav>
-          </div>
-          */}
 
           {/* ACCOUNT */}
           <div>
@@ -169,15 +215,12 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
             </h4>
             <nav className="space-y-1">
               <MenuItem href="/profile" icon={User} label="Profile" />
-              {/* <MenuItem href="/security" icon={Lock} label="Security" />
-              <MenuItem href="/referrals" icon={Gift} label="Referrals" />*/}
             </nav>
           </div>
         </div>
 
-        {/* Footer (Sticky at bottom) */}
+        {/* Footer */}
         <div className="sticky bottom-0 mb-0 z-50 bg-muted border-t p-4 space-y-1">
-          {/* <MenuItem href="/settings" icon={Settings} label="Settings" /> */}
           <MenuItem href="/support" icon={HelpCircle} label="Support" />
         </div>
       </ScrollArea>

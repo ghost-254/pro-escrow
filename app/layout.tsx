@@ -1,35 +1,34 @@
-'use client'
-import { Inter } from 'next/font/google'
-import { ThemeProvider } from '@/components/theme-provider'
-import { Navigation } from '@/components/navigation'
-import { BottomNav } from '@/components/bottom-nav'
-import { Sidebar } from '@/components/sidebar'
-import { Footer } from '@/components/footer'
-import { ToastContainer } from 'react-toastify'
-import { Providers } from './global.redux/provider'
-import { RouteGuard } from '@/components/route-guard'
-import 'react-toastify/dist/ReactToastify.css'
-import './globals.css'
-import Head from 'next/head'
-import { metadata } from '@/lib/metadata'
-import { usePathname } from 'next/navigation'
-import { WalletProvider } from '../context/walletContext'
-import { TransactionProvider } from '../context/transactionContext'
-import { UserProvider } from '../context/userContext'
+"use client"
 
-const inter = Inter({ subsets: ['latin'] })
+import { Inter } from "next/font/google"
+import { ThemeProvider } from "@/components/theme-provider"
+import { Navigation } from "@/components/navigation"
+import { BottomNav } from "@/components/bottom-nav"
+import { Sidebar } from "@/components/sidebar"
+// import { Footer } from "@/components/footer"
+import { ToastContainer } from "react-toastify"
+import { Providers } from "./global.redux/provider"
+import { RouteGuard } from "@/components/route-guard"
+import "react-toastify/dist/ReactToastify.css"
+import "./globals.css"
+import Head from "next/head"
+import { metadata } from "@/lib/metadata"
+import { usePathname } from "next/navigation"
+import { WalletProvider } from "../context/walletContext"
+import { TransactionProvider } from "../context/transactionContext"
+import { UserProvider } from "../context/userContext"
+import AuthProvider from "@/components/AuthProvider"
+
+const inter = Inter({ subsets: ["latin"] })
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const pathname = usePathname()
-  const isAuthPage = pathname.startsWith('/auth')
-  const isGroupsPage = pathname.startsWith('/groups')
-
-  // Combine conditions to determine if footer and bottom navigation should be hidden
-  const shouldHideFooterAndNav = isAuthPage || isGroupsPage
+  // We no longer hide or show elements based on route.
+  // If you want to do so, you can read the pathname:
+  usePathname()
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -40,56 +39,44 @@ export default function RootLayout({
           name="viewport"
           content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"
         />
-        
       </Head>
 
-      <body
-        className={`${inter.className} min-h-screen bg-background antialiased`}
-      >
+      <body className={`${inter.className} bg-background antialiased`}>
         <Providers>
           <TransactionProvider>
             <UserProvider>
               <WalletProvider>
-                <ThemeProvider
-                  attribute="class"
-                  defaultTheme="dark"
-                  enableSystem={false}
-                  storageKey="escrow-theme"
-                >
-                  <RouteGuard>
-                    {/* Header Navigation */}
-                    {!isAuthPage && <Navigation />}
+                <AuthProvider>
+                  <ThemeProvider
+                    attribute="class"
+                    defaultTheme="dark"
+                    enableSystem={false}
+                    storageKey="escrow-theme"
+                  >
+                    <RouteGuard>
+                      {/* Header Nav always visible */}
+                      <Navigation />
 
-                    {/* Page Content */}
-                    <div className="flex">
-                      {/* Desktop Sidebar */}
-                      {/* {!isAuthPage && ( */}
-                      <div className="hidden  lg:block border-r bg-muted h-[calc(100vh-56px)] w-64">
-                        <Sidebar />
+                      {/* Two-column layout without a footer */}
+                      <div className="flex h-screen">
+                        {/* Sidebar: hidden on mobile, scrollable */}
+                        <div className="hidden lg:flex lg:flex-col border-r bg-muted w-64 h-full overflow-y-auto">
+                          <Sidebar />
+                        </div>
+
+                        {/* Main content (scrollable) */}
+                        <div className="flex-1 h-full overflow-y-auto">
+                          {children}
+                        </div>
                       </div>
-                      {/* )} */}
 
-                      {/* Main Content Area */}
-                      <div
-                        className={`flex-1 flex flex-col ${
-                          isAuthPage ? 'w-full' : 'lg:w-auto'
-                        }`}
-                      >
-                        <main className="flex-1">{children}</main>
-
-                        {/* Footer */}
-                        {!shouldHideFooterAndNav && <Footer />}
-
-                        {/* Bottom Navigation (Mobile Only) */}
-                        {!shouldHideFooterAndNav && (
-                          <div className="lg:hidden">
-                            <BottomNav />
-                          </div>
-                        )}
+                      {/* Bottom Navigation for mobile only */}
+                      <div className="lg:hidden">
+                        <BottomNav />
                       </div>
-                    </div>
-                  </RouteGuard>
-                </ThemeProvider>
+                    </RouteGuard>
+                  </ThemeProvider>
+                </AuthProvider>
               </WalletProvider>
             </UserProvider>
           </TransactionProvider>
