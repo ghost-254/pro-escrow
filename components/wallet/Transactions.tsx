@@ -17,13 +17,21 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ChevronDown, Search } from 'lucide-react'
 import useTransaction from 'hooks/useTransaction'
 import { useSelector } from 'react-redux'
 import { RootState } from '@/lib/stores/store'
 import { Timestamp } from 'firebase/firestore'
+import useWallet from 'hooks/useWallet'
+import Typography from '../ui/typography'
 
 function Transactions() {
   const [showAllTransactions, setShowAllTransactions] = useState<boolean>(false)
@@ -39,6 +47,7 @@ function Transactions() {
 
   // Transaction fetching hook
   const { transactions, getUserTransactionsByFilter } = useTransaction()
+  const { wallet } = useWallet()
 
   // Fetch transactions when userId or filters change
   useEffect(() => {
@@ -76,7 +85,31 @@ function Transactions() {
           <CardTitle className="text-lg md:text-xl">
             Recent Transactions
           </CardTitle>
+          <CardDescription className="text-sm text-muted-foreground">
+            Overview of your recent financial activity
+          </CardDescription>
         </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-center">
+              <Typography variant="h2">
+                Total Deposits Since Account Creation
+              </Typography>
+              <p className="text-lg font-semibold text-green-600">
+                USD {wallet?.totalDeposits}
+              </p>
+            </div>
+            <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-center">
+              <Typography variant="h2">
+                Total Withdrawals Since Account Creation
+              </Typography>
+              <p className="text-lg font-semibold text-red-600">
+                USD {wallet?.totalWithdrawal}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+
         <CardContent>
           <div className=" w-full flex flex-col gap-[0.5rem] md:flex-row justify-between items-center mb-4 ">
             <div className="relative w-full mb-[0.5rem] md:mb-0 md:w-64">
@@ -89,7 +122,7 @@ function Transactions() {
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             </div>
-            <div className="w-full flex flex-col md:flex-row md:items-center gap-[0.5rem]">
+            <div className="w-full justify-end flex flex-col md:flex-row md:items-center gap-[0.5rem]">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full md:w-40">
                   <SelectValue placeholder="Filter by status" />

@@ -7,6 +7,8 @@ import {
   updateDoc,
   deleteDoc,
   Timestamp,
+  query,
+  where,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebaseConfig'
 
@@ -42,14 +44,46 @@ export const getUserWalletById = async (
   userId: string
 ): Promise<Wallet | null> => {
   const walletsCollection = collection(db, 'wallet')
+  const transactionsCollection = collection(db, 'transactions')
 
   const snapshot = await getDocs(walletsCollection)
-
   const walletDoc = snapshot.docs.find((doc) => doc.data().userId === userId)
 
-  return walletDoc
-    ? ({ ...walletDoc.data(), id: walletDoc.id } as Wallet)
-    : null
+  if (!walletDoc) return null
+
+  const walletData = { ...walletDoc.data(), id: walletDoc.id } as Wallet
+
+  // Fetch all withdrawal transactions for this user
+  const withdrawalQuery = query(
+    transactionsCollection,
+    where('userId', '==', userId),
+    where('transactionType', '==', 'Withdraw')
+  )
+
+  const withdrawalSnapshot = await getDocs(withdrawalQuery)
+  const totalWithdrawals = withdrawalSnapshot.docs.reduce(
+    (sum, doc) => sum + doc.data().amount,
+    0
+  )
+
+  // Fetch all withdrawal transactions for this user
+  const depositQuery = query(
+    transactionsCollection,
+    where('userId', '==', userId),
+    where('transactionType', '==', 'Deposit')
+  )
+
+  const depositSnapshot = await getDocs(depositQuery)
+  const totalDeposits = depositSnapshot.docs.reduce(
+    (sum, doc) => sum + doc.data().amount,
+    0
+  )
+
+  return {
+    ...walletData,
+    totalWithdrawal: totalWithdrawals,
+    totalDeposits: totalDeposits,
+  }
 }
 
 // Function to create a new wallet for a user
@@ -129,9 +163,12 @@ export const processWalletDeposit = async (
     const currentBalance = walletData.walletBalance ?? 0
     const newBalance = currentBalance + incomingAmount
 
-    await updateDoc(walletDocRef, { walletBalance: newBalance })
+    const newTotalDeposits = (walletData.totalDeposits || 0) + incomingAmount
 
-    console.log(`Wallet updated successfully! New Balance: ${newBalance}`)
+    await updateDoc(walletDocRef, {
+      walletBalance: newBalance,
+      totalDeposits: newTotalDeposits,
+    })
   } catch (error) {
     console.error('Error updating wallet:', error)
   }
@@ -158,11 +195,22 @@ export const processWalletWithdrawal = async (
     const walletDocRef = doc(db, 'wallet', walletDoc.id)
     const walletData = walletDoc.data()
     const currentBalance = walletData.walletBalance || 0 // Default to 0 if undefined
+
+    // Ensure balance is sufficient
+    if (walletData.walletBalance < incomingAmount) {
+      throw new Error('Insufficient balance!')
+    }
+
     // Calculate the new balance
     const newBalance = currentBalance - incomingAmount
+    const newTotalWithdrawals =
+      (walletData.totalWithdrawal || 0) + incomingAmount
 
     // Update the wallet document with the new balance
-    await updateDoc(walletDocRef, { walletBalance: newBalance })
+    await updateDoc(walletDocRef, {
+      walletBalance: newBalance,
+      totalWithdrawal: newTotalWithdrawals,
+    })
   } catch (error) {
     console.error('Error updating wallet:', error)
   }
