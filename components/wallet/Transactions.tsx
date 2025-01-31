@@ -95,17 +95,23 @@ function Transactions() {
               <Typography variant="h2">
                 Total Deposits Since Account Creation
               </Typography>
-              <p className="text-lg font-semibold text-green-600">
-                USD {wallet?.totalDeposits}
-              </p>
+              <Typography
+                variant="h1"
+                className="text-lg font-semibold text-green-600"
+              >
+                USD {wallet?.totalDeposits?.toLocaleString() || '0.00'}
+              </Typography>
             </div>
             <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-center">
               <Typography variant="h2">
                 Total Withdrawals Since Account Creation
               </Typography>
-              <p className="text-lg font-semibold text-red-600">
-                USD {wallet?.totalWithdrawal}
-              </p>
+              <Typography
+                variant="h1"
+                className="text-lg font-semibold text-red-600"
+              >
+                USD {wallet?.totalWithdrawal?.toLocaleString() || '0.00'}
+              </Typography>
             </div>
           </div>
         </CardContent>

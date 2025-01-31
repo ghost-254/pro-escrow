@@ -133,7 +133,7 @@ function Header() {
             variant="h1"
             className="text-[1.1rem] font-bold dark:text-white"
           >
-            USD {balance?.toFixed(2)}
+            USD {balance?.toFixed(2) || '0.00'}
           </Typography>
           <Link href={'/wallet'}>
             <ExternalLink className="w-4 h-4 !ml-[0.7rem] cursor-pointer hover:opacity-[0.7]" />
