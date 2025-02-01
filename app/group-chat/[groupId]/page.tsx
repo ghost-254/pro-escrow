@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef, useEffect, JSX } from "react"
+import { useState, useRef, useEffect, type JSX } from "react"
 import { useRouter, useParams } from "next/navigation"
 import {
   onSnapshot,
@@ -13,21 +13,12 @@ import {
   doc,
   getDoc,
   setDoc,
-  Timestamp,
+  type Timestamp,
 } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { useSelector } from "react-redux"
 import Image from "next/image"
-import {
-  Paperclip,
-  Send,
-  X,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  ChevronDown,
-  ChevronUp,
-} from "lucide-react"
+import { Paperclip, Send, X, CheckCircle, XCircle, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react"
 import { db, storage } from "@/lib/firebaseConfig"
 import type { RootState } from "@/lib/stores/store"
 import { Button } from "@/components/ui/button"
@@ -189,7 +180,7 @@ export default function GroupChatPage() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+  }, [])
 
   useEffect(() => {
     if (!user?.uid) {
@@ -278,9 +269,7 @@ export default function GroupChatPage() {
     }
   }
 
-  const otherTypingUsers = typingUsers.filter(
-    (typingUser) => typingUser.userId !== user?.uid && typingUser.isTyping,
-  )
+  const otherTypingUsers = typingUsers.filter((typingUser) => typingUser.userId !== user?.uid && typingUser.isTyping)
 
   const toggleHeader = (): void => {
     setIsHeaderVisible(!isHeaderVisible)
@@ -298,8 +287,8 @@ export default function GroupChatPage() {
               {depositStatus === "paid"
                 ? "Payment Completed"
                 : depositStatus === "failed" || depositStatus === "canceled"
-                ? "Payment Failed"
-                : "Payment Pending"}
+                  ? "Payment Failed"
+                  : "Payment Pending"}
             </Badge>
             {canRetryPayment() && (
               <Button
@@ -338,17 +327,9 @@ export default function GroupChatPage() {
 
       {/* Dropdown header for mobile */}
       <div className="md:hidden bg-white dark:bg-gray-900 border-b dark:border-gray-800">
-        <Button
-          variant="ghost"
-          onClick={toggleHeader}
-          className="w-full flex justify-between items-center p-4"
-        >
+        <Button variant="ghost" onClick={toggleHeader} className="w-full flex justify-between items-center p-4">
           <span>Chat Details</span>
-          {isHeaderVisible ? (
-            <ChevronUp className="h-5 w-5" />
-          ) : (
-            <ChevronDown className="h-5 w-5" />
-          )}
+          {isHeaderVisible ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
         </Button>
         {isHeaderVisible && (
           <div className="p-4">
@@ -357,8 +338,8 @@ export default function GroupChatPage() {
                 {depositStatus === "paid"
                   ? "Payment Completed"
                   : depositStatus === "failed" || depositStatus === "canceled"
-                  ? "Payment Failed"
-                  : "Payment Pending"}
+                    ? "Payment Failed"
+                    : "Payment Pending"}
               </Badge>
 
               {canRetryPayment() && (
@@ -409,23 +390,18 @@ export default function GroupChatPage() {
           </Badge>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 max-w-2xl mx-auto">
           {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.senderId === user?.uid ? "justify-end" : "justify-start"}`}
-            >
+            <div key={msg.id} className={`flex ${msg.senderId === user?.uid ? "justify-end" : "justify-start"}`}>
               <div
-                className={`flex ${msg.senderId === user?.uid ? "flex-row-reverse" : "flex-row"} items-start space-x-2`}
+                className={`flex ${msg.senderId === user?.uid ? "flex-row-reverse" : "flex-row"} items-end space-x-2`}
               >
                 <Avatar className="w-8 h-8">
-                  <AvatarImage
-                    src={`https://api.dicebear.com/6.x/initials/svg?seed=${msg.senderName}`}
-                  />
+                  <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${msg.senderName}`} />
                   <AvatarFallback>{msg.senderName[0]}</AvatarFallback>
                 </Avatar>
                 <div
-                  className={`max-w-[70%] p-3 rounded-lg ${
+                  className={`message-box ${
                     msg.senderId === user?.uid
                       ? "bg-purple-500 text-white"
                       : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
@@ -439,15 +415,13 @@ export default function GroupChatPage() {
                           alt="Attachment"
                           width={300}
                           height={200}
-                          className="rounded-lg mb-2 cursor-pointer"
+                          className="rounded-lg mb-2 cursor-pointer w-full h-auto"
                         />
                       </DialogTrigger>
                       <DialogContent className="max-w-3xl bg-gray-900 text-white">
                         <DialogHeader>
                           <DialogTitle>Attached Image</DialogTitle>
-                          <DialogDescription className="text-gray-400">
-                            Sent by {msg.senderName}
-                          </DialogDescription>
+                          <DialogDescription className="text-gray-400">Sent by {msg.senderName}</DialogDescription>
                         </DialogHeader>
                         <Image
                           src={msg.imageURL || "/placeholder.svg"}
@@ -459,11 +433,9 @@ export default function GroupChatPage() {
                       </DialogContent>
                     </Dialog>
                   )}
-                  <p className="text-sm">{msg.content}</p>
+                  <p className="text-sm break-words whitespace-pre-wrap">{msg.content}</p>
                   {msg.timestamp && (
-                    <p className="text-xs opacity-70 mt-1">
-                      {msg.senderName} • {msg.timestamp.toDate().toLocaleString()}
-                    </p>
+                    <p className="text-xs opacity-70 mt-1">{msg.timestamp.toDate().toLocaleString()}</p>
                   )}
                 </div>
               </div>
@@ -472,18 +444,25 @@ export default function GroupChatPage() {
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
-
+      <style jsx global>{`
+        .message-box {
+          max-width: 65%;
+          width: fit-content;
+          min-width: 100px;
+          padding: 8px 12px;
+          border-radius: 12px;
+          overflow-wrap: break-word;
+          word-wrap: break-word;
+          word-break: break-word;
+          hyphens: auto;
+        }
+      `}</style>
       <footer className="border-t dark:border-gray-800 p-4 bg-white dark:bg-gray-900">
         {otherTypingUsers.length > 0 && (
           <div className="mb-2 flex items-center space-x-2">
             {otherTypingUsers.map((typingUser) => (
-              <div
-                key={typingUser.userId}
-                className="flex items-center px-2 py-1 bg-gray-800 rounded-full"
-              >
-                <span className="text-sm font-medium text-gray-300 mr-1">
-                  {typingUser.displayName}
-                </span>
+              <div key={typingUser.userId} className="flex items-center px-2 py-1 bg-gray-800 rounded-full">
+                <span className="text-sm font-medium text-gray-300 mr-1">{typingUser.displayName}</span>
                 <TypingBubble />
               </div>
             ))}
@@ -515,13 +494,7 @@ export default function GroupChatPage() {
           )}
 
           <div className="flex space-x-2">
-            <input
-              type="file"
-              accept="image/*"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              className="hidden"
-            />
+            <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
             <Button
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
