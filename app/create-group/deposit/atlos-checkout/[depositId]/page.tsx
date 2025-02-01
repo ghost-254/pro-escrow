@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import React, { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import React, { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import {
   doc,
   getDoc,
@@ -9,22 +9,25 @@ import {
   collection,
   addDoc,
   Timestamp,
-} from "firebase/firestore"
-import { toast } from "react-toastify"
-import { Button } from "@/components/ui/button"
-import { db } from "@/lib/firebaseConfig"
+} from 'firebase/firestore'
+import { toast } from 'react-toastify'
+import { Button } from '@/components/ui/button'
+import { db } from '@/lib/firebaseConfig'
 
-import { loadAtlosScript, atlosPay } from "@/lib/atlos"
+import { loadAtlosScript, atlosPay } from '@/lib/atlos'
+import useTransaction from 'hooks/useTransaction'
 
 // Define the deposit structure.
 interface Deposit {
   id: string
-  escrowFeeResponsibility: "seller" | "50/50" | "buyer"
+  escrowFeeResponsibility: 'seller' | '50/50' | 'buyer'
   price: number
   escrowFee: number
   userId: string
   transactionType: string
   groupId?: string
+  depositMethod: string
+
   // Other fields can be added if necessary.
 }
 
@@ -32,11 +35,11 @@ interface Deposit {
 function calcDepositAmount(deposit: Deposit): number {
   const { escrowFeeResponsibility, price, escrowFee } = deposit
   switch (escrowFeeResponsibility) {
-    case "seller":
+    case 'seller':
       return price
-    case "50/50":
+    case '50/50':
       return price + escrowFee / 2
-    case "buyer":
+    case 'buyer':
     default:
       return price + escrowFee
   }
@@ -45,7 +48,7 @@ function calcDepositAmount(deposit: Deposit): number {
 export default function AtlosCheckoutPage() {
   const router = useRouter()
   const { depositId } = useParams() as { depositId: string }
-
+  const { processDepositTransaction } = useTransaction()
   const [depositData, setDepositData] = useState<Deposit | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -53,23 +56,23 @@ export default function AtlosCheckoutPage() {
     // 1) Fetch deposit document.
     const fetchDeposit = async () => {
       if (!depositId) {
-        toast.error("Invalid deposit ID.")
-        router.push("/")
+        toast.error('Invalid deposit ID.')
+        router.push('/')
         return
       }
       try {
-        const ref = doc(db, "deposits", depositId)
+        const ref = doc(db, 'deposits', depositId)
         const snap = await getDoc(ref)
         if (!snap.exists()) {
-          toast.error("Deposit not found.")
-          router.push("/")
+          toast.error('Deposit not found.')
+          router.push('/')
           return
         }
         // Type assertion: we expect the data to match the Deposit interface.
-        setDepositData({ id: snap.id, ...(snap.data() as Omit<Deposit, "id">) })
+        setDepositData({ id: snap.id, ...(snap.data() as Omit<Deposit, 'id'>) })
       } catch {
-        toast.error("Error fetching deposit.")
-        router.push("/")
+        toast.error('Error fetching deposit.')
+        router.push('/')
       } finally {
         setIsLoading(false)
       }
@@ -82,8 +85,11 @@ export default function AtlosCheckoutPage() {
   }, [depositId, router])
 
   // Create group document, send notification, and redirect.
-  async function createGroupAndRedirect(depositDoc: Deposit, newStatus: string): Promise<void> {
-    const depositRef = doc(db, "deposits", depositDoc.id)
+  async function createGroupAndRedirect(
+    depositDoc: Deposit,
+    newStatus: string
+  ): Promise<void> {
+    const depositRef = doc(db, 'deposits', depositDoc.id)
 
     // 1) Update deposit status.
     await updateDoc(depositRef, {
@@ -102,7 +108,7 @@ export default function AtlosCheckoutPage() {
         transactionType: depositDoc.transactionType,
       },
     }
-    const groupRef = await addDoc(collection(db, "groups"), groupData)
+    const groupRef = await addDoc(collection(db, 'groups'), groupData)
     const groupId = groupRef.id
 
     // 3) Link deposit document with groupId.
@@ -110,7 +116,7 @@ export default function AtlosCheckoutPage() {
 
     // 4) Post a notification.
     const shortGroupName = `Xcrow_${groupId.slice(0, 4)}`
-    await addDoc(collection(db, "notifications"), {
+    await addDoc(collection(db, 'notifications'), {
       userId: depositDoc.userId,
       message: `You created a new ${shortGroupName} group. Please share this link with the seller.`,
       link: `/group-chat/${groupId}`,
@@ -124,41 +130,81 @@ export default function AtlosCheckoutPage() {
 
   async function handlePayment() {
     if (!depositData) {
-      toast.error("No deposit data loaded.")
+      toast.error('No deposit data loaded.')
       return
     }
     setIsLoading(true)
-  
+
     const finalAmount = calcDepositAmount(depositData)
-  
+
     // Define Atlos options explicitly before passing to atlosPay
     const options = {
-      merchantId: process.env.NEXT_PUBLIC_ATLOS_MERCHANT_ID || "", // Ensure it's set
+      merchantId: process.env.NEXT_PUBLIC_ATLOS_MERCHANT_ID || '', // Ensure it's set
       orderId: depositData.id,
       orderAmount: finalAmount,
-      orderCurrency: "USD",
-      theme: "dark",
+      orderCurrency: 'USD',
+      theme: 'dark',
+
       onSuccess: async () => {
-        toast.success("Payment success!")
-        await createGroupAndRedirect(depositData, "paid")
-               
+        toast.success('Payment success!')
+        await createGroupAndRedirect(depositData, 'paid')
+
+        const transactionDetails = {
+          paymentMethod: depositData?.depositMethod || '',
+          paymentDetails: '',
+        }
+        const transactionStatus = 'Completed'
+        await processDepositTransaction(
+          depositData?.userId,
+          depositData?.price,
+          transactionDetails,
+          depositData?.escrowFee,
+          transactionStatus,
+          depositData.transactionType
+        )
         setIsLoading(false)
       },
       onCanceled: async () => {
-        toast.info("Payment canceled.")
-        await createGroupAndRedirect(depositData, "canceled")
+        toast.info('Payment canceled.')
+        await createGroupAndRedirect(depositData, 'canceled')
+        const transactionDetails = {
+          paymentMethod: depositData?.depositMethod || '',
+          paymentDetails: '',
+        }
+        const transactionStatus = 'Canceled'
+        await processDepositTransaction(
+          depositData?.userId,
+          depositData?.price,
+          transactionDetails,
+          depositData?.escrowFee,
+          transactionStatus,
+          depositData.transactionType
+        )
         setIsLoading(false)
       },
       onFailed: async () => {
-        toast.error("Payment failed.")
-        await createGroupAndRedirect(depositData, "failed")
+        toast.error('Payment failed.')
+        await createGroupAndRedirect(depositData, 'failed')
+        const transactionStatus = 'Failed'
+        const transactionDetails = {
+          paymentMethod: depositData?.depositMethod || '',
+          paymentDetails: '',
+        }
+        await processDepositTransaction(
+          depositData?.userId,
+          depositData?.price,
+          transactionDetails,
+          depositData?.escrowFee,
+          transactionStatus,
+          depositData.transactionType
+        )
         setIsLoading(false)
       },
     }
-  
+
     await atlosPay(options)
   }
-  
+
   if (isLoading) {
     return <div className="p-4">Loading deposit info...</div>
   }
@@ -175,7 +221,7 @@ export default function AtlosCheckoutPage() {
       <p className="mb-2">Amount to Pay: ${finalAmount.toFixed(2)}</p>
 
       <Button onClick={handlePayment} disabled={isLoading}>
-        {isLoading ? "Processing..." : "Pay with Atlos"}
+        {isLoading ? 'Processing...' : 'Pay with Atlos'}
       </Button>
     </div>
   )

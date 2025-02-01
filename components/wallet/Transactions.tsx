@@ -75,6 +75,8 @@ function Transactions() {
         return <Badge variant="warning">Pending</Badge>
       case 'Failed':
         return <Badge variant="destructive">Failed</Badge>
+      case 'Canceled':
+        return <Badge variant="destructive">Failed</Badge>
       default:
         return <Badge>{status}</Badge>
     }
@@ -82,7 +84,7 @@ function Transactions() {
 
   // Helper function to determine the icon based on payment method
   const getPaymentIcon = (method: string) => {
-    const lowerMethod = method.toLowerCase()
+    const lowerMethod = method.toLowerCase().trim()
 
     if (lowerMethod.includes('mpesa')) {
       return <FaMobileAlt size={24} className="text-green-500" title="Mpesa" />
@@ -91,7 +93,11 @@ function Transactions() {
     } else if (lowerMethod.includes('binanceid')) {
       // If you want to display the Binance icon for Binance transactions.
       return <SiBinance size={24} className="text-yellow-500" title="Binance" />
-    } else if (lowerMethod.includes('cryptocurrency')) {
+    } else if (
+      lowerMethod.includes('crypto') ||
+      lowerMethod.includes('atlos') ||
+      lowerMethod.includes('crypto (atlos)')
+    ) {
       // For crypto transactions, display a wallet (or crypto) icon.
       return (
         <FaMoneyBillWave

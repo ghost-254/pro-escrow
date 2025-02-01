@@ -57,10 +57,13 @@ export const getUserWalletById = async (
   const withdrawalQuery = query(
     transactionsCollection,
     where('userId', '==', userId),
-    where('transactionType', '==', 'Withdraw')
+    where('transactionType', '==', 'Withdraw'),
+    where('transactionStatus', '==', 'Completed')
   )
 
   const withdrawalSnapshot = await getDocs(withdrawalQuery)
+  console.log(withdrawalSnapshot.docs)
+
   const totalWithdrawals = withdrawalSnapshot.docs.reduce(
     (sum, doc) => sum + doc.data().amount,
     0
@@ -70,7 +73,8 @@ export const getUserWalletById = async (
   const depositQuery = query(
     transactionsCollection,
     where('userId', '==', userId),
-    where('transactionType', '==', 'Deposit')
+    where('transactionType', '==', 'Deposit'),
+    where('transactionStatus', '==', 'Completed')
   )
 
   const depositSnapshot = await getDocs(depositQuery)

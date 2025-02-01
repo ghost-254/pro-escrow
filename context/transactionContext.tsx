@@ -155,11 +155,14 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
         userId,
         paymentMethod: transactionDetails.paymentMethod,
       }
+      console.log(transactionStatus)
 
       await recordDepositTransaction(transactionData) //update transactions
-      if (transactionStatus === 'Completed') {
-        await processWalletDeposit(userId, transactionData.amount) //update wallet
+      if (transactionStatus !== 'Completed') {
+        return // Exit early if the status is not "Completed"
       }
+
+      await processWalletDeposit(userId, transactionData.amount) // Update wallet only when status is "Completed"
     } catch (error) {
       console.error('Failed to process deposit transaction:', error)
     } finally {
