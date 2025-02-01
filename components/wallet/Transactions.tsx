@@ -32,6 +32,8 @@ import { RootState } from '@/lib/stores/store'
 import { Timestamp } from 'firebase/firestore'
 import useWallet from 'hooks/useWallet'
 import Typography from '../ui/typography'
+import { FaMobileAlt, FaMoneyBillWave } from 'react-icons/fa'
+import { SiPaypal, SiBinance } from 'react-icons/si'
 
 function Transactions() {
   const [showAllTransactions, setShowAllTransactions] = useState<boolean>(false)
@@ -73,11 +75,41 @@ function Transactions() {
         return <Badge variant="warning">Pending</Badge>
       case 'Failed':
         return <Badge variant="destructive">Failed</Badge>
+      case 'Canceled':
+        return <Badge variant="destructive">Failed</Badge>
       default:
         return <Badge>{status}</Badge>
     }
   }
 
+  // Helper function to determine the icon based on payment method
+  const getPaymentIcon = (method: string) => {
+    const lowerMethod = method.toLowerCase().trim()
+
+    if (lowerMethod.includes('mpesa')) {
+      return <FaMobileAlt size={24} className="text-green-500" title="Mpesa" />
+    } else if (lowerMethod.includes('paypal')) {
+      return <SiPaypal size={24} className="text-blue-500" title="PayPal" />
+    } else if (lowerMethod.includes('binanceid')) {
+      // If you want to display the Binance icon for Binance transactions.
+      return <SiBinance size={24} className="text-yellow-500" title="Binance" />
+    } else if (
+      lowerMethod.includes('crypto') ||
+      lowerMethod.includes('atlos') ||
+      lowerMethod.includes('crypto (atlos)')
+    ) {
+      // For crypto transactions, display a wallet (or crypto) icon.
+      return (
+        <FaMoneyBillWave
+          size={24}
+          className="text-purple-500"
+          title="Cryptocurrency"
+        />
+      )
+    } else {
+      return <span>{method}</span>
+    }
+  }
   return (
     <div>
       <Card className="col-span-1 md:col-span-2 lg:grid-cols-3">
@@ -97,7 +129,7 @@ function Transactions() {
               </Typography>
               <Typography
                 variant="h1"
-                className="text-lg font-semibold text-green-600"
+                className="text-lg font-semibold !text-green-600"
               >
                 USD {wallet?.totalDeposits?.toLocaleString() || '0.00'}
               </Typography>
@@ -108,7 +140,7 @@ function Transactions() {
               </Typography>
               <Typography
                 variant="h1"
-                className="text-lg font-semibold text-red-600"
+                className="text-lg font-semibold !text-red-600"
               >
                 USD {wallet?.totalWithdrawal?.toLocaleString() || '0.00'}
               </Typography>
@@ -177,7 +209,12 @@ function Transactions() {
                     <TableRow key={transaction.reference}>
                       <TableCell>{transaction.reference}</TableCell>
                       <TableCell>{transaction.transactionType}</TableCell>
-                      <TableCell>{transaction.paymentMethod}</TableCell>
+                      <TableCell className="flex items-center gap-2 capitalize">
+                        {getPaymentIcon(transaction.paymentMethod)}
+                        <Typography variant="span">
+                          {transaction.paymentMethod}
+                        </Typography>
+                      </TableCell>
                       <TableCell>USD{transaction.amount.toFixed(2)}</TableCell>
                       <TableCell>
                         {transaction.createdAt instanceof Timestamp
@@ -200,7 +237,7 @@ function Transactions() {
           {transactions.length > 10 && !showAllTransactions && (
             <div className="mt-4 text-center">
               <Button
-                variant="outline"
+                variant="secondary"
                 onClick={() => setShowAllTransactions(true)}
               >
                 Show More

@@ -36,7 +36,10 @@ interface TransactionContextProps {
   processDepositTransaction: (
     userId: string,
     amount: number,
-    transactionDetails: { paymentMethod: string; paymentDetails: string }
+    transactionDetails: { paymentMethod: string; paymentDetails: string },
+    transactionFee: number,
+    transactionStatus: string,
+    transactionType: string
   ) => Promise<void>
   processWithdrawalTransaction: (
     userId: string,
@@ -133,7 +136,10 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
   const processDepositTransaction = async (
     userId: string,
     amount: number,
-    transactionDetails: { paymentMethod: string; paymentDetails: string }
+    transactionDetails: { paymentMethod: string; paymentDetails: string },
+    transactionFee: number,
+    transactionStatus: string,
+    transactionType: string
   ) => {
     setIsTransacting(true)
     try {
@@ -142,17 +148,21 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
         createdAt: new Date(),
         transactionDetails: new Map(Object.entries(transactionDetails)),
         reference: `ref-${Math.random().toString(36).substr(2, 9)}`,
-        transactionFee: 0,
-        transactionStatus: 'Completed',
-        transactionType: 'Deposit',
+        transactionFee: transactionFee,
+        transactionStatus: transactionStatus,
+        transactionType: transactionType,
         updatedAt: new Date(),
         userId,
         paymentMethod: transactionDetails.paymentMethod,
       }
+      console.log(transactionStatus)
 
-      await recordDepositTransaction(transactionData)
+      await recordDepositTransaction(transactionData) //update transactions
+      if (transactionStatus !== 'Completed') {
+        return // Exit early if the status is not "Completed"
+      }
 
-      await processWalletDeposit(userId, transactionData.amount)
+      await processWalletDeposit(userId, transactionData.amount) // Update wallet only when status is "Completed"
     } catch (error) {
       console.error('Failed to process deposit transaction:', error)
     } finally {

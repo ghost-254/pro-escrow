@@ -87,7 +87,6 @@ export const getUserTransactionsByFilter = async (filters: {
   status?: string
 }): Promise<Transaction[]> => {
   const { searchTerm, userId, transactionType, status } = filters // Destructure the filters object
-  console.log(searchTerm, userId, transactionType, status)
 
   const transactionsCollection = collection(db, 'transactions')
 
