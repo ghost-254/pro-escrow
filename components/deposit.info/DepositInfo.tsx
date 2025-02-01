@@ -21,19 +21,18 @@ type PaymentMethodDetails = {
   value: string
 }
 
-const paymentMethodDetails: Record<'mpesa' | 'binanceid', PaymentMethodDetails> =
-  {
-    mpesa: {
-      icon: <FaMobileAlt size={24} />,
-      color: 'text-green-600',
-      value: '07428452404', // Fixed Mpesa number
-    },
-    binanceid: {
-      icon: <SiBinance size={24} />,
-      color: 'text-yellow-500',
-      value: '6347830933', // Fixed Binance ID
-    },
-  }
+const paymentMethodDetails: Record<'mpesa' | 'binanceid', PaymentMethodDetails> = {
+  mpesa: {
+    icon: <FaMobileAlt size={24} />,
+    color: 'text-green-600',
+    value: '07428452404', // Fixed Mpesa number
+  },
+  binanceid: {
+    icon: <SiBinance size={24} />,
+    color: 'text-yellow-500',
+    value: '6347830933', // Fixed Binance ID
+  },
+}
 
 const DepositInfo: React.FC = () => {
   const depositDetails = useSelector((state: RootState) => state.depositInfo)
@@ -47,16 +46,13 @@ const DepositInfo: React.FC = () => {
 
   useEffect(() => {
     getUserWallet(userId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
   const { processDepositTransaction, isTransacting, refreshUserTransactions } =
     useTransaction()
-  const paymentMethodKey = depositDetails?.paymentMethod?.toLowerCase() as
-    | 'mpesa'
-    | 'binanceid'
-
-  const details =
-    paymentMethodDetails[paymentMethodKey] || paymentMethodDetails.mpesa
+  const paymentMethodKey = depositDetails?.paymentMethod?.toLowerCase() as 'mpesa' | 'binanceid'
+  const details = paymentMethodDetails[paymentMethodKey] || paymentMethodDetails.mpesa
 
   const [copied, setCopied] = useState(false)
 
@@ -82,7 +78,6 @@ const DepositInfo: React.FC = () => {
     await processDepositTransaction(
       userId,
       convertToUSD(depositDetails?.amount ?? 0, 128),
-
       transactionDetails,
       transactionFee,
       transactionStatus,
@@ -98,7 +93,7 @@ const DepositInfo: React.FC = () => {
 
   return (
     <div className="w-full flex flex-col justify-center">
-      <Card className="p-1  mx-auto space-y-6">
+      <Card className="p-1 mx-auto space-y-6">
         <CardHeader>
           <CardTitle className="flex items-center justify-between space-x-4">
             <button
@@ -108,7 +103,7 @@ const DepositInfo: React.FC = () => {
               <ArrowLeft className="text-gray-700" size={24} />
             </button>
             <Typography variant="h1">Deposit Information</Typography>
-            <div></div>
+            <div />
           </CardTitle>
         </CardHeader>
 
@@ -124,10 +119,7 @@ const DepositInfo: React.FC = () => {
             >
               {details.icon}
             </div>
-            <Typography
-              variant="h2"
-              className="text-lg font-semibold capitalize"
-            >
+            <Typography variant="h2" className="text-lg font-semibold capitalize">
               {depositDetails?.paymentMethod + ' ' + 'Deposit'}
             </Typography>
           </div>
@@ -147,23 +139,14 @@ const DepositInfo: React.FC = () => {
               </Typography>
             )}
           </div>
-          <Typography
-            variant="h2"
-            className="text-lg font-semibold flex items-center gap-2"
-          >
+          <Typography variant="h2" className="text-lg font-semibold flex items-center gap-2">
             Deposit Amount:{' '}
             {depositDetails?.paymentMethod === 'mpesa' ? (
-              <Typography
-                variant="h1"
-                className="!text-green-600 font-bold text-[1.3rem]"
-              >
+              <Typography variant="h1" className="!text-green-600 font-bold text-[1.3rem]">
                 KSh{(depositDetails?.amount ?? 0).toLocaleString()}
               </Typography>
             ) : (
-              <Typography
-                variant="h1"
-                className="!text-green-600 font-bold text-[1.3rem]"
-              >
+              <Typography variant="h1" className="!text-green-600 font-bold text-[1.3rem]">
                 USD{(depositDetails?.amount ?? 0).toLocaleString()}
               </Typography>
             )}
@@ -210,14 +193,10 @@ const DepositInfo: React.FC = () => {
             )}
           </div>
           <Typography variant="p" className="text-gray-600">
-            Click <strong className="dark:text-white">Mark as Paid</strong> once
-            you have completed the deposit.
+            Click <strong className="dark:text-white">Mark as Paid</strong> once you have completed
+            the deposit.
           </Typography>
-          <Button
-            disabled={isTransacting}
-            className="w-full"
-            onClick={handleMarkAsPaid}
-          >
+          <Button disabled={isTransacting} className="w-full" onClick={handleMarkAsPaid}>
             {isTransacting ? 'Please wait... ' : 'Mark as Paid'}
           </Button>
         </CardContent>
