@@ -1,71 +1,60 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import Typography from '../ui/typography'
-import { useSelector } from 'react-redux'
-import { RootState } from '@/lib/stores/store'
 import { ArrowLeft, Check, Copy } from 'lucide-react'
 import { FaMobileAlt } from 'react-icons/fa'
-import { SiPaypal, SiBinance } from 'react-icons/si'
-import Image from 'next/image'
+import { SiBinance } from 'react-icons/si'
+import { useSelector } from 'react-redux'
+import { RootState } from '@/lib/stores/store'
+import useTransaction from 'hooks/useTransaction'
+import useWallet from 'hooks/useWallet'
+import { toast } from 'react-toastify'
+import { convertToUSD } from '@/lib/currencyConvert'
+import { useRouter } from 'next/navigation'
 
 type PaymentMethodDetails = {
   icon: React.ReactNode
-  link: string
   color: string
-  newAccountLink: string
+  value: string
 }
 
-type DepositInfoProps = {
-  amount: string
-  phoneNumber?: string
-  paymentMethod: 'Mpesa' | 'PayPal' | 'Crypto'
-  paymentDetails?: string
-  onMarkAsPaid: () => void
-}
+const paymentMethodDetails: Record<'mpesa' | 'binance', PaymentMethodDetails> =
+  {
+    mpesa: {
+      icon: <FaMobileAlt size={24} />,
+      color: 'text-green-600',
+      value: '07428452404', // Fixed Mpesa number
+    },
+    binance: {
+      icon: <SiBinance size={24} />,
+      color: 'text-yellow-500',
+      value: '6347830933', // Fixed Binance ID
+    },
+  }
 
-const paymentMethodDetails: Record<
-  'mpesa' | 'paypal' | 'cryptocurrency',
-  PaymentMethodDetails
-> = {
-  mpesa: {
-    icon: <FaMobileAlt size={24} />,
-    color: 'text-green-600',
-    link: 'https://www.mpesa.com',
-    newAccountLink: 'https://www.mpesa.com/register',
-  },
-  paypal: {
-    icon: <SiPaypal size={24} />,
-    color: 'text-blue-600',
-    link: 'https://www.paypal.com',
-    newAccountLink: 'https://www.paypal.com/signup',
-  },
-  cryptocurrency: {
-    icon: <SiBinance size={24} />,
-    color: 'text-yellow-500',
-    link: 'https://www.crypto.com',
-    newAccountLink: 'https://www.crypto.com/signup',
-  },
-}
+const DepositInfo: React.FC = () => {
+  const depositDetails = useSelector((state: RootState) => state.depositInfo)
+  const userDetail = useSelector((state: RootState) => state.auth.user)
+  const userId: string = userDetail?.uid
+  const router = useRouter() 
 
-const DepositInfo: React.FC<DepositInfoProps> = ({
-  paymentMethod,
-  paymentDetails,
-  onMarkAsPaid,
-}) => {
-  // Access transaction data from Redux store
-  const transactionDetails = useSelector(
-    (state: RootState) => state.transact // Corrected to `transact`
-  )
-  const [inputValue, setInputValue] = useState(
-    transactionDetails?.paymentDetails || ''
-  )
+  const { wallet } = useWallet()
+  const { processDepositTransaction, isTransacting, refreshUserTransactions } =
+    useTransaction()
+  const paymentMethodKey = depositDetails?.paymentMethod?.toLowerCase() as
+    | 'mpesa'
+    | 'binance'
+
+  const details =
+    paymentMethodDetails[paymentMethodKey] || paymentMethodDetails.mpesa
+
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(inputValue)
+      await navigator.clipboard.writeText(details.value)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
@@ -73,25 +62,34 @@ const DepositInfo: React.FC<DepositInfoProps> = ({
     }
   }
 
-  useEffect(() => {
-    if (paymentDetails) {
-      setInputValue(paymentDetails)
+  const handleMarkAsPaid = async () => {
+    const transactionDetails = {
+      paymentMethod: depositDetails.paymentMethod || '',
+      paymentDetails: details.value || '',
     }
-  }, [paymentDetails])
+    const transactionFee = 0
+    const transactionStatus = 'Pending'
+    const transactionType = 'Deposit'
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value)
+    await processDepositTransaction(
+      userId,
+      convertToUSD(depositDetails?.amount, 128),
+      transactionDetails,
+      transactionFee,
+      transactionStatus,
+      transactionType
+    )
+    toast.success(
+      `${depositDetails?.paymentMethod} deposit submitted - Wait time 5 minutes`
+    )
+
+    await refreshUserTransactions(userId)
+    router.push('/wallet')
   }
-
-  const paymentMethodKey = paymentMethod.toLowerCase() as
-    | 'mpesa'
-    | 'paypal'
-    | 'cryptocurrency'
-  const details = paymentMethodDetails[paymentMethodKey]
 
   return (
     <div className="flex flex-col justify-center">
-      <Card className="p-[1rem] max-w-lg mx-auto space-y-6">
+      <Card className="p-4 max-w-lg mx-auto space-y-6">
         <CardHeader>
           <CardTitle className="flex items-center justify-between space-x-4">
             <button
@@ -101,9 +99,13 @@ const DepositInfo: React.FC<DepositInfoProps> = ({
               <ArrowLeft className="text-gray-700" size={24} />
             </button>
             <Typography variant="h1">Deposit Information</Typography>
-            <p></p>
+            <div></div>
           </CardTitle>
         </CardHeader>
+        <div>
+          <Typography variant="h1">Wallet Balence</Typography>
+          <Typography variant="h1">{wallet?.walletBalance}</Typography>
+        </div>
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-4">
             <div
@@ -116,51 +118,48 @@ const DepositInfo: React.FC<DepositInfoProps> = ({
             >
               {details.icon}
             </div>
-            <Typography variant="h2" className="text-lg font-semibold">
-              {transactionDetails?.paymentMethod}
+            <Typography
+              variant="h2"
+              className="text-lg font-semibold capitalize"
+            >
+              {depositDetails?.paymentMethod + ' ' + 'Deposit'}
             </Typography>
           </div>
 
-          <Typography variant="h2" className="text-lg font-semibold">
+          <Typography
+            variant="h2"
+            className="text-lg font-semibold flex items-center gap-2"
+          >
             Amount:{' '}
-            <span className="text-green-600">{transactionDetails?.amount}</span>
+            <Typography
+              variant="h1"
+              className="text-green-600 font-bold text-[1.3rem]"
+            >
+              KSh{depositDetails?.amount}
+            </Typography>
           </Typography>
-          {transactionDetails?.paymentMethod === 'cryptocurrency' && (
-            <Image
-              src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR9DZrSfz5PwNlbitC7dO_TjoozHBtVzcnjYg&s"
-              alt="QR Code"
-              width={80}
-              height={80}
-            />
-          )}
 
           <div className="relative space-y-2">
             <Typography variant="h2" className="text-lg font-semibold">
-              {transactionDetails?.paymentMethod === 'PayPal'
-                ? 'PayPal Email'
-                : 'Crypto Wallet Address'}
+              {paymentMethodKey === 'mpesa'
+                ? 'Mpesa Number'
+                : 'Binance Deposit (BinanceID)'}
               :
             </Typography>
             <input
               type="text"
-              value={
-                inputValue.length > 15
-                  ? `${inputValue.slice(0, 25)}...`
-                  : inputValue
-              }
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded-md"
-              placeholder={
-                transactionDetails?.paymentMethod === 'PayPal'
-                  ? 'Enter PayPal email'
-                  : 'Enter crypto wallet address'
-              }
-              title={inputValue} // Show full value on hover
+              value={details.value}
+              className="w-full p-2 border rounded-md bg-gray-100"
+              readOnly
             />
-
+            {paymentMethodKey === 'mpesa' && (
+              <Typography variant="p" className="text-md font-semibold">
+                1 USD = KSh128
+              </Typography>
+            )}
             <button
               onClick={handleCopy}
-              className="absolute right-3 top-[63%] -translate-y-1/2"
+              className="absolute right-3 top-[45%] -translate-y-1/2"
             >
               {copied ? (
                 <Check className="text-green-600 w-5 h-5" />
@@ -171,27 +170,17 @@ const DepositInfo: React.FC<DepositInfoProps> = ({
           </div>
 
           <Typography variant="p" className="text-gray-600">
-            Click <strong>Mark as Paid</strong> to confirm your payment.
+            Click <strong>Mark as Paid</strong> once you have completed the
+            deposit.
           </Typography>
 
-          <Button className="w-full" onClick={onMarkAsPaid}>
-            Mark as Paid
+          <Button
+            disabled={isTransacting}
+            className="w-full"
+            onClick={handleMarkAsPaid}
+          >
+            {isTransacting ? 'Please wait... ' : 'Mark as Paid'}
           </Button>
-
-          {transactionDetails?.paymentMethod !== 'Mpesa' && (
-            <Typography
-              variant="p"
-              className="text-blue-500 underline text-center"
-            >
-              <a
-                href={details.newAccountLink}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Create a new {transactionDetails?.paymentMethod} account
-              </a>
-            </Typography>
-          )}
         </CardContent>
       </Card>
     </div>

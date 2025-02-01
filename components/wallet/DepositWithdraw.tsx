@@ -14,17 +14,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { CreditCard, DollarSign } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import 'animate.css'
 import Typography from '../ui/typography'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '@/lib/stores/store'
 import useAuth from 'hooks/useAuth'
 import useTransaction from 'hooks/useTransaction'
 import useWallet from 'hooks/useWallet'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-toastify'
+import { setTransactionData } from '@/lib/slices/deposit.info.reducer'
 
 function DepositAndWithdraw({
   isDeposit,
@@ -55,7 +55,7 @@ function DepositAndWithdraw({
   const [errors, setErrors] = useState({ amount: '', method: '' })
   const [user, setUser] = useState<any | null>(null)
   const userDetail = useSelector((state: RootState) => state.auth.user)
-  const userId: string | undefined = userDetail?.uid // Handle possible undefined value
+  const userId: string | undefined = userDetail?.uid 
 
   useEffect(() => {
     if (!userId) {
@@ -163,6 +163,27 @@ function DepositAndWithdraw({
     return isValid
   }
 
+  const dispatch = useDispatch()
+
+  const handleNextOrSubmit = () => {
+    // Check if the selected method is either Mpesa or Binance ID.
+    if (
+      selectedMethod?.value === 'mpesa' ||
+      selectedMethod?.value === 'binanceid'
+    ) {
+      // Dispatch the transaction data before navigating.
+      dispatch(
+        setTransactionData({
+          amount, // amount should come from your component state (or wherever you store it)
+          paymentMethod: selectedMethod.value,
+        })
+      )
+      router.push('/deposit-info') // Navigate to deposit info page.
+    } else {
+      handleSubmit() // Proceed with the normal deposit/withdrawal process.
+    }
+  }
+
   const handleSubmit = async () => {
     if (validateFields()) {
       if (!userId) {
@@ -173,9 +194,14 @@ function DepositAndWithdraw({
         paymentMethod: selectedMethod?.value || '',
         paymentDetails: selectedMethod?.detail || '',
       }
+      const transactionFee = 0
+      const transactionStatus = 'Pending'
+      const transactionType = 'Deposit'
 
       if (isDeposit) {
-        await processDepositTransaction(userId, amount, transactionDetails)
+        await processDepositTransaction(
+          userId, amount, transactionDetails,transactionFee,transactionStatus,transactionType
+        )
         toast.success('Deposit submitted')
         await refreshUserWallet(userId)
         await refreshUserTransactions(userId)
@@ -255,8 +281,20 @@ function DepositAndWithdraw({
               </Typography>
             )}
           </div>
-          {/* <Link href={'/deposit-info'}> */}
           <Button
+            disabled={isTransacting}
+            className="w-full"
+            onClick={handleNextOrSubmit}
+          >
+            {selectedMethod?.value === 'mpesa' ||
+            selectedMethod?.value === 'binanceid'
+              ? 'Next'
+              : !isTransacting
+                ? actionText
+                : 'Please wait...'}
+          </Button>
+          {/* <Link href={'/deposit-info'}> */}
+          {/* <Button
             disabled={isTransacting}
             className="w-full"
             onClick={handleSubmit}
@@ -267,7 +305,7 @@ function DepositAndWithdraw({
               <CreditCard className="mr-2 h-4 w-4" />
             )}
             {!isTransacting ? actionText : 'Please wait...'}
-          </Button>
+          </Button> */}
           {/* </Link> */}
         </CardContent>
       </Card>

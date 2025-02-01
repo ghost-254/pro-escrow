@@ -6,6 +6,7 @@ import chatMoreInfoReducer from '@/lib/slices/chat.moreinfo.reducer'
 import addFundsReducer from '@/lib/slices/addfunds.reducer'
 import authReducer from '@/lib/slices/authSlice'
 import groupCreationReducer from '@/lib/slices/groupCreationSlice'
+import depositInfoReducer from '@/lib/slices/deposit.info.reducer'
 
 export const store = configureStore({
   reducer: {
@@ -14,6 +15,7 @@ export const store = configureStore({
     addFunds: addFundsReducer,
     auth: authReducer,
     groupCreation: groupCreationReducer,
+    depositInfo: depositInfoReducer,
   },
 })
 
