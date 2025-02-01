@@ -37,8 +37,8 @@ const paymentMethodDetails: Record<'mpesa' | 'binance', PaymentMethodDetails> =
 const DepositInfo: React.FC = () => {
   const depositDetails = useSelector((state: RootState) => state.depositInfo)
   const userDetail = useSelector((state: RootState) => state.auth.user)
-  const userId: string = userDetail?.uid
-  const router = useRouter() 
+  const userId: string = userDetail?.uid || ''
+  const router = useRouter()
 
   const { wallet } = useWallet()
   const { processDepositTransaction, isTransacting, refreshUserTransactions } =
