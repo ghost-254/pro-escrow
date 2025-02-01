@@ -73,7 +73,7 @@ const DepositInfo: React.FC = () => {
 
     await processDepositTransaction(
       userId,
-      convertToUSD(depositDetails?.amount, 128),
+      convertToUSD(depositDetails?.amount ?? 0, 128),
       transactionDetails,
       transactionFee,
       transactionStatus,
