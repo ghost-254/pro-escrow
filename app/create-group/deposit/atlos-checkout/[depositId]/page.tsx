@@ -141,6 +141,7 @@ export default function AtlosCheckoutPage() {
       onSuccess: async () => {
         toast.success("Payment success!")
         await createGroupAndRedirect(depositData, "paid")
+               
         setIsLoading(false)
       },
       onCanceled: async () => {

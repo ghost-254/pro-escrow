@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import Typography from '../ui/typography'
@@ -11,8 +11,9 @@ import { RootState } from '@/lib/stores/store'
 import useTransaction from 'hooks/useTransaction'
 import useWallet from 'hooks/useWallet'
 import { toast } from 'react-toastify'
-import { convertToUSD } from '@/lib/currencyConvert'
+import { convertToKSH, convertToUSD } from '@/lib/currencyConvert'
 import { useRouter } from 'next/navigation'
+import { Input } from '../ui/input'
 
 type PaymentMethodDetails = {
   icon: React.ReactNode
@@ -20,14 +21,14 @@ type PaymentMethodDetails = {
   value: string
 }
 
-const paymentMethodDetails: Record<'mpesa' | 'binance', PaymentMethodDetails> =
+const paymentMethodDetails: Record<'mpesa' | 'binanceid', PaymentMethodDetails> =
   {
     mpesa: {
       icon: <FaMobileAlt size={24} />,
       color: 'text-green-600',
       value: '07428452404', // Fixed Mpesa number
     },
-    binance: {
+    binanceid: {
       icon: <SiBinance size={24} />,
       color: 'text-yellow-500',
       value: '6347830933', // Fixed Binance ID
@@ -36,16 +37,23 @@ const paymentMethodDetails: Record<'mpesa' | 'binance', PaymentMethodDetails> =
 
 const DepositInfo: React.FC = () => {
   const depositDetails = useSelector((state: RootState) => state.depositInfo)
+  const { wallet, getUserWallet } = useWallet()
   const userDetail = useSelector((state: RootState) => state.auth.user)
+
   const userId: string = userDetail?.uid || ''
+  const [names, setNames] = useState(userDetail?.displayName || '')
+
   const router = useRouter()
 
-  const { wallet } = useWallet()
+  useEffect(() => {
+    getUserWallet(userId)
+  }, [userId])
+
   const { processDepositTransaction, isTransacting, refreshUserTransactions } =
     useTransaction()
   const paymentMethodKey = depositDetails?.paymentMethod?.toLowerCase() as
     | 'mpesa'
-    | 'binance'
+    | 'binanceid'
 
   const details =
     paymentMethodDetails[paymentMethodKey] || paymentMethodDetails.mpesa
@@ -74,7 +82,7 @@ const DepositInfo: React.FC = () => {
     await processDepositTransaction(
       userId,
       convertToUSD(depositDetails?.amount ?? 0, 128),
-      
+
       transactionDetails,
       transactionFee,
       transactionStatus,
@@ -89,8 +97,8 @@ const DepositInfo: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col justify-center">
-      <Card className="p-4 max-w-lg mx-auto space-y-6">
+    <div className="w-full flex flex-col justify-center">
+      <Card className="p-1  mx-auto space-y-6">
         <CardHeader>
           <CardTitle className="flex items-center justify-between space-x-4">
             <button
@@ -103,14 +111,11 @@ const DepositInfo: React.FC = () => {
             <div></div>
           </CardTitle>
         </CardHeader>
-        <div>
-          <Typography variant="h1">Wallet Balence</Typography>
-          <Typography variant="h1">{wallet?.walletBalance}</Typography>
-        </div>
+
         <CardContent className="space-y-4">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-[1rem]">
             <div
-              className={`p-2 rounded-full ${details.color}`}
+              className={`rounded-full ${details.color}`}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -126,55 +131,88 @@ const DepositInfo: React.FC = () => {
               {depositDetails?.paymentMethod + ' ' + 'Deposit'}
             </Typography>
           </div>
-
+          <div className="flex items-center gap-[0.5rem]">
+            <Typography variant="h1" className="font-semibold">
+              Current Balance:
+            </Typography>
+            {depositDetails?.paymentMethod === 'mpesa' ? (
+              <Typography variant="h1" className="font-bold !text-red-600">
+                KSh
+                {convertToKSH(wallet?.walletBalance ?? 0, 128).toLocaleString()}
+              </Typography>
+            ) : (
+              <Typography variant="h1" className="font-bold !text-red-600">
+                USD
+                {(wallet?.walletBalance ?? 0).toLocaleString()}
+              </Typography>
+            )}
+          </div>
           <Typography
             variant="h2"
             className="text-lg font-semibold flex items-center gap-2"
           >
-            Amount:{' '}
-            <Typography
-              variant="h1"
-              className="text-green-600 font-bold text-[1.3rem]"
-            >
-              KSh{depositDetails?.amount}
-            </Typography>
+            Deposit Amount:{' '}
+            {depositDetails?.paymentMethod === 'mpesa' ? (
+              <Typography
+                variant="h1"
+                className="!text-green-600 font-bold text-[1.3rem]"
+              >
+                KSh{(depositDetails?.amount ?? 0).toLocaleString()}
+              </Typography>
+            ) : (
+              <Typography
+                variant="h1"
+                className="!text-green-600 font-bold text-[1.3rem]"
+              >
+                USD{(depositDetails?.amount ?? 0).toLocaleString()}
+              </Typography>
+            )}
           </Typography>
-
           <div className="relative space-y-2">
+            {depositDetails?.paymentMethod === 'mpesa' && (
+              <div className="relative space-y-2">
+                <Typography variant="h2" className="text-lg font-semibold">
+                  Your Mpesa Names
+                </Typography>
+                <Input
+                  type="text"
+                  value={names}
+                  readOnly
+                  onChange={(e) => setNames(e.target.value)}
+                  placeholder="Enter your first name"
+                />
+              </div>
+            )}
+
             <Typography variant="h2" className="text-lg font-semibold">
               {paymentMethodKey === 'mpesa'
-                ? 'Mpesa Number'
+                ? 'Send your payment below'
                 : 'Binance Deposit (BinanceID)'}
               :
             </Typography>
-            <input
-              type="text"
-              value={details.value}
-              className="w-full p-2 border rounded-md bg-gray-100"
-              readOnly
-            />
+            <div className="relative">
+              <Input type="text" value={details.value} readOnly />
+              <button
+                onClick={handleCopy}
+                className="absolute right-3 top-[50%] -translate-y-1/2"
+              >
+                {copied ? (
+                  <Check className="text-green-600 w-5 h-5" />
+                ) : (
+                  <Copy className="text-gray-500 w-5 h-5" />
+                )}
+              </button>
+            </div>
             {paymentMethodKey === 'mpesa' && (
               <Typography variant="p" className="text-md font-semibold">
                 1 USD = KSh128
               </Typography>
             )}
-            <button
-              onClick={handleCopy}
-              className="absolute right-3 top-[45%] -translate-y-1/2"
-            >
-              {copied ? (
-                <Check className="text-green-600 w-5 h-5" />
-              ) : (
-                <Copy className="text-gray-500 w-5 h-5" />
-              )}
-            </button>
           </div>
-
           <Typography variant="p" className="text-gray-600">
-            Click <strong>Mark as Paid</strong> once you have completed the
-            deposit.
+            Click <strong className="dark:text-white">Mark as Paid</strong> once
+            you have completed the deposit.
           </Typography>
-
           <Button
             disabled={isTransacting}
             className="w-full"

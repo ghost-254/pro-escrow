@@ -123,7 +123,7 @@ function Transactions() {
               </Typography>
               <Typography
                 variant="h1"
-                className="text-lg font-semibold text-green-600"
+                className="text-lg font-semibold !text-green-600"
               >
                 USD {wallet?.totalDeposits?.toLocaleString() || '0.00'}
               </Typography>
@@ -134,7 +134,7 @@ function Transactions() {
               </Typography>
               <Typography
                 variant="h1"
-                className="text-lg font-semibold text-red-600"
+                className="text-lg font-semibold !text-red-600"
               >
                 USD {wallet?.totalWithdrawal?.toLocaleString() || '0.00'}
               </Typography>
