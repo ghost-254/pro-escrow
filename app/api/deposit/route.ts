@@ -11,10 +11,10 @@ import {
 } from "firebase/firestore"
 
 const K2 = require("k2-connect-node")({
-  clientId: process.env.NEXT_PUBLIC_KOPOKOPO_CLIENT_ID,
-  clientSecret: process.env.NEXT_PUBLIC_KOPOKOPO_CLIENT_SECRET,
-  apiKey: process.env.NEXT_PUBLIC_KOPOKOPO_API_KEY,
-  baseUrl: process.env.NEXT_PUBLIC_KOPOKOPO_BASE_URL,
+  clientId: process.env.KOPOKOPO_CLIENT_ID,
+  clientSecret: process.env.KOPOKOPO_CLIENT_SECRET,
+  apiKey: process.env.KOPOKOPO_API_KEY,
+  baseUrl: process.env.KOPOKOPO_BASE_URL,
 })
 
 const StkService = K2.StkService
@@ -84,14 +84,14 @@ export async function POST(request: Request) {
 
     const stkOptions = {
       paymentChannel: "M-PESA STK Push",
-      tillNumber: process.env.NEXT_PUBLIC_KOPOKOPO_TILL_NUMBER,
+      tillNumber: process.env.KOPOKOPO_TILL_NUMBER,
       firstName,
       lastName,
       phoneNumber,
       email,
       currency: "KES",
       amount,
-      callbackUrl: process.env.NEXT_PUBLIC_KOPOKOPO_CALLBACK_URL,
+      callbackUrl: process.env.KOPOKOPO_CALLBACK_URL,
       accessToken,
       metadata: {
         customerId: "123456789",

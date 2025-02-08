@@ -23,10 +23,10 @@ export const sendAdminNotification = async (data: {
     }
 
     await emailjs.send(
-      process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
-      process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID!,
+      process.env.EMAILJS_SERVICE_ID!,
+      process.env.EMAILJS_TEMPLATE_ID!,
       templateParams,
-      process.env.NEXT_PUBLIC_EMAILJS_USER_ID!
+      process.env.EMAILJS_USER_ID!
     )
   } catch (error) {
     throw new Error('Error sending email: ' + error)

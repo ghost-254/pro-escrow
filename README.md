@@ -5,6 +5,8 @@
 ![Node](https://img.shields.io/badge/node-%3E%3D%2014.0.0-brightgreen.svg)
 ![React](https://img.shields.io/badge/react-%5E18.2.0-blue.svg)
 ![Next.js](https://img.shields.io/badge/next.js-%5E13.4.9-black.svg)
+![Firebase](https://img.shields.io/badge/firebase-%5E9.0.0-orange.svg)
+![Mpesa](https://img.shields.io/badge/mpesa-SDK-brightgreen.svg)
 
 Xcrow is a modern, secure escrow platform built with Next.js, React, and Firebase. It provides a trusted environment for buyers and sellers to conduct transactions with confidence.
 
@@ -93,16 +95,16 @@ For a detailed guide on using each feature, refer to the in-app tutorials or the
 Create a `.env.local` file in the root of your project (or use your preferred method for handling environment variables). Include the following variables (example for Firebase-based project):
 
 ```bash
-NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_firebase_project_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_firebase_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=your_firebase_app_id
+FIREBASE_API_KEY=your_firebase_api_key
+FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
+FIREBASE_PROJECT_ID=your_firebase_project_id
+FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
+FIREBASE_MESSAGING_SENDER_ID=your_firebase_sender_id
+FIREBASE_APP_ID=your_firebase_app_id
 
 # Add any other required environment variables here
 PAYMENT_GATEWAY_API_KEY=your_payment_gateway_key
-NEXT_PUBLIC_APP_ENV=development
+APP_ENV=development
 ```
 
 > **Note**:  

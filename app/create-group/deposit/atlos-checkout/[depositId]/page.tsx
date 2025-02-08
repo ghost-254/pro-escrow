@@ -15,7 +15,6 @@ import {
 import { toast } from 'react-toastify'
 import { Button } from '@/components/ui/button'
 import { db } from '@/lib/firebaseConfig'
-
 import { loadAtlosScript, atlosPay } from '@/lib/atlos'
 import useTransaction from 'hooks/useTransaction'
 
@@ -141,7 +140,7 @@ export default function AtlosCheckoutPage() {
 
     // Define Atlos options explicitly before passing to atlosPay
     const options = {
-      merchantId: process.env.NEXT_PUBLIC_ATLOS_MERCHANT_ID || '',
+      merchantId: process.env.ATLOS_MERCHANT_ID || '',
       orderId: depositData.id,
       orderAmount: finalAmount,
       orderCurrency: 'USD',

@@ -26,7 +26,7 @@ declare global {
 }
 
 // Load from environment. If undefined, fallback to empty string or handle error
-const MERCHANT_ID = process.env.NEXT_PUBLIC_ATLOS_MERCHANT_ID || ""
+const MERCHANT_ID = process.env.ATLOS_MERCHANT_ID || ""
 
 export function loadAtlosScript() {
   const existingScript = document.querySelector(

@@ -23,8 +23,6 @@ import {
   updateProfile,
 } from 'firebase/auth'
 import { doc, setDoc } from 'firebase/firestore'
-
-// shadcn/ui Dialog
 import {
   Dialog,
   DialogContent,
@@ -260,9 +258,9 @@ export default function AuthPage(): JSX.Element {
     <div
       className="flex flex-col items-center justify-center"
       style={{
-        minHeight: '100vh', // Ensure the container takes full viewport height
+        minHeight: '100vh',
         background: '#f5f5f5',
-        overflowY: 'auto', // Enable vertical scrolling if content overflows
+        overflowY: 'auto',
       }}
     >
       {/* Logo / Brand */}
@@ -275,9 +273,6 @@ export default function AuthPage(): JSX.Element {
           className="object-contain"
           priority
         />
-        {/* If you only want the image, remove this span.
-              If you need an accessible text label, keep it as sr-only. */}
-        <span className="sr-only">Xcrows</span>
       </div>
       <Card className="w-[96%] md:max-w-md bg-white shadow-lg border-0">
         <CardHeader>
