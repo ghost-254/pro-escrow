@@ -15,10 +15,23 @@ import {
   setDoc,
   type Timestamp,
 } from "firebase/firestore"
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
+import { 
+  ref, 
+  uploadBytes, 
+  getDownloadURL 
+} from "firebase/storage"
 import { useSelector } from "react-redux"
 import Image from "next/image"
-import { Paperclip, Send, X, CheckCircle, XCircle, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react"
+import { 
+  Paperclip, 
+  Send, 
+  X, 
+  CheckCircle, 
+  XCircle, 
+  AlertTriangle, 
+  ChevronDown, 
+  ChevronUp 
+} from "lucide-react"
 import { db, storage } from "@/lib/firebaseConfig"
 import type { RootState } from "@/lib/stores/store"
 import { Button } from "@/components/ui/button"
@@ -37,6 +50,7 @@ import { Badge } from "@/components/ui/badge"
 import XcrowInfo from "@/components/xcrowinfo"
 import { toast } from "react-toastify"
 import { Card } from "@/components/ui/card"
+import PaymentSelectionDialog from "@/components/PaymentSelectionDialog";
 
 // A named no‑op cleanup function to satisfy the linter
 function noop(): void {
@@ -90,6 +104,8 @@ export default function GroupChatPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
 
   useEffect(() => {
     // If groupId or user is missing, navigate away
@@ -250,10 +266,12 @@ export default function GroupChatPage() {
     return user?.uid !== undefined && depositStatus !== "paid" && transactionType === "buying"
   }
 
-  const handleRetryPayment = (): void => {
-    if (!depositId) return
-    router.push(`/create-group/deposit/atlos-checkout/${depositId}`)
-  }
+  // Example: Fetching the user's available balance
+  const availableBalance = 5000; 
+
+  const handleRetryPayment = () => {
+    setIsPaymentDialogOpen(true);
+  };
 
   function getStatusColor(status: string): string {
     switch (status) {
@@ -290,14 +308,23 @@ export default function GroupChatPage() {
                   ? "Payment Failed"
                   : "Payment Pending"}
             </Badge>
-            {canRetryPayment() && (
-              <Button
-                onClick={handleRetryPayment}
-                className="bg-emerald-500 hover:bg-orange-500 text-white text-sm mt-2"
-              >
-                Retry Payment
-              </Button>
-            )}
+            {/* Retry Payment Button */}
+              {canRetryPayment() && (
+                <Button
+                  onClick={handleRetryPayment}
+                  className="bg-emerald-500 hover:bg-orange-500 text-white text-sm mt-2"
+                >
+                  Retry Payment
+                </Button>
+              )}
+
+              {/* Payment Selection Dialog */}
+              <PaymentSelectionDialog
+                isOpen={isPaymentDialogOpen}
+                onClose={() => setIsPaymentDialogOpen(false)}
+                depositId={depositId}
+                availableBalance={availableBalance}
+              />
           </Card>
           <div className="col-span-2 grid grid-cols-2 gap-4">
             <Button variant="outline" className="text-sm h-10">
@@ -457,7 +484,7 @@ export default function GroupChatPage() {
           hyphens: auto;
         }
       `}</style>
-      <footer className="border-t dark:border-gray-800 p-4 bg-white dark:bg-gray-900">
+      <footer className="p-4 border-t dark:border-gray-800 bg-white dark:bg-gray-900 mb-12 lg:mb-0">
         {otherTypingUsers.length > 0 && (
           <div className="mb-2 flex items-center space-x-2">
             {otherTypingUsers.map((typingUser) => (

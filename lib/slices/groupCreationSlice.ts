@@ -13,6 +13,9 @@ interface GroupCreationState {
   transactionId: string
   paymentMethod: string
   sellerSummaryDocId: string | null
+  // NEW FIELD: Stores the final deposit amount (e.g. in KES for M-Pesa)
+  depositAmount: number
+  currency: string
 }
 
 const initialState: GroupCreationState = {
@@ -28,6 +31,8 @@ const initialState: GroupCreationState = {
   transactionId: "",
   paymentMethod: "",
   sellerSummaryDocId: null,
+  depositAmount: 0,
+  currency: 'USD', // default value
 }
 
 const groupCreationSlice = createSlice({
@@ -44,12 +49,13 @@ const groupCreationSlice = createSlice({
     setPrice(state, action: PayloadAction<number>) {
       state.price = action.payload
     },
-
-    // NEW ACTION: manually set escrowFee from the EscrowFeeForm tier logic
+    setCurrency(state, action: PayloadAction<string>) {
+      state.currency = action.payload
+    },
+    // Manually set escrowFee from the EscrowFeeForm tier logic.
     setEscrowFee(state, action: PayloadAction<number>) {
       state.escrowFee = action.payload
     },
-
     setServiceNature(state, action: PayloadAction<string>) {
       state.serviceNature = action.payload
     },
@@ -74,7 +80,10 @@ const groupCreationSlice = createSlice({
     setSellerSummaryDocId(state, action: PayloadAction<string | null>) {
       state.sellerSummaryDocId = action.payload
     },
-
+    // NEW ACTION: setDepositAmount to store the final (possibly converted) deposit amount.
+    setDepositAmount(state, action: PayloadAction<number>) {
+      state.depositAmount = action.payload
+    },
     nextStep(state) {
       if (state.step < 5) state.step += 1
     },
@@ -99,6 +108,8 @@ export const {
   setTransactionId,
   setPaymentMethod,
   setSellerSummaryDocId,
+  setCurrency,
+  setDepositAmount,
   nextStep,
   previousStep,
   resetGroupCreation,

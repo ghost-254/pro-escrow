@@ -19,7 +19,7 @@ import {
   doc,
   addDoc,
   updateDoc,
-  Timestamp
+  Timestamp,
 } from "firebase/firestore"
 
 const DepositFlow = () => {
@@ -36,8 +36,12 @@ const DepositFlow = () => {
     serviceNature,
     escrowFeeResponsibility,
     paymentSource,
-    sellerSummaryDocId,  // <--- the ID we store in Redux
+    sellerSummaryDocId, // the ID we store in Redux
+    currency,
   } = useSelector((state: RootState) => state.groupCreation)
+
+  // Determine the currency symbol and label
+  const currencySymbol = currency === "KES" ? "KES" : "$"
 
   // Pull user from auth slice
   const user = useSelector((state: RootState) => state.auth.user)
@@ -47,7 +51,6 @@ const DepositFlow = () => {
   const isBuyer = transactionType === "buying"
 
   // 1) Compute the buyer's deposit, if user is buyer
-  //    The logic depends on escrowFeeResponsibility
   let buyerDeposit = price
   if (isBuyer) {
     switch (escrowFeeResponsibility) {
@@ -61,24 +64,19 @@ const DepositFlow = () => {
         buyerDeposit = price + escrowFee / 2
         break
       default:
-        // fallback if not set (you could handle error if no selection)
         buyerDeposit = price + escrowFee
         break
     }
   }
 
   // 2) For the seller's deposit logic:
-  //    If the fee is from buyer's payment => $0
-  //    else escrowFee
   let sellerDeposit = 0
   if (isSeller) {
     sellerDeposit = chargeFeeFromBuyerPayment ? 0 : escrowFee
   }
 
-  // We show in the UI based on if buyer or seller
-  const totalDeposit = isBuyer
-    ? buyerDeposit
-    : sellerDeposit
+  // Total deposit amount
+  const totalDeposit = isBuyer ? buyerDeposit : sellerDeposit
 
   // Seller form saving logic
   const handleSaveSellerDetails = async () => {
@@ -96,6 +94,7 @@ const DepositFlow = () => {
           price,
           escrowFee,
           chargeFeeFromBuyerPayment,
+          currency, // track currency here
           updatedAt: Timestamp.now(),
         })
       } else {
@@ -110,6 +109,7 @@ const DepositFlow = () => {
           price,
           escrowFee,
           chargeFeeFromBuyerPayment,
+          currency, // track currency here
           createdAt: Timestamp.now(),
         })
 
@@ -144,43 +144,20 @@ const DepositFlow = () => {
   }
 
   return (
-    <div 
-      className="
-        flex flex-col 
-        max-h-[80vh] 
-        overflow-auto 
-        space-y-6 
-        p-4
-      "
-    >
+    <div className="flex flex-col max-h-[80vh] overflow-auto space-y-6 p-4">
       <Typography variant="h2">Total Deposit Amount</Typography>
 
       {isSeller && (
         <div className="flex flex-col space-y-4">
-          <Typography variant="h3">
-            Summary of Your Selections
-          </Typography>
+          <Typography variant="h3">Summary of Your Selections</Typography>
 
-          <div 
-            className="
-              grid 
-              grid-cols-1 
-              sm:grid-cols-2 
-              lg:grid-cols-3 
-              gap-4
-            "
-          >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* UID */}
             <div className="flex flex-col">
               <Typography variant="span" className="font-semibold">
                 User UID
               </Typography>
-              <Input
-                type="text"
-                readOnly
-                value={userUid}
-                className="mt-1"
-              />
+              <Input type="text" readOnly value={userUid} className="mt-1" />
             </div>
             {/* Item Description */}
             <div className="flex flex-col">
@@ -233,36 +210,36 @@ const DepositFlow = () => {
             {/* Price */}
             <div className="flex flex-col">
               <Typography variant="span" className="font-semibold">
-                Price (USD)
+                Price ({currency === "KES" ? "KES" : "USD"})
               </Typography>
               <Input
                 type="text"
                 readOnly
-                value={`$${price.toFixed(2)}`}
+                value={`${currencySymbol}${price.toFixed(2)}`}
                 className="mt-1"
               />
             </div>
             {/* Escrow Fee */}
             <div className="flex flex-col">
               <Typography variant="span" className="font-semibold">
-                Escrow Fee
+                Escrow Fee ({currency === "KES" ? "KES" : "USD"})
               </Typography>
               <Input
                 type="text"
                 readOnly
-                value={`$${escrowFee.toFixed(2)}`}
+                value={`${currencySymbol}${escrowFee.toFixed(2)}`}
                 className="mt-1"
               />
             </div>
             {/* Seller's Deposit Required */}
             <div className="flex flex-col">
               <Typography variant="span" className="font-semibold">
-                Deposit Required
+                Deposit Required ({currency === "KES" ? "KES" : "USD"})
               </Typography>
               <Input
                 type="text"
                 readOnly
-                value={`$${sellerDeposit.toFixed(2)}`}
+                value={`${currencySymbol}${sellerDeposit.toFixed(2)}`}
                 className="mt-1"
               />
             </div>
@@ -277,12 +254,12 @@ const DepositFlow = () => {
       {isBuyer && (
         <div>
           <Typography variant="span" className="font-semibold">
-            Total Deposit Amount
+            Total Deposit Amount ({currency === "KES" ? "KES" : "USD"})
           </Typography>
           <Input
             type="text"
             readOnly
-            value={`$${totalDeposit.toFixed(2)}`}
+            value={`${currencySymbol}${totalDeposit.toFixed(2)}`}
             className="mt-1"
           />
           <Typography variant="p" className="mt-2">

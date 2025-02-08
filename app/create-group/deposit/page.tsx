@@ -29,13 +29,17 @@ export default function DepositPage() {
     escrowFeeResponsibility,
     paymentSource,
     chargeFeeFromBuyerPayment,
+    currency, // get currency from Redux state
   } = useSelector((state: RootState) => state.groupCreation)
   const user = useSelector((state: RootState) => state.auth.user)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("")
 
-  // Mock wallet balance - replace with actual balance fetch
+  // Determine the currency symbol based on the currency state
+  const currencySymbol = currency === "KES" ? "KES" : "$"
+
+  // Mock wallet balance - replace with actual balance fetch. Assume it's in the same currency.
   const walletBalance = 1000
 
   useEffect(() => {
@@ -85,6 +89,7 @@ export default function DepositPage() {
         depositMethod: selectedPaymentMethod,
         status: "pending",
         createdAt: Timestamp.now(),
+        currency, // include currency if desired
       }
 
       const depositRef = await addDoc(collection(db, "deposits"), depositData)
@@ -120,7 +125,7 @@ export default function DepositPage() {
         <CardContent className="flex-grow overflow-y-auto">
           <div className="space-y-6">
             <Typography variant="p">
-              You will be paying <strong>${totalDeposit.toFixed(2)}</strong>. Please select your preferred payment method:
+              You will be paying <strong>{currencySymbol}{totalDeposit.toFixed(2)}</strong>. Please select your preferred payment method:
             </Typography>
 
             <RadioGroup className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -137,7 +142,7 @@ export default function DepositPage() {
                 >
                   <Wallet className="mb-3 h-12 w-12 text-blue-500" />
                   <span className="text-lg font-semibold mb-2">Wallet Balance</span>
-                  <span className="text-sm font-semibold">${walletBalance.toFixed(2)}</span>
+                  <span className="text-sm font-semibold">{currencySymbol}{walletBalance.toFixed(2)}</span>
                 </Label>
               </div>
               <div>
@@ -202,11 +207,11 @@ export default function DepositPage() {
                   <p>
                     <strong>Price:</strong>
                   </p>
-                  <p>${price.toFixed(2)}</p>
+                  <p>{currencySymbol}{price.toFixed(2)}</p>
                   <p>
                     <strong>Escrow Fee:</strong>
                   </p>
-                  <p>${escrowFee.toFixed(2)}</p>
+                  <p>{currencySymbol}{escrowFee.toFixed(2)}</p>
                   <p>
                     <strong>Responsibility:</strong>
                   </p>
@@ -214,7 +219,7 @@ export default function DepositPage() {
                   <p>
                     <strong>Deposit Amount:</strong>
                   </p>
-                  <p>${totalDeposit.toFixed(2)}</p>
+                  <p>{currencySymbol}{totalDeposit.toFixed(2)}</p>
                 </div>
               </CardContent>
             </Card>

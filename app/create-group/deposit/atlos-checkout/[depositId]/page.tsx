@@ -1,3 +1,5 @@
+//app/create-group/deposit/atlos-checkout/[depositId]/page.tsx
+
 'use client'
 
 import React, { useEffect, useState } from 'react'
@@ -139,7 +141,7 @@ export default function AtlosCheckoutPage() {
 
     // Define Atlos options explicitly before passing to atlosPay
     const options = {
-      merchantId: process.env.NEXT_PUBLIC_ATLOS_MERCHANT_ID || '', // Ensure it's set
+      merchantId: process.env.NEXT_PUBLIC_ATLOS_MERCHANT_ID || '',
       orderId: depositData.id,
       orderAmount: finalAmount,
       orderCurrency: 'USD',

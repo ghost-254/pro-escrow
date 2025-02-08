@@ -3,9 +3,7 @@
 import { Inter } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Navigation } from '@/components/navigation'
-import { BottomNav } from '@/components/bottom-nav'
 import { Sidebar } from '@/components/sidebar'
-// import { Footer } from "@/components/footer"
 import { ToastContainer } from 'react-toastify'
 import { Providers } from './global.redux/provider'
 import { RouteGuard } from '@/components/route-guard'
@@ -73,11 +71,6 @@ export default function RootLayout({
                             <div className="flex-1 h-full overflow-y-auto">
                               {children}
                             </div>
-                          </div>
-
-                          {/* Bottom Navigation for mobile only */}
-                          <div className="lg:hidden">
-                            <BottomNav />
                           </div>
                         </RouteGuard>
                       </ThemeProvider>

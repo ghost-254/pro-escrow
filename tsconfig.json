@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "typeRoots": ["./node_modules/@types", "./types"],
     "target": "ES2017",
     "lib": [
       "dom",
@@ -43,7 +44,7 @@
     "**/*.tsx",
     "next-env.d.ts",
     ".next/types/**/*.ts"
-  ],
+, "components/TokenService.tsx", "components/StkService.tsx"  ],
   "exclude": [
     "node_modules"
   ]

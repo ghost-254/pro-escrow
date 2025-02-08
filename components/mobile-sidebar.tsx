@@ -5,7 +5,7 @@
 import React, { useEffect, useState, MouseEvent } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { RootState } from '@/lib/stores/store'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, collection, onSnapshot, query, where, orderBy } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebaseConfig'
 import { signOut } from 'firebase/auth'
 import {
@@ -18,7 +18,8 @@ import {
   Shield,
   BadgeCheck,
   AlertCircle,
-  Lock,
+  User,
+  Mails,
   HelpCircle,
   Users,
 } from 'lucide-react'
@@ -28,7 +29,7 @@ import { cn } from '@/lib/utils'
 import { toggleTransactModal } from '@/lib/slices/transact.reducer'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useToast } from '../hooks/use-toast'
+import { toast } from 'react-toastify'
 import Image from 'next/image'
 import truncate from '@/lib/truncate'
 import Typography from './ui/typography'
@@ -40,31 +41,45 @@ interface MobileSidebarProps {
 
 export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
   const pathname = usePathname()
-
   const router = useRouter()
-  const userFromRedux = useSelector((state: RootState) => state.auth.user)
+  const user = useSelector((state: RootState) => state.auth.user)
   const dispatch = useDispatch()
-
-  // Initialize toast
-  const { toast } = useToast()
-
   const [firstName, setFirstName] = useState('User')
   const [lastName, setLastName] = useState('')
   const [photoURL, setPhotoURL] = useState('')
 
-  // Hide/show bottom nav based on isOpen
-  useEffect(() => {
-    const bottomNavEl = document.getElementById('bottom-nav')
-    if (!bottomNavEl) return
-    bottomNavEl.style.display = isOpen ? 'none' : ''
-  }, [isOpen])
+  const [unreadCount, setUnreadCount] = useState<number>(0)
 
-  // Fetch user doc from Firestore
+  // Real-time unread notifications for the user
+  useEffect(() => {
+    if (!user?.uid) {
+      toast.error('User not available: Please sign in to view notifications.');
+      return undefined;
+    }
+
+    const notifsRef = collection(db, 'notifications')
+    const notificationsQuery = query(
+      notifsRef,
+      where('userId', '==', user.uid),
+      where('read', '==', false),
+      orderBy('createdAt', 'desc')
+    )
+
+    const unsubscribe = onSnapshot(notificationsQuery, (snapshot) => {
+      setUnreadCount(snapshot.size)
+    })
+
+    return () => {
+      unsubscribe()
+    }
+  }, [user?.uid])
+
+  // Fetch user document from Firestore
   useEffect(() => {
     const fetchUserDoc = async () => {
-      if (!userFromRedux?.uid) return
+      if (!user?.uid) return
       try {
-        const docRef = doc(db, 'users', userFromRedux.uid)
+        const docRef = doc(db, 'users', user.uid)
         const snapshot = await getDoc(docRef)
         if (snapshot.exists()) {
           const data = snapshot.data()
@@ -72,27 +87,20 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
           setLastName(data.lastName || '')
           setPhotoURL(data.photoURL || '')
         }
-      } catch (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Error fetching user data',
-          description:
-            error instanceof Error
-              ? error.message
-              : 'Something went wrong while fetching user data.',
-        })
+      } catch {
+        toast.error('Something went wrong while fetching user data.')
       }
     }
     fetchUserDoc()
-  }, [toast, userFromRedux?.uid])
+  }, [user?.uid])
 
-  // Generate fallback initials
+  // Generate fallback initials if no photo is provided
   const initials = (firstName[0] || '') + (lastName[0] || '')
   const userInitials = initials.toUpperCase()
 
   if (!isOpen) return null
 
-  // Prevent overlay close on sidebar clicks
+  // Prevent overlay close when clicking inside the sidebar
   const stopPropagation = (e: MouseEvent) => {
     e.stopPropagation()
   }
@@ -107,41 +115,78 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
       await signOut(auth)
       onClose()
       router.push('/')
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error logging out',
-        description:
-          error instanceof Error
-            ? error.message
-            : 'Something went wrong while logging out.',
-      })
+    } catch {
+      toast.error('Something went wrong while logging out.')
     }
   }
 
-  // Reusable link item
+  // Reusable MenuItem component with support for notifications and NEW badges
   const MenuItem = ({
     href,
     icon: Icon,
     label,
+    showNewBadge = false,
+    isNotifications = false,
   }: {
     href: string
     icon: React.ElementType
     label: string
-  }) => (
-    <Link href={href} onClick={onClose}>
-      <Button
-        variant="ghost"
-        className={cn(
-          'w-full justify-start',
-          href === pathname && 'bg-[#dddddd] dark:bg-gray-600  font-semibold'
-        )}
-      >
-        <Icon className="mr-2 h-4 w-4" />
-        {label}
-      </Button>
-    </Link>
-  )
+    showNewBadge?: boolean
+    isNotifications?: boolean
+  }) => {
+    const isActive = href === pathname
+
+    return (
+      <Link href={href} onClick={onClose}>
+        <Button
+          variant="ghost"
+          className={cn(
+            'w-full justify-start relative',
+            isActive && 'bg-[#dddddd] dark:bg-gray-600 font-semibold'
+          )}
+        >
+          <Icon className="mr-2 h-4 w-4" />
+          <span className="flex items-center">
+            {label}
+            {isNotifications && unreadCount > 0 && (
+              <span
+                className="
+                  ml-2
+                  flex
+                  items-center
+                  justify-center
+                  h-5
+                  w-5
+                  text-[0.7rem]
+                  rounded-full
+                  font-bold
+                  bg-red-600
+                  text-white
+                "
+              >
+                {unreadCount}
+              </span>
+            )}
+          </span>
+          {showNewBadge && (
+            <span
+              className="
+                ml-2
+                text-[0.6rem]
+                px-1
+                rounded
+                font-bold
+                bg-green-600
+                text-white
+              "
+            >
+              NEW
+            </span>
+          )}
+        </Button>
+      </Link>
+    )
+  }
 
   return (
     <div
@@ -163,7 +208,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
           </div>
 
           {/* User Info */}
-          {userFromRedux ? (
+          {user ? (
             <div className="flex items-center justify-between mb-3 px-2">
               <div className="flex items-center space-x-2">
                 {photoURL ? (
@@ -204,28 +249,40 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
           )}
 
           {/* Create Xcrow Group */}
-          <Button
-            onClick={handleShowTransactModal}
-            className="w-full justify-start bg-primary text-white hover:bg-primary/90"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Create Xcrow Group
-          </Button>
+          <Link href="/create-group">
+            <Button
+              onClick={handleShowTransactModal}
+              className="w-full justify-start bg-primary text-white hover:bg-primary/90"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Create Xcrow Group
+            </Button>
+          </Link>
         </div>
 
-        {/* Scrollable Middle Section */}
+        {/* Scrollable Content */}
         <ScrollArea className="flex-1">
-          <div className="md:p-4 p-2 space-y-4">
+          <div className="p-4 space-y-4">
             {/* MAIN MENU */}
             <div>
               <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">
                 MAIN MENU
               </h4>
-              <nav className="space-y-1">
+              <nav className="space-y-1 flex flex-col gap-[0.3rem]">
                 <MenuItem href="/" icon={Home} label="Dashboard" />
-                <MenuItem href="/groups" icon={Users} label="Chats" />
-                <MenuItem href="/wallet" icon={Wallet} label="Wallet" />
-                <MenuItem href="/notifications" icon={Bell} label="Notifications" />
+                <MenuItem
+                  href="/group-chat"
+                  icon={Users}
+                  label="Group Chats"
+                  showNewBadge
+                />
+                <MenuItem href="/wallet" icon={Wallet} label="My Wallet" />
+                <MenuItem
+                  href="/notifications"
+                  icon={Bell}
+                  label="Notifications"
+                  isNotifications
+                />
               </nav>
             </div>
 
@@ -234,38 +291,12 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
               <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">
                 ESCROW SERVICES
               </h4>
-              <nav className="space-y-1">
-                <MenuItem
-                  href="/active-escrows"
-                  icon={Shield}
-                  label="Active Escrows"
-                />
-                <MenuItem
-                  href="/completed"
-                  icon={BadgeCheck}
-                  label="Completed"
-                />
-                <MenuItem
-                  href="/disputes"
-                  icon={AlertCircle}
-                  label="Disputes"
-                />
+              <nav className="space-y-1 flex flex-col gap-[0.3rem]">
+                <MenuItem href="/orders" icon={Shield} label="Active Escrows" />
+                <MenuItem href="/completed" icon={BadgeCheck} label="Completed" />
+                <MenuItem href="/disputes" icon={AlertCircle} label="Disputes" />
               </nav>
             </div>
-
-            {/* TOOLS & REPORTS 
-            <div>
-              <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">
-                TOOLS & REPORTS
-              </h4>
-              <nav className="space-y-1">
-                <MenuItem href="/analytics" icon={BarChart3} label="Analytics" />
-                <MenuItem href="/documents" icon={FileText} label="Documents" />
-                <MenuItem href="/vpns-proxies" icon={Zap} label="VPNs & Proxies" />
-              </nav>
-            </div>
-
-            */}
 
             {/* ACCOUNT */}
             <div>
@@ -273,18 +304,16 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                 ACCOUNT
               </h4>
               <nav className="space-y-1">
-                <MenuItem href="/profile" icon={Lock} label="Profile" />
-                {/*<MenuItem href="/security" icon={Lock} label="Security" />
-                <MenuItem href="/referrals" icon={Gift} label="Referrals" />*/}
+                <MenuItem href="/profile" icon={User} label="Profile" />
               </nav>
             </div>
           </div>
         </ScrollArea>
 
-        {/* Bottom Section */}
-        <div className="flex-none border-t md:p-4 p-2 bg-muted space-y-1">
-          {/*<MenuItem href="/settings" icon={Settings} label="Settings" />*/}
+        {/* Footer */}
+        <div className="sticky bottom-0 mb-0 z-50 bg-muted border-t p-4 space-y-1 overflow-hidden">
           <MenuItem href="/support" icon={HelpCircle} label="Support" />
+          <MenuItem href="mailto:support@xcrow.co" icon={Mails} label="support@xcrow.co" />
         </div>
       </div>
     </div>

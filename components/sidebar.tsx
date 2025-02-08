@@ -18,6 +18,7 @@ import {
   Bell,
   User,
   Users,
+  Mails,
 } from "lucide-react"
 import { useDispatch, useSelector } from "react-redux"
 import type { RootState } from "@/lib/stores/store"
@@ -218,12 +219,13 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
             </nav>
           </div>
         </div>
-
+        </ScrollArea>
         {/* Footer */}
-        <div className="sticky bottom-0 mb-0 z-50 bg-muted border-t p-4 space-y-1">
+        <div className="sticky bottom-0 mb-0 z-50 bg-muted border-t p-4 space-y-1 overflow-hidden">
           <MenuItem href="/support" icon={HelpCircle} label="Support" />
+          <MenuItem href="emailto:support@xcrow.co" icon={Mails} label="support@xcrow.co" />
         </div>
-      </ScrollArea>
+    
     </div>
   )
 }
