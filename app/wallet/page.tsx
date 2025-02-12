@@ -1,83 +1,241 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-'use client'
+/* eslint-disable */
 
-import { useEffect, useState } from 'react'
-import { ScrollArea } from '@/components/ui/scroll-area'
+// app/wallet/page.tsx
 
-import Typography from '@/components/ui/typography'
-import Analytics from '@/components/wallet/Analytics'
-import Transactions from '@/components/wallet/Transactions'
-import DepositAndWithdraw from '@/components/wallet/DepositWithdraw'
-import HeaderBal from '@/components/wallet/HeaderBal'
-import useWallet from '../../hooks/useWallet'
-import { useSelector } from 'react-redux'
-import { RootState } from '@/lib/stores/store'
+"use client"
+
+import { useState, useEffect } from "react"
+import { ToastContainer } from "react-toastify"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { RefreshCw, Wallet, ArrowUpCircle, ArrowDownCircle, BarChart2, Search } from "lucide-react"
+import { ActionCard } from "@/components/wallet/ActionCard"
+import { AnalyticsChart } from "@/components/wallet/AnalyticsChart"
+import { TransactionsTable } from "@/components/wallet/TransactionsTable"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import "react-toastify/dist/ReactToastify.css"
+import { getAuth } from "firebase/auth"
 
 export default function WalletPage() {
-  const [isDeposit, setIsdeposit] = useState(true)
-  const [isWithdraw, setIsWithdraw] = useState(false)
-  const [isRefetch, setIsRefetch] = useState(false)
-  const { wallet, getUserWallet, refreshUserWallet } = useWallet()
-  const user = useSelector((state: RootState) => state?.auth.user)
-  const userId = user?.uid
-  
-  // Check if the wallet or userId is null or undefined before attempting to fetch
-  useEffect(() => {
-    if (userId) {
-      getUserWallet(userId)
-    }
-  }, [userId])
+  const [balanceCurrency, setBalanceCurrency] = useState<"KES" | "USD">("KES")
+  const [balance, setBalance] = useState<{ KES: number; USD: number }>({ KES: 0, USD: 0 })
+  const [frozenBalance, setFrozenBalance] = useState({ KES: 0, USD: 0 })
+  const [analyticsData, setAnalyticsData] = useState<any[]>([])
+  const [transactions, setTransactions] = useState<any[]>([])
+  const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [filter, setFilter] = useState("all")
 
-  const handleRefetch = async () => {
-    if (userId) {
-      setIsRefetch(true)
-      await refreshUserWallet(userId)
-      setTimeout(() => {
-        setIsRefetch(false)
-      }, 1000)
+  // Helper function to fetch wallet balances, transactions, and analytics.
+  const fetchBalances = async () => {
+    const auth = getAuth()
+    const currentUser = auth.currentUser
+    if (currentUser) {
+      try {
+        // Fetch wallet balances.
+        const resBalance = await fetch(`/api/user/getWalletBalance?uid=${currentUser.uid}`)
+        const dataBalance = await resBalance.json()
+        if (dataBalance.success) {
+          setBalance({
+            KES: dataBalance.userKesBalance,
+            USD: dataBalance.userUsdBalance,
+          })
+        }
+      } catch (error) {}
+
+      try {
+        // Fetch transactions.
+        const resTrans = await fetch(`/api/transactions?uid=${currentUser.uid}`)
+        const dataTrans = await resTrans.json()
+        if (dataTrans.success) {
+          setTransactions(dataTrans.transactions)
+        }
+      } catch (error) {}
+
+      try {
+        // Fetch analytics.
+        const resAnalytics = await fetch(`/api/analytics?uid=${currentUser.uid}`)
+        const dataAnalytics = await resAnalytics.json()
+        if (dataAnalytics.success) {
+          setAnalyticsData(dataAnalytics.analyticsData)
+        }
+      } catch (error) {}
     }
   }
 
+  // Initially fetch data.
+  useEffect(() => {
+    fetchBalances()
+  }, [])
+
+  const handleCurrencyChange = (value: "KES" | "USD") => {
+    setBalanceCurrency(value)
+    // Optionally, refetch analytics/transactions for the selected currency.
+  }
+
   return (
-    <ScrollArea className="h-[calc(100vh-4rem)] w-full">
-      <div className="w-full mx-auto py-[1rem] px-[1rem] space-y-[1rem]">
-        <Typography
-          variant="h1"
-          className="text-[1.3rem] font-bold dark:!text-white"
-        >
-          My Wallet
-        </Typography>
+    <div className="bg-background lg:ml-10 lg:mr-10 min-h-screen bg-gray-100 dark:bg-gray-900 ">
+      <div className="container mx-auto p-4">
+        <ToastContainer position="top-right" theme="colored" />
 
-        <div className=" w-full flex flex-col gap-[1rem]">
-          <div className="flex flex-col md:flex-row w-full gap-[1rem]">
-            <div className="w-full md:w-[60%]">
-              <HeaderBal
-                currency={wallet?.currency || 'USD'}
-                balance={wallet?.walletBalance || 0.0}
-                frozenBalance={wallet?.frozenBalance || 0.0}
-                isDeposit={isDeposit}
-                isRefresh={isRefetch}
-                isWithdraw={isWithdraw}
-                setIsdeposit={setIsdeposit}
-                setIsWithdraw={setIsWithdraw}
-                handleRefetch={handleRefetch}
-              />
-            </div>
-            <div className="w-full md:w-[40%]">
-              <DepositAndWithdraw
-                isDeposit={isDeposit}
-                isWithdraw={isWithdraw}
-                setIsdeposit={setIsdeposit}
-                setIswithdraw={setIsWithdraw}
-              />
-            </div>
-          </div>
+        <h1 className="text-3xl font-bold flex items-center text-purple-600 dark:text-purple-400 mb-8">
+          <Wallet className="mr-2 h-8 w-8" /> My Wallet
+        </h1>
 
-          <Analytics />
+        <div className="space-y-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between text-purple-600 dark:text-purple-400">
+                <span className="flex items-center">Account Balance</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="text-purple-600 hover:text-orange-500 dark:text-purple-400 dark:hover:text-orange-400 transition-transform duration-300 ease-in-out"
+                  onClick={async () => {
+                    const icon = document.querySelector("#refresh-icon")
+                    if (icon) {
+                      icon.classList.add("animate-spin")
+                      await fetchBalances()
+                      setTimeout(() => {
+                        icon.classList.remove("animate-spin")
+                      }, 3000)
+                    } else {
+                      await fetchBalances()
+                    }
+                  }}
+                >
+                  <RefreshCw id="refresh-icon" className="h-4 w-4" />
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Tabs defaultValue="KES" onValueChange={(value: string) => handleCurrencyChange(value as "KES" | "USD")}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="KES">KES Balance</TabsTrigger>
+                  <TabsTrigger value="USD">USD Balance</TabsTrigger>
+                </TabsList>
+                <TabsContent value="KES">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Available Balance</p>
+                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                      KES {balance.KES.toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Frozen Balance</p>
+                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                      KES {frozenBalance.KES.toLocaleString()}
+                    </p>
+                  </div>
+                </TabsContent>
+                <TabsContent value="USD">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Available Balance</p>
+                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                      USD {balance.USD.toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Frozen Balance</p>
+                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                      USD {frozenBalance.USD.toLocaleString()}
+                    </p>
+                  </div>
+                </TabsContent>
+              </Tabs>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="text-purple-600 hover:text-orange-500 dark:text-purple-400 dark:hover:text-orange-400"
+                  onClick={fetchBalances}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+                </Button>
+                <Button
+                  variant="outline"
+                  className="text-purple-600 hover:text-orange-500 dark:text-purple-400 dark:hover:text-orange-400"
+                  onClick={() => setActiveTab("deposit")}
+                >
+                  <ArrowUpCircle className="mr-2 h-4 w-4" /> Deposit
+                </Button>
+                <Button
+                  variant="secondary"
+                  className="bg-emerald-500 text-white hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-700"
+                  onClick={() => setActiveTab("withdraw")}
+                >
+                  <ArrowDownCircle className="mr-2 h-4 w-4" /> Withdraw
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-          <Transactions />
+          <Tabs value={activeTab} onValueChange={(value: string) => setActiveTab(value as "deposit" | "withdraw")}>
+            <TabsList className="grid grid-cols-2 w-full">
+              <TabsTrigger value="deposit" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
+                <ArrowUpCircle className="mr-2 h-4 w-4" /> Deposit
+              </TabsTrigger>
+              <TabsTrigger
+                value="withdraw"
+                className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
+              >
+                <ArrowDownCircle className="mr-2 h-4 w-4" /> Withdraw
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="deposit">
+              <ActionCard type="deposit" />
+            </TabsContent>
+            <TabsContent value="withdraw">
+              <ActionCard type="withdraw" />
+            </TabsContent>
+          </Tabs>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center text-purple-600 dark:text-purple-400">
+                <BarChart2 className="mr-2 h-5 w-5" /> Analytics
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AnalyticsChart data={analyticsData} currency={balanceCurrency} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center text-purple-600 dark:text-purple-400">
+                <RefreshCw className="mr-2 h-5 w-5" /> Recent Transactions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col md:flex-row justify-between items-center mb-4 space-y-2 md:space-y-0 md:space-x-2">
+                <div className="relative w-full md:w-64">
+                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder="Search transactions"
+                    className="pl-8"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <Select value={filter} onValueChange={setFilter}>
+                  <SelectTrigger className="w-full md:w-auto">
+                    <SelectValue placeholder="Filter" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="deposit">Deposits</SelectItem>
+                    <SelectItem value="withdraw">Withdrawals</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <TransactionsTable transactions={transactions} searchTerm={searchTerm} filter={filter} />
+            </CardContent>
+          </Card>
         </div>
       </div>
-    </ScrollArea>
+    </div>
   )
 }

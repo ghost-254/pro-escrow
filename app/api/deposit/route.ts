@@ -1,14 +1,8 @@
-/* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any */
-
+// app/api/deposit/route.ts
+/* eslint-disable */
 import { NextResponse } from "next/server"
 import { db } from "@/lib/firebaseConfig"
-import {
-  collection,
-  addDoc,
-  doc,
-  updateDoc,
-  Timestamp,
-} from "firebase/firestore"
+import { collection, addDoc, doc, updateDoc, Timestamp } from "firebase/firestore"
 
 const K2 = require("k2-connect-node")({
   clientId: process.env.NEXT_SERVER_KOPOKOPO_CLIENT_ID,
@@ -17,10 +11,8 @@ const K2 = require("k2-connect-node")({
   baseUrl: process.env.NEXT_SERVER_KOPOKOPO_BASE_URL,
 })
 
-const StkService = K2.StkService
-const TokenService = K2.TokenService
+const { StkService, TokenService } = K2
 
-// Helper: Check payment status every 2 seconds (with a 60-second timeout)
 async function checkPaymentStatus(
   accessToken: string,
   paymentRequestId: string
@@ -29,20 +21,12 @@ async function checkPaymentStatus(
     const interval = setInterval(async () => {
       try {
         const locationUrl = `https://api.kopokopo.com/api/v1/incoming_payments/${paymentRequestId}`
-
-        const response = await StkService.getStatus({
-          accessToken,
-          location: locationUrl,
-        })
-
+        const response = await StkService.getStatus({ accessToken, location: locationUrl })
         if (!response) {
           clearInterval(interval)
-          reject("No response from payment status check")
-          return
+          return reject("No response from payment status check")
         }
-
         const status = response.data.attributes.status.toLowerCase()
-
         if (status === "success" || status === "failed") {
           clearInterval(interval)
           resolve(status)
@@ -52,36 +36,38 @@ async function checkPaymentStatus(
         reject(error)
       }
     }, 2000)
-
     setTimeout(() => {
       clearInterval(interval)
       reject("Payment status check timed out")
     }, 60000)
+    return () => clearInterval(interval)
   })
+ 
 }
 
 export async function POST(request: Request) {
-  const { firstName, lastName, phoneNumber, email, amount } = await request.json()
-
   try {
-    // 1. Create a deposit document with initial status "pending"
+    const { firstName, lastName, phoneNumber, email, uid, amount } = await request.json()
+
+    // Create a deposit document with default status "pending"
     const depositData = {
+      uid,
+      method: "M-Pesa",
       firstName,
       lastName,
       phoneNumber,
       email,
-      amount,
-      depositMethod: "M-Pesa",
+      amount: Number(amount),
       status: "pending",
+      transactionType: "Deposit",
       createdAt: Timestamp.now(),
     }
     const depositRef = await addDoc(collection(db, "deposits"), depositData)
-    const depositDocId = depositRef.id
+    const depositId = depositRef.id
 
-    // 2. Get access token for Kopokopo and prepare STK push options.
+    // Get access token and initiate STK push.
     const tokenResponse = await TokenService.getToken()
     const accessToken = tokenResponse.access_token
-
     const stkOptions = {
       paymentChannel: "M-PESA STK Push",
       tillNumber: process.env.NEXT_SERVER_KOPOKOPO_TILL_NUMBER,
@@ -94,38 +80,25 @@ export async function POST(request: Request) {
       callbackUrl: process.env.NEXT_SERVER_KOPOKOPO_CALLBACK_URL,
       accessToken,
       metadata: {
-        customerId: "123456789",
-        reference: "REF123456",
+        depositId,
+        uid,
         notes: "Xcrow Payment Deposit",
       },
     }
 
-    // 3. Initiate the STK push and extract the paymentRequestId.
     const responseStr = await StkService.initiateIncomingPayment(stkOptions)
     const paymentRequestId = responseStr.split("/").pop()
-    if (!paymentRequestId) {
-      throw new Error("Unable to extract paymentRequestId from response")
-    }
+    if (!paymentRequestId) throw new Error("Unable to extract paymentRequestId from response")
 
-    // 4. Poll for payment status.
+    // Poll for payment status.
     const paymentStatus = await checkPaymentStatus(accessToken, paymentRequestId)
-    const newStatus = paymentStatus === "success" ? "paid" : "failed"
+    const finalStatus = paymentStatus === "success" ? "paid" : "failed"
 
-    // 5. Update the deposit document with the final status.
-    await updateDoc(doc(db, "deposits", depositDocId), { status: newStatus })
+    // Update deposit record.
+    await updateDoc(doc(db, "deposits", depositId), { status: finalStatus })
 
-    if (newStatus === "paid") {
-      return NextResponse.json({ success: true, depositId: depositDocId, newStatus })
-    } else {
-      return NextResponse.json(
-        { success: false, error: "Payment failed or canceled" },
-        { status: 400 }
-      )
-    }
+    return NextResponse.json({ success: finalStatus === "paid", depositId, status: finalStatus })
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: error.message || error.toString() },
-      { status: 500 }
-    )
+    return NextResponse.json({ success: false, error: error.message || error.toString() }, { status: 500 })
   }
 }

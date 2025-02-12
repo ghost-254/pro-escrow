@@ -1,33 +1,33 @@
-// transactionSlice.ts
-
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit"
 
 interface TransactionState {
   amount: number | null
-  paymentMethod: string | null
+  paymentMethod: "mpesa" | "cryptocurrency" | null
+  transactionType: "deposit" | "withdrawal" | null
+  status: "pending" | "completed" | "failed" | null
 }
 
 const initialState: TransactionState = {
   amount: null,
   paymentMethod: null,
+  transactionType: null,
+  status: null,
 }
 
 const transactionSlice = createSlice({
-  name: 'transaction',
+  name: "transaction",
   initialState,
   reducers: {
-    setTransactionData: (state, action: PayloadAction<TransactionState>) => {
-      state.amount = action.payload.amount
-      state.paymentMethod = action.payload.paymentMethod
+    setTransactionData: (state, action: PayloadAction<Partial<TransactionState>>) => {
+      return { ...state, ...action.payload }
     },
-    clearTransactionData: (state) => {
-      state.amount = null
-      state.paymentMethod = null
+    clearTransactionData: () => initialState,
+    updateTransactionStatus: (state, action: PayloadAction<TransactionState["status"]>) => {
+      state.status = action.payload
     },
   },
 })
 
-export const { setTransactionData, clearTransactionData } =
-  transactionSlice.actions
+export const { setTransactionData, clearTransactionData, updateTransactionStatus } = transactionSlice.actions
 
 export default transactionSlice.reducer
