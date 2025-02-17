@@ -1,29 +1,49 @@
-//components/wallet/TransactionsTable.tsx
+// components/wallet/TransactionsTable.tsx
+
+/* eslint-disable */
 
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import type { Transaction } from "@/../types/wallet"
+import { getAuth } from "firebase/auth"
+import { toast } from "react-toastify"
 
-interface TransactionsTableProps {
-  transactions: Transaction[]
-  searchTerm: string
-  filter: string
-}
 
-export function TransactionsTable({ transactions, searchTerm, filter }: TransactionsTableProps) {
+export function TransactionsTable({ searchTerm, filter }: { searchTerm: string; filter: string }) {
+  const [transactions, setTransactions] = useState<Transaction[]>([])
   const [showAll, setShowAll] = useState(false)
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      const auth = getAuth()
+      const currentUser = auth.currentUser
+      if (currentUser) {
+        try {
+          const res = await fetch(`/api/transactions?uid=${currentUser.uid}`)
+          const data = await res.json()
+          if (data.success) {
+            setTransactions(data.transactions)
+          } else {
+            toast.error("Failed to fetch transactions")
+          }
+        } catch {
+        }
+      }
+    }
+    fetchTransactions()
+  }, [])
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((transaction) => {
       const matchesSearch = Object.values(transaction).some(
-        (value) => typeof value === "string" && value.toLowerCase().includes(searchTerm.toLowerCase()),
+        (value) => typeof value === "string" && value.toLowerCase().includes(searchTerm.toLowerCase())
       )
-      const matchesFilter = filter === "all" || transaction.type.toLowerCase() === filter
+      const matchesFilter = filter === "all" || transaction.type.toLowerCase() === filter.toLowerCase()
       return matchesSearch && matchesFilter
     })
   }, [transactions, searchTerm, filter])
@@ -57,11 +77,13 @@ export function TransactionsTable({ transactions, searchTerm, filter }: Transact
                 <TableCell>
                   <Badge
                     variant={
-                      transaction.status === "Success"
+                      transaction.status.toLowerCase() === "paid"
                         ? "success"
-                        : transaction.status === "Failed"
-                          ? "destructive"
-                          : "secondary"
+                        : transaction.status.toLowerCase() === "failed"
+                        ? "destructive"
+                        : transaction.status.toLowerCase() === "completed"
+                        ? "secondary"
+                        : "warning"
                     }
                   >
                     {transaction.status}

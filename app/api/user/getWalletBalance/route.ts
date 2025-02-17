@@ -21,6 +21,8 @@ export async function GET(request: Request) {
         success: true,
         userKesBalance: 0,
         userUsdBalance: 0,
+        frozenUserKesBalance: 0,
+        frozenUserUsdBalance: 0,
       })
     }
     const data = userSnap.data()
@@ -28,6 +30,8 @@ export async function GET(request: Request) {
       success: true,
       userKesBalance: data.userKesBalance || 0,
       userUsdBalance: data.userUsdBalance || 0,
+      frozenUserKesBalance: data.frozenUserKesBalance || 0,
+      frozenUserUsdBalance: data.frozenUserUsdBalance || 0,
     })
   } catch (error: any) {
     return NextResponse.json(

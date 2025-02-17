@@ -1,6 +1,6 @@
-/* eslint-disable */
+//app/wallet/page.tsx
 
-// app/wallet/page.tsx
+/* eslint-disable */
 
 "use client"
 
@@ -21,9 +21,9 @@ import { getAuth } from "firebase/auth"
 export default function WalletPage() {
   const [balanceCurrency, setBalanceCurrency] = useState<"KES" | "USD">("KES")
   const [balance, setBalance] = useState<{ KES: number; USD: number }>({ KES: 0, USD: 0 })
-  const [frozenBalance, setFrozenBalance] = useState({ KES: 0, USD: 0 })
+  const [frozenBalance, setFrozenBalance] = useState<{ KES: number; USD: number }>({ KES: 0, USD: 0 })
   const [analyticsData, setAnalyticsData] = useState<any[]>([])
-  const [transactions, setTransactions] = useState<any[]>([])
+  const [transactions, setTransactions] = useState<any[]>([]) // not passed to TransactionsTable
   const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit")
   const [searchTerm, setSearchTerm] = useState("")
   const [filter, setFilter] = useState("all")
@@ -42,8 +42,14 @@ export default function WalletPage() {
             KES: dataBalance.userKesBalance,
             USD: dataBalance.userUsdBalance,
           })
+          setFrozenBalance({
+            KES: dataBalance.frozenUserKesBalance,
+            USD: dataBalance.frozenUserUsdBalance,
+          })
         }
-      } catch (error) {}
+      } catch (error) {
+        console.error("Failed to fetch balances", error)
+      }
 
       try {
         // Fetch transactions.
@@ -52,7 +58,9 @@ export default function WalletPage() {
         if (dataTrans.success) {
           setTransactions(dataTrans.transactions)
         }
-      } catch (error) {}
+      } catch (error) {
+        console.error("Failed to fetch transactions", error)
+      }
 
       try {
         // Fetch analytics.
@@ -61,7 +69,9 @@ export default function WalletPage() {
         if (dataAnalytics.success) {
           setAnalyticsData(dataAnalytics.analyticsData)
         }
-      } catch (error) {}
+      } catch (error) {
+        console.error("Failed to fetch analytics", error)
+      }
     }
   }
 
@@ -231,7 +241,7 @@ export default function WalletPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <TransactionsTable transactions={transactions} searchTerm={searchTerm} filter={filter} />
+              <TransactionsTable searchTerm={searchTerm} filter={filter} />
             </CardContent>
           </Card>
         </div>

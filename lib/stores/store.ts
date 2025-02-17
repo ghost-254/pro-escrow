@@ -1,41 +1,48 @@
-// store.ts
-'use client'
-import { configureStore } from '@reduxjs/toolkit'
-import { persistStore, persistReducer } from 'redux-persist'
-import storage from 'redux-persist/lib/storage' // defaults to localStorage for web
-import { combineReducers } from 'redux'
+"use client";
 
-import transactReducer from '@/lib/slices/transact.reducer'
-import chatMoreInfoReducer from '@/lib/slices/chat.moreinfo.reducer'
-import addFundsReducer from '@/lib/slices/addfunds.reducer'
-import authReducer from '@/lib/slices/authSlice'
-import groupCreationReducer from '@/lib/slices/groupCreationSlice'
-import depositInfoReducer from '@/lib/slices/deposit.info.reducer'
+import { configureStore } from "@reduxjs/toolkit";
+import { persistStore, persistReducer } from "redux-persist";
+import storage from "redux-persist/lib/storage"; // defaults to localStorage for web
+import { combineReducers } from "redux";
 
-// Set up redux-persist config
+import transactReducer from "@/lib/slices/transact.reducer";
+import chatMoreInfoReducer from "@/lib/slices/chat.moreinfo.reducer";
+import addFundsReducer from "@/lib/slices/addfunds.reducer";
+import authReducer from "@/lib/slices/authSlice";
+
+// Make sure to import your **revised** groupCreation slice here:
+import groupCreationReducer from "@/lib/slices/groupCreationSlice";
+
+import depositInfoReducer from "@/lib/slices/deposit.info.reducer";
+
+// Configure Redux Persist to whitelist only 'depositInfo'
 const persistConfig = {
-  key: 'root', // The key that will hold the persisted state
-  storage, // Specify which storage to use (localStorage)
-  whitelist: ['depositInfo'], // Persist only the `depositInfo` slice
-}
+  key: "root", // Key for localStorage
+  storage,
+  whitelist: ["depositInfo"], // Only 'depositInfo' will be persisted
+};
 
-// Combine reducers using `combineReducers`
+// Combine all reducers
 const rootReducer = combineReducers({
   transact: transactReducer,
   chatInfo: chatMoreInfoReducer,
   addFunds: addFundsReducer,
   auth: authReducer,
-  groupCreation: groupCreationReducer,
+  groupCreation: groupCreationReducer, // This will NOT persist
   depositInfo: depositInfoReducer,
-})
+});
 
-const persistedReducer = persistReducer(persistConfig, rootReducer)
+// Wrap your combined reducers with persistReducer
+const persistedReducer = persistReducer(persistConfig, rootReducer);
 
+// Create the Redux store
 export const store = configureStore({
   reducer: persistedReducer,
-})
+});
 
-export const persistor = persistStore(store) // Create the persistor object
+// Create the persistor (for storing `depositInfo` to localStorage)
+export const persistor = persistStore(store);
 
-export type RootState = ReturnType<typeof store.getState>
-export type AppDispatch = typeof store.dispatch
+// Redux store types
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;

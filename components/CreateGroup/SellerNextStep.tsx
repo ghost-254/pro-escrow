@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 "use client"
 
 import React, { useState } from "react"
@@ -7,7 +9,7 @@ import { RootState } from "@/lib/stores/store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Typography from "@/components/ui/typography"
-import { toast } from "../../hooks/use-toast"
+import { toast } from "react-toastify"
 import { useRouter } from "next/navigation"
 import { db } from "@/lib/firebaseConfig"
 import {
@@ -19,80 +21,74 @@ import {
   addDoc,
   Timestamp,
 } from "firebase/firestore"
+import { Card } from "@/components/ui/card"
 
 const SellerNextStep = () => {
   const dispatch = useDispatch()
   const router = useRouter()
+  const { itemDescription, price, serviceNature, currency, escrowFeeResponsibility } = useSelector(
+    (state: RootState) => state.groupCreation
+  )
   const user = useSelector((state: RootState) => state.auth.user)
   const [groupLink, setGroupLink] = useState("")
 
-  // Helper to parse group ID from link
+  // Helper to extract group ID from the link
   const getGroupIdFromLink = (link: string): string | null => {
     try {
-      // Convert string to a URL object
       const url = new URL(link)
-      // e.g. url.pathname => "/group-chat/zZoySsK1UHE0BqAIfwyg"
       const segments = url.pathname.split("/")
-      // segments => ["", "group-chat", "zZoySsK1UHE0BqAIfwyg"]
       if (segments.length >= 3 && segments[1] === "group-chat") {
         return segments[2]
       }
     } catch {
+      // Ignore parsing errors
     }
     return null
   }
 
   const handleJoinGroup = async () => {
     if (!groupLink.trim()) {
-      toast({
-        title: "Error",
-        description: "Please paste the group link.",
-        variant: "destructive",
-      })
+      toast.error("Please paste the group link.")
       return
     }
-
     const groupId = getGroupIdFromLink(groupLink.trim())
     if (!groupId) {
-      toast({
-        title: "Invalid Link",
-        description: "Unable to extract a group ID from the link.",
-        variant: "destructive",
-      })
+      toast.error("Invalid Link: Unable to extract a group ID from the link.")
       return
     }
-
     if (!user?.uid) {
-      toast({
-        title: "Not Authenticated",
-        description: "You must be logged in to join a group.",
-        variant: "destructive",
-      })
+      toast.error("Not Authenticated: You must be logged in to join a group.")
       return
     }
-
     try {
-      // 1) Update the group's participants array in Firestore
       const groupRef = doc(db, "groups", groupId)
+      const groupSnap = await getDoc(groupRef)
+      if (!groupSnap.exists()) {
+        toast.error("Invalid Group Link: The group does not exist.")
+        return
+      }
+
+      // Record seller summary in the "sellerSummaries" collection
+      await addDoc(collection(db, "sellerSummaries"), {
+        sellerId: user.uid,
+        itemDescription,
+        price,
+        serviceNature,
+        currency,
+        escrowFeeResponsibility,
+        createdAt: Timestamp.now(),
+      })
+
+      // Update group's participants
       await updateDoc(groupRef, {
         participants: arrayUnion(user.uid),
       })
-
-      // 2) Generate a short group name: e.g. "Xcrow_zZoy"
       const shortGroupName = `Xcrow_${groupId.slice(0, 4)}`
+      const data = groupSnap.data() || {}
+      const allParticipants = (data.participants || []) as string[]
+      const otherParticipants = allParticipants.filter((par) => par !== user.uid)
 
-      // 3) Retrieve the full group doc to find other participants
-      const groupSnap = await getDoc(groupRef)
-      let otherParticipants: string[] = []
-      if (groupSnap.exists()) {
-        const data = groupSnap.data() || {}
-        // data.participants should now include the seller
-        const allParticipants = (data.participants || []) as string[]
-        // Exclude the seller => the rest are presumably buyer(s)
-        otherParticipants = allParticipants.filter((par) => par !== user.uid)
-      }
-
-      // 4) Create a notification for the seller
+      // Create a notification for the seller
       await addDoc(collection(db, "notifications"), {
         userId: user.uid,
         message: `You joined ${shortGroupName} group.`,
@@ -101,12 +97,10 @@ const SellerNextStep = () => {
         createdAt: Timestamp.now(),
       })
 
-      // 5) Create notifications for the existing participants
-      // e.g. "User [UID or displayName] joined the group chat."
+      // Create notifications for existing participants
       const joinedMsg = user.displayName
         ? `User ${user.displayName} has joined ${shortGroupName} group chat.`
         : `User ${user.uid} has joined ${shortGroupName} group chat.`
-
       for (const participantUid of otherParticipants) {
         await addDoc(collection(db, "notifications"), {
           userId: participantUid,
@@ -116,21 +110,10 @@ const SellerNextStep = () => {
           createdAt: Timestamp.now(),
         })
       }
-
-      toast({
-        title: "Joined Group",
-        description: `You have been added to group ${groupId}.`,
-        variant: "default",
-      })
-
-      // Optionally open in same tab
+      toast.success(`You have been added to group ${groupId}.`)
       router.push(`/group-chat/${groupId}`)
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to join the group.",
-        variant: "destructive",
-      })
+    } catch (error) {
+      toast.error("Failed to join the group.")
     }
   }
 
@@ -143,18 +126,36 @@ const SellerNextStep = () => {
       <Typography variant="h2" className="mb-4">
         Seller Confirmation
       </Typography>
-      <Typography variant="h3">
+      <Typography variant="h4" className="mb-2">
+        Summary of Your Details
+      </Typography>
+      <Card className="p-4 mb-4">
+        <div className="space-y-2">
+          <Typography variant="p">
+            <strong>Item/Service:</strong> {itemDescription}
+          </Typography>
+          <Typography variant="p">
+            <strong>Price:</strong>{" "}
+            {currency === "KES" ? `KES ${price.toFixed(2)}` : `$${price.toFixed(2)}`}
+          </Typography>
+          <Typography variant="p">
+            <strong>Service:</strong> {serviceNature}
+          </Typography>
+          <Typography variant="p">
+            <strong>Escrow Fee Responsibility:</strong> {escrowFeeResponsibility}
+          </Typography>
+        </div>
+      </Card>
+      <Typography variant="h3" className="mb-4">
         Ask the buyer to send you the Xcrow Group link. Paste it below and click{" "}
         <strong>Join</strong>.
       </Typography>
-
       <Input
         placeholder="Paste group link here..."
         value={groupLink}
         onChange={(e) => setGroupLink(e.target.value)}
       />
-
-      <div className="flex justify-between">
+      <div className="flex justify-between mt-4">
         <Button variant="outline" onClick={handleBack}>
           Back
         </Button>

@@ -1,5 +1,6 @@
 // app/api/analytics/route.ts
 /* eslint-disable */
+
 import { NextResponse } from "next/server"
 import { db } from "@/lib/firebaseConfig"
 import { collection, query, where, getDocs } from "firebase/firestore"
@@ -16,14 +17,16 @@ export async function GET(request: Request) {
     const analytics: Record<string, { deposits: number; withdrawals: number }> = {}
     querySnapshot.forEach((docSnap) => {
       const data = docSnap.data()
-      const date = data.createdAt.toDate()
-      const month = date.toLocaleString("default", { month: "short" })
-      if (!analytics[month]) analytics[month] = { deposits: 0, withdrawals: 0 }
-      if (data.transactionType === "Deposit" && data.status === "paid") {
-        analytics[month].deposits += data.amount
-      }
-      if (data.transactionType === "Withdraw" && data.status === "paid") {
-        analytics[month].withdrawals += data.amount
+      if (data.createdAt && typeof data.createdAt.toDate === "function") {
+        const date = data.createdAt.toDate()
+        const month = date.toLocaleString("default", { month: "short" })
+        if (!analytics[month]) analytics[month] = { deposits: 0, withdrawals: 0 }
+        if (data.transactionType === "Deposit" && data.status === "paid") {
+          analytics[month].deposits += data.amount
+        }
+        if (data.transactionType === "Withdraw" && data.status === "paid") {
+          analytics[month].withdrawals += data.amount
+        }
       }
     })
     const analyticsData = Object.keys(analytics).map((month) => ({

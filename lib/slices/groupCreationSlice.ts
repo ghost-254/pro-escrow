@@ -13,8 +13,13 @@ interface GroupCreationState {
   transactionId: string
   paymentMethod: string
   sellerSummaryDocId: string | null
-  // NEW FIELD: Stores the final deposit amount (e.g. in KES for M-Pesa)
+  /**
+   * NEW FIELD: Stores the final deposit amount (e.g., in KES for M‐Pesa)
+   */
   depositAmount: number
+  /**
+   * Stores the selected currency (USD, KES, etc.)
+   */
   currency: string
 }
 
@@ -32,7 +37,7 @@ const initialState: GroupCreationState = {
   paymentMethod: "",
   sellerSummaryDocId: null,
   depositAmount: 0,
-  currency: 'USD', // default value
+  currency: "USD", // default
 }
 
 const groupCreationSlice = createSlice({
@@ -45,14 +50,9 @@ const groupCreationSlice = createSlice({
     setItemDescription(state, action: PayloadAction<string>) {
       state.itemDescription = action.payload
     },
-    // Price is set without auto-calculation; we'll handle escrowFee separately.
     setPrice(state, action: PayloadAction<number>) {
       state.price = action.payload
     },
-    setCurrency(state, action: PayloadAction<string>) {
-      state.currency = action.payload
-    },
-    // Manually set escrowFee from the EscrowFeeForm tier logic.
     setEscrowFee(state, action: PayloadAction<number>) {
       state.escrowFee = action.payload
     },
@@ -80,16 +80,34 @@ const groupCreationSlice = createSlice({
     setSellerSummaryDocId(state, action: PayloadAction<string | null>) {
       state.sellerSummaryDocId = action.payload
     },
-    // NEW ACTION: setDepositAmount to store the final (possibly converted) deposit amount.
+    setCurrency(state, action: PayloadAction<string>) {
+      state.currency = action.payload
+    },
+    /**
+     * Manually set the final (possibly converted) deposit amount.
+     */
     setDepositAmount(state, action: PayloadAction<number>) {
       state.depositAmount = action.payload
     },
+    /**
+     * Move to the next step, ensuring we don't exceed step 4.
+     */
     nextStep(state) {
-      if (state.step < 5) state.step += 1
+      if (state.step < 4) {
+        state.step += 1
+      }
     },
+    /**
+     * Move back one step, ensuring we don't go below step 1.
+     */
     previousStep(state) {
-      if (state.step > 1) state.step -= 1
+      if (state.step > 1) {
+        state.step -= 1
+      }
     },
+    /**
+     * Reset everything to the initial state.
+     */
     resetGroupCreation(state) {
       Object.assign(state, initialState)
     },

@@ -3,13 +3,12 @@
 
 "use client"
 
-import { Line } from "react-chartjs-2"
+import { Bar } from "react-chartjs-2"
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  PointElement,
-  LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend,
@@ -17,7 +16,7 @@ import {
 import { useTheme } from "next-themes"
 import type { AnalyticsData } from "@/../types/wallet"
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 interface AnalyticsChartProps {
   data: AnalyticsData[]
@@ -29,23 +28,23 @@ export function AnalyticsChart({ data, currency }: AnalyticsChartProps) {
   const isDark = theme === "dark"
 
   const chartData = {
-    labels: data.map((d) => d.month),
+    labels: data.map(d => d.month),
     datasets: [
       {
         label: "Deposits",
-        data: data.map((d) => d.deposits),
-        borderColor: "rgb(147, 51, 234)",
+        data: data.map(d => d.deposits),
         backgroundColor: "rgba(147, 51, 234, 0.5)",
-        tension: 0.3,
+        borderColor: "rgb(147, 51, 234)",
+        borderWidth: 1,
       },
       {
         label: "Withdrawals",
-        data: data.map((d) => d.withdrawals),
-        borderColor: "rgb(52, 211, 153)",
+        data: data.map(d => d.withdrawals),
         backgroundColor: "rgba(52, 211, 153, 0.5)",
-        tension: 0.3,
-      },
-    ],
+        borderColor: "rgb(52, 211, 153)",
+        borderWidth: 1,
+      }
+    ]
   }
 
   const options = {
@@ -95,6 +94,5 @@ export function AnalyticsChart({ data, currency }: AnalyticsChartProps) {
     },
   }
 
-  return <Line data={chartData} options={options} />
+  return <Bar data={chartData} options={options} />
 }
-

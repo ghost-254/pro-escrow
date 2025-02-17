@@ -3,7 +3,7 @@ import React from 'react'
 import { cn } from '@/lib/utils'
 
 type TypographyProps = {
-  variant: 'h1' | 'h2' | 'h3' | 'p' | 'span' // Variant types
+  variant: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p' | 'span' // Variant types
   children: React.ReactNode
   className?: string // Optional additional className for custom styling
   onClick?: React.MouseEventHandler<HTMLElement> // Optional onClick prop
@@ -26,6 +26,9 @@ const Typography: React.FC<TypographyProps> = ({
     h1: 'text-[1.1rem]', // Header 1: Large and bold
     h2: 'text-[1rem]', // Header 2: Medium large
     h3: 'text-[0.95rem]', // Header 3: Medium
+    h4: 'text-[0.9rem]', // Header 4: Slightly smaller
+    h5: 'text-[0.85rem]', // Header 5: Smaller
+    h6: 'text-[0.8rem]', // Header 6: Smallest
     p: 'text-[0.95rem]', // Paragraph: Regular text
     span: 'text-sm', // Span: Smaller text
   }
