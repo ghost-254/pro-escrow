@@ -13,13 +13,7 @@ interface GroupCreationState {
   transactionId: string
   paymentMethod: string
   sellerSummaryDocId: string | null
-  /**
-   * NEW FIELD: Stores the final deposit amount (e.g., in KES for M‐Pesa)
-   */
   depositAmount: number
-  /**
-   * Stores the selected currency (USD, KES, etc.)
-   */
   currency: string
 }
 
@@ -83,31 +77,19 @@ const groupCreationSlice = createSlice({
     setCurrency(state, action: PayloadAction<string>) {
       state.currency = action.payload
     },
-    /**
-     * Manually set the final (possibly converted) deposit amount.
-     */
     setDepositAmount(state, action: PayloadAction<number>) {
       state.depositAmount = action.payload
     },
-    /**
-     * Move to the next step, ensuring we don't exceed step 4.
-     */
     nextStep(state) {
       if (state.step < 4) {
         state.step += 1
       }
     },
-    /**
-     * Move back one step, ensuring we don't go below step 1.
-     */
     previousStep(state) {
       if (state.step > 1) {
         state.step -= 1
       }
     },
-    /**
-     * Reset everything to the initial state.
-     */
     resetGroupCreation(state) {
       Object.assign(state, initialState)
     },

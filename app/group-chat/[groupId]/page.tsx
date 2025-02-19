@@ -1,68 +1,70 @@
+/* eslint-disable */
+
 "use client"
 
-import type React from "react"
-import { useState, useRef, useEffect, type JSX } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import {
   onSnapshot,
-  addDoc,
-  collection,
-  serverTimestamp,
-  query,
-  orderBy,
   doc,
   getDoc,
+  collection,
+  query,
+  orderBy,
+  addDoc,
   setDoc,
+  updateDoc,
+  serverTimestamp,
   type Timestamp,
 } from "firebase/firestore"
-import { 
-  ref, 
-  uploadBytes, 
-  getDownloadURL 
-} from "firebase/storage"
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { useSelector } from "react-redux"
-import Image from "next/image"
-import { 
-  Paperclip, 
-  Send, 
-  X, 
-  CheckCircle, 
-  XCircle, 
-  AlertTriangle, 
-  ChevronDown, 
-  ChevronUp 
-} from "lucide-react"
-import { db, storage } from "@/lib/firebaseConfig"
+import { toast } from "react-toastify"
+
 import type { RootState } from "@/lib/stores/store"
+import { db, storage } from "@/lib/firebaseConfig"
+
+import {
+  Paperclip,
+  Send,
+  X,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Card } from "@/components/ui/card"
+
+import XcrowInfo from "@/components/GroupSupport/xcrowinfo"
+import EngageSupport from "@/components/GroupSupport/EngageSupport"
+import CompleteTransaction from "@/components/GroupSupport/CompleteTransaction"
+import CancelTransaction from "@/components/GroupSupport/CancelTransaction"
+import DisputeTransaction from "@/components/GroupSupport/DisputeTransaction"
+import CompletionPopup from "@/components/GroupSupport/CompletionPopup"
+import RejectionPopup from "@/components/GroupSupport/RejectionPopup"
+import CancelPopup from "@/components/GroupSupport/CancelPopup"
+import CancelRejectionPopup from "@/components/GroupSupport/CancelRejectionPopup"
+
+import Image from "next/image"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
-import XcrowInfo from "@/components/xcrowinfo"
-import { toast } from "react-toastify"
-import { Card } from "@/components/ui/card"
-import PaymentSelectionDialog from "@/components/PaymentSelectionDialog";
-
-// A named no‑op cleanup function to satisfy the linter
-function noop(): void {
-  // no cleanup needed
-}
 
 interface Message {
   id?: string
   senderId: string
   senderName: string
   content: string
-  imageURL?: string
+  imageURL?: string | null
   timestamp?: Timestamp
 }
 
@@ -74,77 +76,133 @@ interface TypingStatus {
 
 export default function GroupChatPage() {
   const router = useRouter()
-  const params = useParams()
-  const groupId = params?.groupId as string
-
+  const { groupId } = useParams() as { groupId: string }
   const user = useSelector((state: RootState) => state.auth.user)
 
+  // Chat messages
   const [messages, setMessages] = useState<Message[]>([])
-  const [newMessage, setNewMessage] = useState<string>("")
+  const [newMessage, setNewMessage] = useState("")
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [isSending, setIsSending] = useState<boolean>(false)
+  const [isSending, setIsSending] = useState(false)
 
-  // Group creator and participant info
-  const [creatorName, setCreatorName] = useState<string>("")
-  const [participantsCount, setParticipantsCount] = useState<number>(1)
+  // Group doc fields
+  const [participantsCount, setParticipantsCount] = useState(1)
+  const [creatorName, setCreatorName] = useState("")
+  const [itemDescription, setItemDescription] = useState("")
+  const [price, setPrice] = useState(0)
+  const [escrowFee, setEscrowFee] = useState(0)
+  const [escrowFeeResp, setEscrowFeeResp] = useState("")
+  const [transactionType, setTransactionType] = useState("")
+  const [currency, setCurrency] = useState("USD")
+  const [status, setStatus] = useState("active")
 
-  // Deposit document info
-  const [depositId, setDepositId] = useState<string>("")
-  const [itemDescription, setItemDescription] = useState<string>("")
-  const [depositStatus, setDepositStatus] = useState<string>("pending")
-  const [price, setPrice] = useState<number>(0)
-  const [escrowFee, setEscrowFee] = useState<number>(0)
-  const [responsibility, setResponsibility] = useState<string>("")
-  const [transactionType, setTransactionType] = useState<string>("")
+  // ---------- Completion watchers ----------
+  const [buyerComplete, setBuyerComplete] = useState(false)
+  const [sellerComplete, setSellerComplete] = useState(false)
+  const [initiator, setInitiator] = useState<"buyer" | "seller" | null>(null)
+  const [rejection, setRejection] = useState<any>(null)
+  const [showPopup, setShowPopup] = useState(false)
+  const [popupMsg, setPopupMsg] = useState("")
+  const [showRejectionPopup, setShowRejectionPopup] = useState(false)
 
-  // Typing statuses
+  // ---------- Cancel watchers ----------
+  const [buyerCancel, setBuyerCancel] = useState(false)
+  const [sellerCancel, setSellerCancel] = useState(false)
+  const [cancelInitiator, setCancelInitiator] = useState<"buyer" | "seller" | null>(null)
+  const [cancelRejection, setCancelRejection] = useState<any>(null)
+  const [showCancelPopup, setShowCancelPopup] = useState(false)
+  const [cancelPopupMsg, setCancelPopupMsg] = useState("")
+  const [showCancelRejectionPopup, setShowCancelRejectionPopup] = useState(false)
+
+  // Typing
   const [typingUsers, setTypingUsers] = useState<TypingStatus[]>([])
   const [isHeaderVisible, setIsHeaderVisible] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [buyerUid, setBuyerUid] = useState<string>("")
+  const [sellerUid, setSellerUid] = useState<string>("")
 
+  // -- Listen to group doc
   useEffect(() => {
-    // If groupId or user is missing, navigate away
     if (!groupId || !user) {
       router.push("/")
-      return noop
+      return
     }
+    const groupRef = doc(db, "groups", groupId)
+    const unsubGroup = onSnapshot(groupRef, async (snap) => {
+      if (!snap.exists()) {
+        toast.error("Group not found.")
+        router.push("/")
+        return
+      }
+      const data = snap.data() || {}
+      setStatus(data.status || "active")
 
-    const fetchGroupDetails = async () => {
-      const groupRef = doc(db, "groups", groupId)
-      const groupSnap = await getDoc(groupRef)
-      if (groupSnap.exists()) {
-        const data = groupSnap.data()
-        const { participants, depositId } = data
+      const participants = data.participants || []
+      setParticipantsCount(participants.length)
 
-        if (depositId) {
-          setDepositId(depositId)
+      // Identify buyer = participants[0], seller = participants[1]
+      if (participants.length > 0) {
+        let buyer = ""
+        let seller = ""
+
+        if (typeof participants[0] === "string") {
+          buyer = participants[0]
+        } else if (participants[0] && typeof participants[0] === "object") {
+          buyer = participants[0].uid
         }
-        if (Array.isArray(participants) && participants.length > 0) {
-          setParticipantsCount(participants.length)
-          const creatorUid = participants[0]
-          const creatorRef = doc(db, "users", creatorUid)
-          const creatorSnap = await getDoc(creatorRef)
+        if (participants[1]) {
+          if (typeof participants[1] === "string") {
+            seller = participants[1]
+          } else if (participants[1] && typeof participants[1] === "object") {
+            seller = participants[1].uid
+          }
+        }
+        setBuyerUid(buyer)
+        setSellerUid(seller)
+
+        // For display
+        if (buyer) {
+          const creatorSnap = await getDoc(doc(db, "users", buyer))
           if (creatorSnap.exists()) {
             const cData = creatorSnap.data()
-            const firstName = cData.firstName || "First"
-            const lastName = cData.lastName || "Last"
-            setCreatorName(`${firstName} ${lastName}`)
+            const firstName = cData.firstName || "Unknown"
+            const lastName = cData.lastName || ""
+            setCreatorName(`${firstName} ${lastName}`.trim())
           } else {
-            setCreatorName(creatorUid)
+            setCreatorName(buyer)
           }
         }
       }
-    }
-    fetchGroupDetails()
 
-    const messagesRef = collection(db, "groups", groupId, "messages")
-    const messagesQuery = query(messagesRef, orderBy("timestamp", "asc"))
-    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+      setItemDescription(data.itemDescription || "")
+      setPrice(data.price || 0)
+      setEscrowFee(data.escrowFee || 0)
+      setEscrowFeeResp(data.escrowFeeResponsibility || "")
+      setTransactionType(data.transactionType || "")
+      setCurrency(data.currency || "USD")
+
+      // Extract transactionStatus
+      const ts = data.transactionStatus || {}
+      setBuyerComplete(!!ts.buyerComplete)
+      setSellerComplete(!!ts.sellerComplete)
+      setInitiator(ts.initiator || null)
+      setRejection(ts.rejection || null)
+
+      // Cancel fields
+      setBuyerCancel(!!ts.buyerCancel)
+      setSellerCancel(!!ts.sellerCancel)
+      setCancelInitiator(ts.cancelInitiator || null)
+      setCancelRejection(ts.cancelRejection || null)
+    })
+
+    // Listen to messages
+    const msgsRef = collection(db, "groups", groupId, "messages")
+    const msgsQuery = query(msgsRef, orderBy("timestamp", "asc"))
+    const unsubMsgs = onSnapshot(msgsQuery, (snapshot) => {
       const msgs: Message[] = []
       snapshot.forEach((docSnap) => {
         msgs.push({ id: docSnap.id, ...docSnap.data() } as Message)
@@ -152,279 +210,588 @@ export default function GroupChatPage() {
       setMessages(msgs)
     })
 
-    // Return cleanup function
     return () => {
-      unsubscribe()
+      unsubGroup()
+      unsubMsgs()
     }
   }, [groupId, user, router])
 
+  // Listen to typing
   useEffect(() => {
-    if (!depositId) {
-      return noop
-    }
-    const depositRef = doc(db, "deposits", depositId)
-    const unsubscribe = onSnapshot(depositRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data()
-        setDepositStatus(data.status || "pending")
-        setItemDescription(data.itemDescription || "")
-        setPrice(data.price || 0)
-        setEscrowFee(data.escrowFee || 0)
-        setResponsibility(data.escrowFeeResponsibility || "")
-        setTransactionType(data.transactionType || "")
-      }
-    })
-    return () => {
-      unsubscribe()
-    }
-  }, [depositId])
-
-  useEffect(() => {
-    const typingColRef = collection(db, "groups", groupId, "typing")
-    const unsubscribe = onSnapshot(typingColRef, (snapshot) => {
+    const typingRef = collection(db, "groups", groupId, "typing")
+    const unsubTyping = onSnapshot(typingRef, (snap) => {
       const statuses: TypingStatus[] = []
-      snapshot.forEach((docSnap) => {
+      snap.forEach((docSnap) => {
         const { userId, displayName, isTyping } = docSnap.data() as TypingStatus
         statuses.push({ userId, displayName, isTyping })
       })
       setTypingUsers(statuses)
     })
     return () => {
-      unsubscribe()
+      unsubTyping()
     }
   }, [groupId])
 
+  // Scroll to bottom on messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [])
+  }, [messages])
 
+  // Set isTyping doc
   useEffect(() => {
-    if (!user?.uid) {
-      return noop
-    }
-    const handleTyping = async () => {
-      const userTypingRef = doc(db, "groups", groupId, "typing", user.uid)
-      const isTyping = newMessage.trim().length > 0
-      try {
-        await setDoc(
-          userTypingRef,
-          {
-            userId: user.uid,
-            displayName: user.displayName || user.uid,
-            isTyping,
-          },
-          { merge: true },
-        )
-      } catch {
-        toast.error("Failed to update typing status")
-      }
-    }
-    handleTyping()
-    return noop
+    if (!user?.uid) return
+    const userTypingRef = doc(db, "groups", groupId, "typing", user.uid)
+    const isTyping = newMessage.trim().length > 0
+    setDoc(userTypingRef, {
+      userId: user.uid,
+      displayName: user.displayName || user.uid,
+      isTyping,
+    }).catch(() => {
+      // no-op
+    })
   }, [newMessage, user?.uid, user?.displayName, groupId])
 
+  const isBuyer = user?.uid === buyerUid
+  const isSeller = user?.uid === sellerUid
+
+  /**
+   * Final step to pay the seller from the buyer's frozen amount.
+   * Called after both sides confirm. We do this only once.
+   */
+  const finalizePayout = async (groupRef: any, groupData: any) => {
+    try {
+      // If for some reason it's already complete, skip
+      if (groupData.status === "complete") {
+        return
+      }
+      // We expect groupData.frozenKesBalance or .frozenUsdBalance
+      const frozenKes = groupData.frozenKesBalance || 0
+      const frozenUsd = groupData.frozenUsdBalance || 0
+
+      const fee = groupData.escrowFee || 0
+
+      // The actual total frozen => sum of whichever currency
+      let totalFrozen = 0
+      let currencyKeyForSeller: "userKesBalance" | "userUsdBalance" = "userUsdBalance"
+      let currencyKeyForBuyerFrozen: "frozenUserKesBalance" | "frozenUserUsdBalance" =
+        "frozenUserUsdBalance"
+
+      if (groupData.currency === "KES") {
+        totalFrozen = frozenKes
+        currencyKeyForSeller = "userKesBalance"
+        currencyKeyForBuyerFrozen = "frozenUserKesBalance"
+      } else {
+        totalFrozen = frozenUsd
+        currencyKeyForSeller = "userUsdBalance"
+        currencyKeyForBuyerFrozen = "frozenUserUsdBalance"
+      }
+
+      // The seller gets totalFrozen - fee
+      const sellerAmount = totalFrozen - fee
+      if (sellerAmount < 0) {
+        // If fees are higher than the total, something is off
+        throw new Error("Escrow fee is higher than the frozen amount.")
+      }
+
+      // 1) Deduct from the buyer's frozen
+      const buyerDocRef = doc(db, "users", buyerUid)
+      const buyerSnap = await getDoc(buyerDocRef)
+      if (!buyerSnap.exists()) {
+        throw new Error("Buyer document not found.")
+      }
+      const buyerData = buyerSnap.data() || {}
+      const currentBuyerFrozen = buyerData[currencyKeyForBuyerFrozen] || 0
+      let newBuyerFrozen = currentBuyerFrozen - totalFrozen
+      if (newBuyerFrozen < 0) {
+        newBuyerFrozen = 0 // Avoid negative
+      }
+
+      // 2) Add to the seller's normal balance
+      const sellerDocRef = doc(db, "users", sellerUid)
+      const sellerSnap = await getDoc(sellerDocRef)
+      if (!sellerSnap.exists()) {
+        throw new Error("Seller document not found.")
+      }
+      const sellerData = sellerSnap.data() || {}
+      const currentSellerBalance = sellerData[currencyKeyForSeller] || 0
+      const newSellerBalance = currentSellerBalance + sellerAmount
+
+      // 3) Update buyer doc & seller doc
+      await updateDoc(buyerDocRef, {
+        [currencyKeyForBuyerFrozen]: newBuyerFrozen,
+      })
+      await updateDoc(sellerDocRef, {
+        [currencyKeyForSeller]: newSellerBalance,
+      })
+
+      // 4) Optionally, record platform's share if you track revenue
+      // E.g. totalFrozen - sellerAmount = fee, which is your escrow revenue.
+
+      toast.success(
+        `Seller credited with ${sellerAmount.toFixed(2)} ${groupData.currency}. Escrow fee: ${fee}`
+      )
+    } catch (err: any) {
+      toast.error("Failed to finalize payout: " + err.message)
+    }
+  }
+
+  // --------------------- COMPLETION watchers ---------------------
+  useEffect(() => {
+    if (status === "complete") {
+      setShowPopup(false)
+      setShowRejectionPopup(false)
+      return
+    }
+    // If there's a rejection => show RejectionPopup to initiator
+    if (rejection) {
+      if ((initiator === "buyer" && isBuyer) || (initiator === "seller" && isSeller)) {
+        setShowRejectionPopup(true)
+      } else {
+        setShowRejectionPopup(false)
+      }
+    } else {
+      setShowRejectionPopup(false)
+    }
+
+    // Show completion popup if exactly one side is true, no rejection,
+    // and I'm the "other" side
+    if (!rejection && status !== "complete") {
+      if (buyerComplete && !sellerComplete && isSeller) {
+        setPopupMsg("Buyer marked the order as completed. Do you agree?")
+        setShowPopup(true)
+      } else if (sellerComplete && !buyerComplete && isBuyer) {
+        setPopupMsg("Seller marked the order as completed. Do you agree?")
+        setShowPopup(true)
+      } else {
+        setShowPopup(false)
+      }
+    }
+  }, [status, buyerComplete, sellerComplete, rejection, initiator, isBuyer, isSeller])
+
+  /**
+   * Called if user chooses "Agree" on the final completion popup
+   * -> both sides become true, we finalize payout, set status to "complete."
+   */
+  const handleAgree = async () => {
+    try {
+      const groupRef = doc(db, "groups", groupId)
+      const snap = await getDoc(groupRef)
+      if (!snap.exists()) return
+
+      const data = snap.data() || {}
+      const ts = data.transactionStatus || {}
+
+      // Both sides
+      ts.buyerComplete = true
+      ts.sellerComplete = true
+      ts.initiator = null
+      ts.rejection = null
+
+      // First, finalize payout
+      await finalizePayout(groupRef, {
+        ...data,
+        buyerUid,
+        sellerUid,
+      })
+
+      // Then mark the doc as complete
+      await updateDoc(groupRef, {
+        transactionStatus: ts,
+        status: "complete",
+      })
+
+      toast.success("Transaction is now COMPLETE.")
+      setShowPopup(false)
+    } catch (error: any) {
+      toast.error("Failed to complete transaction. " + error.message)
+    }
+  }
+
+  const handleDisagree = async () => {
+    if (!user?.uid) return
+    try {
+      const groupRef = doc(db, "groups", groupId)
+      const snap = await getDoc(groupRef)
+      if (!snap.exists()) return
+
+      const data = snap.data() || {}
+      const ts = data.transactionStatus || {}
+
+      // revert both sides
+      ts.buyerComplete = false
+      ts.sellerComplete = false
+
+      if (isBuyer) {
+        ts.rejection = { by: "buyer", time: new Date().toISOString() }
+      } else if (isSeller) {
+        ts.rejection = { by: "seller", time: new Date().toISOString() }
+      }
+
+      await updateDoc(groupRef, { transactionStatus: ts })
+      toast.info("You have disagreed. The request is removed.")
+      setShowPopup(false)
+    } catch (error: any) {
+      toast.error("Failed to disagree. " + error.message)
+    }
+  }
+
+  const handleCloseRejectionPopup = async () => {
+    try {
+      const groupRef = doc(db, "groups", groupId)
+      const snap = await getDoc(groupRef)
+      if (!snap.exists()) return
+
+      const data = snap.data() || {}
+      const ts = data.transactionStatus || {}
+      ts.rejection = null
+
+      await updateDoc(groupRef, { transactionStatus: ts })
+    } catch (err: any) {
+      toast.error("Error clearing rejection: " + err.message)
+    } finally {
+      setShowRejectionPopup(false)
+    }
+  }
+
+  // --------------------- CANCEL watchers ---------------------
+  useEffect(() => {
+    if (status === "cancelled" || status === "complete") {
+      setShowCancelPopup(false)
+      setShowCancelRejectionPopup(false)
+      return
+    }
+
+    // If there's a cancelRejection => show CancelRejectionPopup to the cancelInitiator
+    if (cancelRejection) {
+      if ((cancelInitiator === "buyer" && isBuyer) || (cancelInitiator === "seller" && isSeller)) {
+        setShowCancelRejectionPopup(true)
+      } else {
+        setShowCancelRejectionPopup(false)
+      }
+    } else {
+      setShowCancelRejectionPopup(false)
+    }
+
+    // Show the "CancelPopup" if exactly one side is true, no cancelRejection, and I'm the other side
+    if (!cancelRejection) {
+      if (buyerCancel && !sellerCancel && isSeller) {
+        setCancelPopupMsg("Buyer wants to CANCEL the transaction. Do you agree?")
+        setShowCancelPopup(true)
+      } else if (sellerCancel && !buyerCancel && isBuyer) {
+        setCancelPopupMsg("Seller wants to CANCEL the transaction. Do you agree?")
+        setShowCancelPopup(true)
+      } else {
+        setShowCancelPopup(false)
+      }
+    }
+  }, [
+    status,
+    buyerCancel,
+    sellerCancel,
+    cancelInitiator,
+    cancelRejection,
+    isBuyer,
+    isSeller,
+  ])
+
+  // If user *agrees* to cancel
+  const handleAgreeCancel = async () => {
+    try {
+      const groupRef = doc(db, "groups", groupId)
+      const snap = await getDoc(groupRef)
+      if (!snap.exists()) return
+
+      const data = snap.data() || {}
+      const ts = data.transactionStatus || {}
+
+      // Both sides = true => status="cancelled"
+      ts.buyerCancel = true
+      ts.sellerCancel = true
+      ts.cancelInitiator = null
+      ts.cancelRejection = null
+
+      await updateDoc(groupRef, {
+        transactionStatus: ts,
+        status: "cancelled",
+      })
+      toast.success("Transaction is now CANCELLED.")
+      setShowCancelPopup(false)
+    } catch (err: any) {
+      toast.error("Failed to set transaction to cancelled. " + err.message)
+    }
+  }
+
+  // If user *disagrees* to cancel
+  const handleDisagreeCancel = async () => {
+    try {
+      const groupRef = doc(db, "groups", groupId)
+      const snap = await getDoc(groupRef)
+      if (!snap.exists()) return
+
+      const data = snap.data() || {}
+      const ts = data.transactionStatus || {}
+
+      // Revert or clear out the request
+      ts.buyerCancel = false
+      ts.sellerCancel = false
+
+      if (isBuyer) {
+        ts.cancelRejection = { by: "buyer", time: new Date().toISOString() }
+      } else if (isSeller) {
+        ts.cancelRejection = { by: "seller", time: new Date().toISOString() }
+      }
+
+      await updateDoc(groupRef, {
+        transactionStatus: ts,
+      })
+
+      toast.info("You have disagreed. Cancel request is removed.")
+      setShowCancelPopup(false)
+    } catch (err: any) {
+      toast.error("Failed to disagree with cancellation. " + err.message)
+    }
+  }
+
+  // The initiator sees CancelRejectionPopup. Once they close => remove `cancelRejection`
+  const handleCloseCancelRejectionPopup = async () => {
+    try {
+      const groupRef = doc(db, "groups", groupId)
+      const snap = await getDoc(groupRef)
+      if (!snap.exists()) return
+
+      const data = snap.data() || {}
+      const ts = data.transactionStatus || {}
+      ts.cancelRejection = null
+
+      await updateDoc(groupRef, { transactionStatus: ts })
+    } catch (err: any) {
+      toast.error("Error clearing cancelRejection: " + err.message)
+    } finally {
+      setShowCancelRejectionPopup(false)
+    }
+  }
+
+  // --------------------- Chat input / messaging ---------------------
   const handleSendMessage = async () => {
     if ((!newMessage.trim() && !imageFile) || !user) return
     setIsSending(true)
     try {
-      let imageURL = null
+      let imageURL: string | null = null
       if (imageFile) {
         const storageRef = ref(storage, `groups/${groupId}/${Date.now()}_${imageFile.name}`)
         const snapshot = await uploadBytes(storageRef, imageFile)
         imageURL = await getDownloadURL(snapshot.ref)
       }
-
       const messagesRef = collection(db, "groups", groupId, "messages")
       await addDoc(messagesRef, {
         senderId: user.uid,
         senderName: user.displayName || "Anonymous",
         content: newMessage.trim(),
-        imageURL,
+        imageURL, // null if no file
         timestamp: serverTimestamp(),
       })
-
       setNewMessage("")
       setImageFile(null)
       setImagePreview(null)
       if (fileInputRef.current) fileInputRef.current.value = ""
-    } catch {
-      toast.error("Failed to send message")
+    } catch (error: any) {
+      toast.error("Failed to send message. " + (error.message || ""))
     } finally {
       setIsSending(false)
     }
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setImageFile(file)
-      setImagePreview(URL.createObjectURL(file))
-    }
-  }
-
-  const canRetryPayment = (): boolean => {
-    return user?.uid !== undefined && depositStatus !== "paid" && transactionType === "buying"
-  }
-
-  // Example: Fetching the user's available balance
-  const availableBalance = 5000; 
-
-  const handleRetryPayment = () => {
-    setIsPaymentDialogOpen(true);
-  };
-
-  function getStatusColor(status: string): string {
-    switch (status) {
-      case "paid":
-      case "completed":
-        return "bg-green-600 text-white"
-      case "failed":
-      case "canceled":
-        return "bg-red-600 text-white"
-      case "pending":
-      default:
-        return "bg-yellow-500 text-black dark:text-black"
-    }
-  }
-
-  const otherTypingUsers = typingUsers.filter((typingUser) => typingUser.userId !== user?.uid && typingUser.isTyping)
-
-  const toggleHeader = (): void => {
+  const toggleHeader = () => {
     setIsHeaderVisible(!isHeaderVisible)
   }
 
+  const otherTypingUsers = typingUsers.filter(
+    (typingUser) => typingUser.userId !== user?.uid && typingUser.isTyping
+  )
+
+  // --------------------- RENDER ---------------------
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-background">
-      <header className="bg-white dark:bg-gray-900 border-b dark:border-gray-800 p-4 hidden lg:block">
-        <div className="grid grid-cols-3 gap-4">
-          <Card className="p-4 flex flex-col justify-between">
-            <Badge
-              variant="outline"
-              className={`${getStatusColor(depositStatus)} text-center text-sm mb-2 flex items-center justify-center h-8`}
-            >
-              {depositStatus === "paid"
-                ? "Payment Completed"
-                : depositStatus === "failed" || depositStatus === "canceled"
-                  ? "Payment Failed"
-                  : "Payment Pending"}
+      {/* Desktop header */}
+      <header className="bg-gray-100 dark:bg-gray-900 border-b dark:border-gray-800 p-4 hidden lg:block">
+        <div className="grid grid-cols-3 gap-2">
+          <Card className="p-2 flex flex-col items-center space-y-1">
+            <Badge className="bg-green-600 text-white text-xs flex items-center justify-center h-6">
+              Payment Confirmed
             </Badge>
-            {/* Retry Payment Button */}
-              {canRetryPayment() && (
-                <Button
-                  onClick={handleRetryPayment}
-                  className="bg-emerald-500 hover:bg-orange-500 text-white text-sm mt-2"
-                >
-                  Retry Payment
-                </Button>
-              )}
-
-              {/* Payment Selection Dialog */}
-              <PaymentSelectionDialog
-                isOpen={isPaymentDialogOpen}
-                onClose={() => setIsPaymentDialogOpen(false)}
-                depositId={depositId}
-                availableBalance={availableBalance}
-              />
+            <EngageSupport buttonClass="text-xs h-6 flex items-center p-1" iconSize={16} />
           </Card>
-          <div className="col-span-2 grid grid-cols-2 gap-4">
-            <Button variant="outline" className="text-sm h-10">
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Complete
-            </Button>
-            <Button variant="outline" className="text-destructive text-sm h-10">
-              <XCircle className="w-4 h-4 mr-2" />
-              Cancel
-            </Button>
-            <Button variant="outline" className="text-sm h-10">
-              <AlertTriangle className="w-4 h-4 mr-2" />
-              Dispute
-            </Button>
+
+          <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {status === "complete" ? (
+              <Badge className="bg-green-600 text-white text-xs flex items-center justify-center h-6">
+                Transaction Completed
+              </Badge>
+            ) : (
+              <CompleteTransaction
+                groupId={groupId}
+                buttonClass="p-1 text-xs h-6 flex items-center justify-center"
+                iconSize={16}
+              />
+            )}
+
+            {status === "cancelled" ? (
+              <Badge className="bg-red-600 text-white text-xs flex items-center justify-center h-6">
+                Transaction Cancelled
+              </Badge>
+            ) : (
+              <CancelTransaction
+                groupId={groupId}
+                buttonClass="p-1 text-xs h-6 flex items-center justify-center"
+                iconSize={16}
+              />
+            )}
+
+            <DisputeTransaction
+              buttonClass="p-1 text-xs h-6 flex items-center justify-center"
+              iconSize={16}
+            />
             <XcrowInfo
-              depositStatus={depositStatus}
-              depositId={depositId}
               itemDescription={itemDescription}
               price={price}
               escrowFee={escrowFee}
-              responsibility={responsibility}
+              escrowFeeResponsibility={escrowFeeResp}
               transactionType={transactionType}
+              currency={currency}
+              buttonClass="text-xs h-6 flex items-center justify-center"
+              iconSize={16}
             />
           </div>
         </div>
       </header>
 
-      {/* Dropdown header for mobile */}
+      {/* COMPLETION POPUPS */}
+      <CompletionPopup
+        open={showPopup}
+        message={popupMsg}
+        onAgree={handleAgree}
+        onDisagree={handleDisagree}
+        onClose={(val) => {
+          if (!val) setShowPopup(false)
+        }}
+      />
+      <RejectionPopup
+        open={showRejectionPopup}
+        message={
+          rejection?.by === "seller"
+            ? "Seller Rejected your Completion Request. Please chat it out."
+            : "Buyer Rejected your Completion Request. Please chat it out."
+        }
+        onClose={handleCloseRejectionPopup}
+      />
+
+      {/* CANCEL POPUPS */}
+      <CancelPopup
+        open={showCancelPopup}
+        message={cancelPopupMsg}
+        onAgree={handleAgreeCancel}
+        onDisagree={handleDisagreeCancel}
+        onClose={(val) => {
+          if (!val) setShowCancelPopup(false)
+        }}
+      />
+      <CancelRejectionPopup
+        open={showCancelRejectionPopup}
+        message={
+          cancelRejection?.by === "seller"
+            ? "Seller Rejected your Cancel Request. Please chat it out."
+            : "Buyer Rejected your Cancel Request. Please chat it out."
+        }
+        onClose={handleCloseCancelRejectionPopup}
+      />
+
+      {/* Mobile header */}
       <div className="md:hidden bg-white dark:bg-gray-900 border-b dark:border-gray-800">
-        <Button variant="ghost" onClick={toggleHeader} className="w-full flex justify-between items-center p-4">
+        <Button
+          variant="ghost"
+          onClick={toggleHeader}
+          className="w-full flex justify-between items-center p-2 text-xs"
+        >
           <span>Chat Details</span>
-          {isHeaderVisible ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+          {isHeaderVisible ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </Button>
         {isHeaderVisible && (
-          <div className="p-4">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              <Badge className={`${getStatusColor(depositStatus)} text-xs md:text-sm`}>
-                {depositStatus === "paid"
-                  ? "Payment Completed"
-                  : depositStatus === "failed" || depositStatus === "canceled"
-                    ? "Payment Failed"
-                    : "Payment Pending"}
+          <div className="p-2 space-y-2">
+            <div className="flex items-center space-x-2 justify-center">
+              <Badge className="bg-green-600 text-white text-xs flex items-center justify-center h-6">
+                Payment Confirmed
               </Badge>
-
-              {canRetryPayment() && (
-                <Button
-                  onClick={handleRetryPayment}
-                  className="bg-emerald-500 hover:bg-orange-500 text-white text-xs md:text-sm h-8"
-                >
-                  Retry Payment
-                </Button>
+              <EngageSupport buttonClass="text-xs h-6 flex items-center" iconSize={14} />
+            </div>
+            <div className="grid grid-cols-2 gap-1 mt-2">
+              {status === "complete" ? (
+                <Badge className="bg-green-600 text-white text-xs flex items-center justify-center h-6">
+                  Transaction Completed
+                </Badge>
+              ) : (
+                <CompleteTransaction
+                  groupId={groupId}
+                  buttonClass="text-xs h-6 flex items-center justify-center"
+                  iconSize={14}
+                />
               )}
 
-              <Button variant="outline" className="text-xs md:text-sm h-8">
-                <CheckCircle className="w-4 h-4 mr-1" />
-                Complete
-              </Button>
+              {status === "cancelled" ? (
+                <Badge className="bg-red-600 text-white text-xs flex items-center justify-center h-6">
+                  Transaction Cancelled
+                </Badge>
+              ) : (
+                <CancelTransaction
+                  groupId={groupId}
+                  buttonClass="text-xs h-6 flex items-center justify-center"
+                  iconSize={14}
+                />
+              )}
 
-              <Button variant="outline" className="text-destructive text-xs md:text-sm h-8">
-                <XCircle className="w-4 h-4 mr-1" />
-                Cancel
-              </Button>
-
-              <Button variant="outline" className="text-xs md:text-sm h-8">
-                <AlertTriangle className="w-4 h-4 mr-1" />
-                Dispute
-              </Button>
-
+              <DisputeTransaction
+                buttonClass="text-xs h-6 flex items-center justify-center"
+                iconSize={14}
+              />
               <XcrowInfo
-                depositStatus={depositStatus}
-                depositId={depositId}
                 itemDescription={itemDescription}
                 price={price}
                 escrowFee={escrowFee}
-                responsibility={responsibility}
+                escrowFeeResponsibility={escrowFeeResp}
                 transactionType={transactionType}
+                currency={currency}
+                buttonClass="text-xs h-6 flex items-center justify-center"
+                iconSize={14}
               />
             </div>
           </div>
         )}
       </div>
 
+      {/* Chat messages area */}
       <ScrollArea className="flex-grow p-4">
-        <div className="mb-4 space-x-2 text-center">
-          <Badge variant="secondary" className="bg-gray-800 text-white">
-            Group created by {creatorName || "Unknown User"}
+        <div className="mb-4 text-center space-x-2">
+          <Badge variant="secondary" className="bg-gray-800 text-white text-xs">
+            Group created by {creatorName || "Unknown"}
           </Badge>
-          <Badge variant="outline" className="text-gray-400 border-gray-700">
+          <Badge variant="outline" className="text-gray-400 border-gray-700 text-xs">
             {participantsCount} participant{participantsCount > 1 ? "s" : ""}
           </Badge>
         </div>
-
         <div className="space-y-4 max-w-2xl mx-auto">
           {messages.map((msg) => (
-            <div key={msg.id} className={`flex ${msg.senderId === user?.uid ? "justify-end" : "justify-start"}`}>
+            <div
+              key={msg.id}
+              className={`flex ${msg.senderId === user?.uid ? "justify-end" : "justify-start"}`}
+            >
               <div
-                className={`flex ${msg.senderId === user?.uid ? "flex-row-reverse" : "flex-row"} items-end space-x-2`}
+                className={`flex ${
+                  msg.senderId === user?.uid ? "flex-row-reverse" : "flex-row"
+                } items-end space-x-2`}
               >
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${msg.senderName}`} />
+                <Avatar className="w-6 h-6">
+                  <AvatarImage
+                    src={`https://api.dicebear.com/6.x/initials/svg?seed=${msg.senderName}`}
+                  />
                   <AvatarFallback>{msg.senderName[0]}</AvatarFallback>
                 </Avatar>
                 <div
@@ -438,9 +805,9 @@ export default function GroupChatPage() {
                     <Dialog>
                       <DialogTrigger>
                         <Image
-                          src={msg.imageURL || "/placeholder.svg"}
+                          src={msg.imageURL}
                           alt="Attachment"
-                          width={300}
+                          width={250}
                           height={200}
                           className="rounded-lg mb-2 cursor-pointer w-full h-auto"
                         />
@@ -448,10 +815,12 @@ export default function GroupChatPage() {
                       <DialogContent className="max-w-3xl bg-gray-900 text-white">
                         <DialogHeader>
                           <DialogTitle>Attached Image</DialogTitle>
-                          <DialogDescription className="text-gray-400">Sent by {msg.senderName}</DialogDescription>
+                          <DialogDescription className="text-gray-400">
+                            Sent by {msg.senderName}
+                          </DialogDescription>
                         </DialogHeader>
                         <Image
-                          src={msg.imageURL || "/placeholder.svg"}
+                          src={msg.imageURL}
                           alt="Enlarged"
                           width={800}
                           height={600}
@@ -460,9 +829,11 @@ export default function GroupChatPage() {
                       </DialogContent>
                     </Dialog>
                   )}
-                  <p className="text-sm break-words whitespace-pre-wrap">{msg.content}</p>
+                  <p className="text-xs break-words whitespace-pre-wrap">{msg.content}</p>
                   {msg.timestamp && (
-                    <p className="text-xs opacity-70 mt-1">{msg.timestamp.toDate().toLocaleString()}</p>
+                    <p className="text-[10px] opacity-70 mt-1">
+                      {msg.timestamp.toDate().toLocaleString()}
+                    </p>
                   )}
                 </div>
               </div>
@@ -471,39 +842,42 @@ export default function GroupChatPage() {
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
+
       <style jsx global>{`
         .message-box {
           max-width: 65%;
           width: fit-content;
-          min-width: 100px;
-          padding: 8px 12px;
-          border-radius: 12px;
+          min-width: 80px;
+          padding: 6px 8px;
+          border-radius: 10px;
           overflow-wrap: break-word;
           word-wrap: break-word;
           word-break: break-word;
           hyphens: auto;
         }
       `}</style>
-      <footer className="p-4 border-t dark:border-gray-800 bg-white dark:bg-gray-900 mb-12 lg:mb-0">
-        {otherTypingUsers.length > 0 && (
-          <div className="mb-2 flex items-center space-x-2">
-            {otherTypingUsers.map((typingUser) => (
-              <div key={typingUser.userId} className="flex items-center px-2 py-1 bg-gray-800 rounded-full">
-                <span className="text-sm font-medium text-gray-300 mr-1">{typingUser.displayName}</span>
-                <TypingBubble />
-              </div>
-            ))}
+
+      {/* Chat input footer */}
+      <footer className="p-2 border-t dark:border-gray-800 bg-white dark:bg-gray-900">
+        {otherTypingUsers.map((typingUser) => (
+          <div key={typingUser.userId} className="mb-2 flex items-center space-x-2">
+            <div className="flex items-center px-2 py-1 bg-gray-800 rounded-full">
+              <span className="text-xs font-medium text-gray-300 mr-1">
+                {typingUser.displayName}
+              </span>
+              <TypingBubble />
+            </div>
           </div>
-        )}
+        ))}
 
         <div className="flex flex-col space-y-2">
           {imagePreview && (
             <div className="relative inline-block">
               <Image
-                src={imagePreview || "/placeholder.svg"}
+                src={imagePreview}
                 alt="Preview"
-                width={100}
-                height={100}
+                width={80}
+                height={80}
                 className="rounded-lg"
               />
               <Button
@@ -519,22 +893,33 @@ export default function GroupChatPage() {
               </Button>
             </div>
           )}
-
           <div className="flex space-x-2">
-            <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) {
+                  setImageFile(file)
+                  setImagePreview(URL.createObjectURL(file))
+                }
+              }}
+              className="hidden"
+            />
             <Button
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
               disabled={isSending}
-              className="text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 hover:bg-orange-50 dark:hover:bg-gray-800"
+              className="h-8 text-xs text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 hover:bg-orange-50 dark:hover:bg-gray-800 flex items-center"
             >
-              <Paperclip className="w-4 h-4 mr-2" />
+              <Paperclip className="w-3 h-3 mr-1" />
             </Button>
             <Textarea
               placeholder="Type your message..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              className="flex-grow resize-none bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
+              className="flex-grow resize-none bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs text-gray-900 dark:text-white"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault()
@@ -545,9 +930,10 @@ export default function GroupChatPage() {
             <Button
               onClick={handleSendMessage}
               disabled={isSending}
-              className="bg-emerald-500 hover:bg-orange-500 text-white"
+              className="bg-emerald-500 hover:bg-orange-500 text-white h-8 text-xs flex items-center"
             >
-              <Send className="w-4 h-4 mr-2" />
+              <Send className="w-3 h-3 mr-1" />
+              Send
             </Button>
           </div>
         </div>
@@ -556,9 +942,10 @@ export default function GroupChatPage() {
   )
 }
 
-function TypingBubble(): JSX.Element {
+/** Small UI for "someone is typing" bubbles. */
+function TypingBubble() {
   return (
-    <div className="flex items-center space-x-1">
+    <div className="flex items-center space-x-[2px]">
       <div className="bg-gray-400 w-1.5 h-1.5 rounded-full animate-bounce" />
       <div className="bg-gray-400 w-1.5 h-1.5 rounded-full animate-bounce animation-delay-200" />
       <div className="bg-gray-400 w-1.5 h-1.5 rounded-full animate-bounce animation-delay-400" />

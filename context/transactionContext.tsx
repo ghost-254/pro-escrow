@@ -10,6 +10,7 @@ import {
   processWalletDeposit,
   processWalletWithdrawal,
 } from 'services/walletService'
+import { toast } from 'react-toastify'
 
 interface Transaction {
   amount: number
@@ -75,11 +76,11 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
       if (transactionData) {
         setTransaction(transactionData)
       } else {
-        console.log('No transaction found for this user')
+        toast.error('No transaction found for this user')
         setTransaction(null)
       }
     } catch (error) {
-      console.error('Failed to fetch transaction data:', error)
+      toast.error('Failed to fetch transaction data')
     } finally {
       setIsLoading(false)
     }
@@ -103,7 +104,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
       })
       setTransactions(fetchedTransactions) // Store the fetched transactions in state
     } catch (error) {
-      console.error('Failed to fetch transactions:', error)
+      toast.error('Failed to fetch transactions')
     } finally {
       setIsLoading(false)
     }
@@ -115,8 +116,8 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
     try {
       const fetchedTransactions = await getUserTransactions(userId) // Fetch all transactions
       setTransactions(fetchedTransactions) // Store in state
-    } catch (error) {
-      console.error('Failed to fetch user transactions:', error)
+    } catch {
+      toast.error('Failed to fetch user transactions')
     } finally {
       setIsLoading(false)
     }
@@ -127,8 +128,8 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
     try {
       await modifyTransaction(id, data)
       await getUserLatestTransaction(data.userId || '')
-    } catch (error) {
-      console.error('Failed to update transaction data:', error)
+    } catch {
+      toast.error('Failed to update transaction data')
     }
   }
 

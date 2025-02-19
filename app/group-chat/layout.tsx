@@ -1,3 +1,5 @@
+//app/group-chat/layout.tsx
+
 "use client"
 
 import type React from "react"

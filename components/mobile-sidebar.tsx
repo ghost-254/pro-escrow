@@ -53,7 +53,6 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
   // Real-time unread notifications for the user
   useEffect(() => {
     if (!user?.uid) {
-      toast.error('User not available: Please sign in to view notifications.');
       return undefined;
     }
 

@@ -1,3 +1,5 @@
+// components/CreateGroup/TransactionDetailsForm.tsx
+
 /* eslint-disable */
 
 "use client"
@@ -102,14 +104,14 @@ const TransactionDetailsForm = () => {
   }, [price, currency, dispatch])
 
   // For buyers, total payable depends on who pays the escrow fee:
-  // - Buyer pays: total = price + escrowFee
+  // - Buyer: total = price + escrowFee
   // - 50/50: total = price + escrowFee/2
-  // - Seller pays: total = price
+  // - Seller: total = price
   const getTotalPayment = (): number => {
     if (transactionType !== "selling") {
       if (escrowFeeResponsibility === "buyer") return price + escrowFee
-      else if (escrowFeeResponsibility === "50/50") return price + escrowFee / 2
-      else return price
+      if (escrowFeeResponsibility === "50/50") return price + escrowFee / 2
+      return price
     }
     return price
   }
@@ -122,11 +124,20 @@ const TransactionDetailsForm = () => {
 
   // Handle Next button click; validate fields and wallet balance if buyer
   const handleNext = () => {
+    // Basic field checks:
     if (!itemDescription.trim() || !price || !serviceNature.trim()) {
       toast.error("Please fill in all fields.")
       return
     }
+
+    // Ensure escrowFeeResponsibility is chosen (non-empty)
+    if (!escrowFeeResponsibility) {
+      toast.error("Please select who pays the escrow fee.")
+      return
+    }
+
     if (transactionType !== "selling") {
+      // We are in "buying" or other scenario where we must check the buyer's wallet
       if (!selectedCurrency) {
         toast.error("Please select a wallet currency.")
         return
@@ -150,11 +161,14 @@ const TransactionDetailsForm = () => {
         return
       }
     } else {
+      // We are in "selling" scenario; confirm that a currency is set
       if (!currency) {
         toast.error("Please select a currency for your price.")
         return
       }
     }
+
+    // If all checks pass, move to the next step
     dispatch(nextStep())
   }
 
@@ -174,7 +188,14 @@ const TransactionDetailsForm = () => {
             <Typography variant="p" className="text-red-600">{error}</Typography>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card onClick={() => handleCardSelect("USD")} className={`cursor-pointer transition-colors p-2 ${selectedCurrency === "USD" ? "border-2 border-orange-600" : "border border-gray-200"} hover:border-orange-600`}>
+              <Card
+                onClick={() => handleCardSelect("USD")}
+                className={`cursor-pointer transition-colors p-2 ${
+                  selectedCurrency === "USD"
+                    ? "border-2 border-orange-600"
+                    : "border border-gray-200"
+                } hover:border-orange-600`}
+              >
                 <CardHeader>
                   <CardTitle>USD Wallet</CardTitle>
                 </CardHeader>
@@ -182,7 +203,14 @@ const TransactionDetailsForm = () => {
                   <Typography variant="h2">${userUsdBalance.toFixed(2)}</Typography>
                 </CardContent>
               </Card>
-              <Card onClick={() => handleCardSelect("KES")} className={`cursor-pointer transition-colors p-2 ${selectedCurrency === "KES" ? "border-2 border-orange-600" : "border border-gray-200"} hover:border-orange-600`}>
+              <Card
+                onClick={() => handleCardSelect("KES")}
+                className={`cursor-pointer transition-colors p-2 ${
+                  selectedCurrency === "KES"
+                    ? "border-2 border-orange-600"
+                    : "border border-gray-200"
+                } hover:border-orange-600`}
+              >
                 <CardHeader>
                   <CardTitle>KES Wallet</CardTitle>
                 </CardHeader>
@@ -194,17 +222,29 @@ const TransactionDetailsForm = () => {
           )}
         </div>
       ) : (
-        // Seller interface: show radio buttons to choose price currency and escrow fee responsibility.
+        // Seller interface: choose currency & escrow fee responsibility
         <div className="mt-6 space-y-4">
           <div>
             <Typography variant="h4" className="mb-2">Select Currency for Price</Typography>
             <div className="flex items-center space-x-4">
               <label className="flex items-center">
-                <input type="radio" name="sellerCurrency" value="USD" checked={currency === "USD"} onChange={(e) => dispatch(setCurrency(e.target.value))} />
+                <input
+                  type="radio"
+                  name="sellerCurrency"
+                  value="USD"
+                  checked={currency === "USD"}
+                  onChange={(e) => dispatch(setCurrency(e.target.value))}
+                />
                 <span className="ml-2">USD</span>
               </label>
               <label className="flex items-center">
-                <input type="radio" name="sellerCurrency" value="KES" checked={currency === "KES"} onChange={(e) => dispatch(setCurrency(e.target.value))} />
+                <input
+                  type="radio"
+                  name="sellerCurrency"
+                  value="KES"
+                  checked={currency === "KES"}
+                  onChange={(e) => dispatch(setCurrency(e.target.value))}
+                />
                 <span className="ml-2">KES</span>
               </label>
             </div>
@@ -213,15 +253,45 @@ const TransactionDetailsForm = () => {
             <Typography variant="h4" className="mb-2">Escrow Fee Responsibility</Typography>
             <div className="flex flex-col space-y-2">
               <label className="flex items-center space-x-2">
-                <input type="radio" name="escrowFeeResponsibility" value="buyer" checked={escrowFeeResponsibility === "buyer"} onChange={(e) => dispatch(setEscrowFeeResponsibility(e.target.value as "buyer" | "seller" | "50/50"))} />
+                <input
+                  type="radio"
+                  name="escrowFeeResponsibility"
+                  value="buyer"
+                  checked={escrowFeeResponsibility === "buyer"}
+                  onChange={(e) =>
+                    dispatch(setEscrowFeeResponsibility(
+                      e.target.value as "buyer" | "seller" | "50/50"
+                    ))
+                  }
+                />
                 <span>Buyer</span>
               </label>
               <label className="flex items-center space-x-2">
-                <input type="radio" name="escrowFeeResponsibility" value="seller" checked={escrowFeeResponsibility === "seller"} onChange={(e) => dispatch(setEscrowFeeResponsibility(e.target.value as "buyer" | "seller" | "50/50"))} />
+                <input
+                  type="radio"
+                  name="escrowFeeResponsibility"
+                  value="seller"
+                  checked={escrowFeeResponsibility === "seller"}
+                  onChange={(e) =>
+                    dispatch(setEscrowFeeResponsibility(
+                      e.target.value as "buyer" | "seller" | "50/50"
+                    ))
+                  }
+                />
                 <span>Seller</span>
               </label>
               <label className="flex items-center space-x-2">
-                <input type="radio" name="escrowFeeResponsibility" value="50/50" checked={escrowFeeResponsibility === "50/50"} onChange={(e) => dispatch(setEscrowFeeResponsibility(e.target.value as "buyer" | "seller" | "50/50"))} />
+                <input
+                  type="radio"
+                  name="escrowFeeResponsibility"
+                  value="50/50"
+                  checked={escrowFeeResponsibility === "50/50"}
+                  onChange={(e) =>
+                    dispatch(setEscrowFeeResponsibility(
+                      e.target.value as "buyer" | "seller" | "50/50"
+                    ))
+                  }
+                />
                 <span>50/50</span>
               </label>
             </div>
@@ -233,15 +303,36 @@ const TransactionDetailsForm = () => {
       <div className="space-y-4">
         <div>
           <Typography variant="span" className="font-semibold">Item/Service Description</Typography>
-          <Input type="text" placeholder="What are you buying or selling?" value={itemDescription} onChange={(e) => dispatch(setItemDescription(e.target.value))} className="mt-1" />
+          <Input
+            type="text"
+            placeholder="What are you buying or selling?"
+            value={itemDescription}
+            onChange={(e) => dispatch(setItemDescription(e.target.value))}
+            className="mt-1"
+          />
         </div>
         <div>
-          <Typography variant="span" className="font-semibold">Price ({selectedCurrency || currency || "Currency"})</Typography>
-          <Input type="number" placeholder="Enter price (excluding fees)" value={price || ""} onChange={(e) => dispatch(setPrice(parseFloat(e.target.value)))} className="mt-1" min={0} />
+          <Typography variant="span" className="font-semibold">
+            Price ({selectedCurrency || currency || "Currency"})
+          </Typography>
+          <Input
+            type="number"
+            placeholder="Enter price (excluding fees)"
+            value={price || ""}
+            onChange={(e) => dispatch(setPrice(parseFloat(e.target.value)))}
+            className="mt-1"
+            min={0}
+          />
         </div>
         <div>
           <Typography variant="span" className="font-semibold">Nature of the Service</Typography>
-          <Input type="text" placeholder="Provide a brief description of the service" value={serviceNature} onChange={(e) => dispatch(setServiceNature(e.target.value))} className="mt-1" />
+          <Input
+            type="text"
+            placeholder="Provide a brief description of the service"
+            value={serviceNature}
+            onChange={(e) => dispatch(setServiceNature(e.target.value))}
+            className="mt-1"
+          />
         </div>
       </div>
 
@@ -251,13 +342,21 @@ const TransactionDetailsForm = () => {
           <Card className="p-4">
             <Typography variant="h4" className="mb-2">Summary of Your Details</Typography>
             <div className="space-y-2">
-              <Typography variant="p"><strong>Item:</strong> {itemDescription}</Typography>
+              <Typography variant="p">
+                <strong>Item:</strong> {itemDescription}
+              </Typography>
               <Typography variant="p">
                 <strong>Price:</strong>{" "}
-                {currency === "KES" ? `KES ${price.toFixed(2)}` : `$${price.toFixed(2)}`}
+                {currency === "KES"
+                  ? `KES ${price.toFixed(2)}`
+                  : `$${price.toFixed(2)}`}
               </Typography>
-              <Typography variant="p"><strong>Service:</strong> {serviceNature}</Typography>
-              <Typography variant="p"><strong>Escrow Fee Responsibility:</strong> {escrowFeeResponsibility}</Typography>
+              <Typography variant="p">
+                <strong>Service:</strong> {serviceNature}
+              </Typography>
+              <Typography variant="p">
+                <strong>Escrow Fee Responsibility:</strong> {escrowFeeResponsibility}
+              </Typography>
             </div>
           </Card>
         </div>
@@ -271,15 +370,45 @@ const TransactionDetailsForm = () => {
               <Typography variant="span" className="font-semibold">Who Pays Escrow Fee?</Typography>
               <div className="mt-1 flex flex-col space-y-2">
                 <label className="flex items-center space-x-2">
-                  <input type="radio" name="escrowFeeResponsibility" value="buyer" checked={escrowFeeResponsibility === "buyer"} onChange={(e) => dispatch(setEscrowFeeResponsibility(e.target.value as "buyer" | "seller" | "50/50"))} />
+                  <input
+                    type="radio"
+                    name="escrowFeeResponsibility"
+                    value="buyer"
+                    checked={escrowFeeResponsibility === "buyer"}
+                    onChange={(e) =>
+                      dispatch(setEscrowFeeResponsibility(
+                        e.target.value as "buyer" | "seller" | "50/50"
+                      ))
+                    }
+                  />
                   <span>Buyer</span>
                 </label>
                 <label className="flex items-center space-x-2">
-                  <input type="radio" name="escrowFeeResponsibility" value="seller" checked={escrowFeeResponsibility === "seller"} onChange={(e) => dispatch(setEscrowFeeResponsibility(e.target.value as "buyer" | "seller" | "50/50"))} />
+                  <input
+                    type="radio"
+                    name="escrowFeeResponsibility"
+                    value="seller"
+                    checked={escrowFeeResponsibility === "seller"}
+                    onChange={(e) =>
+                      dispatch(setEscrowFeeResponsibility(
+                        e.target.value as "buyer" | "seller" | "50/50"
+                      ))
+                    }
+                  />
                   <span>Seller</span>
                 </label>
                 <label className="flex items-center space-x-2">
-                  <input type="radio" name="escrowFeeResponsibility" value="50/50" checked={escrowFeeResponsibility === "50/50"} onChange={(e) => dispatch(setEscrowFeeResponsibility(e.target.value as "buyer" | "seller" | "50/50"))} />
+                  <input
+                    type="radio"
+                    name="escrowFeeResponsibility"
+                    value="50/50"
+                    checked={escrowFeeResponsibility === "50/50"}
+                    onChange={(e) =>
+                      dispatch(setEscrowFeeResponsibility(
+                        e.target.value as "buyer" | "seller" | "50/50"
+                      ))
+                    }
+                  />
                   <span>50/50</span>
                 </label>
               </div>
@@ -287,11 +416,29 @@ const TransactionDetailsForm = () => {
             <div className="flex flex-col mt-4 lg:flex-row lg:space-x-4 space-y-4 lg:space-y-0">
               <div className="flex-1">
                 <Typography variant="span" className="font-semibold">Escrow Fee:</Typography>
-                <Input type="text" value={currency === "KES" ? `KES ${escrowFee.toFixed(2)}` : `$${escrowFee.toFixed(2)}`} readOnly className="mt-1" />
+                <Input
+                  type="text"
+                  value={
+                    currency === "KES"
+                      ? `KES ${escrowFee.toFixed(2)}`
+                      : `$${escrowFee.toFixed(2)}`
+                  }
+                  readOnly
+                  className="mt-1"
+                />
               </div>
               <div className="flex-1">
                 <Typography variant="span" className="font-semibold">Total Net Amount:</Typography>
-                <Input type="text" value={currency === "KES" ? `KES ${getTotalPayment().toFixed(2)}` : `$${getTotalPayment().toFixed(2)}`} readOnly className="mt-1" />
+                <Input
+                  type="text"
+                  value={
+                    currency === "KES"
+                      ? `KES ${getTotalPayment().toFixed(2)}`
+                      : `$${getTotalPayment().toFixed(2)}`
+                  }
+                  readOnly
+                  className="mt-1"
+                />
               </div>
             </div>
           </Card>
@@ -300,7 +447,9 @@ const TransactionDetailsForm = () => {
 
       {/* Navigation Buttons */}
       <div className="flex justify-between mt-6">
-        <Button variant="outline" onClick={() => dispatch(previousStep())}>Back</Button>
+        <Button variant="outline" onClick={() => dispatch(previousStep())}>
+          Back
+        </Button>
         <Button onClick={handleNext}>Next</Button>
       </div>
     </div>

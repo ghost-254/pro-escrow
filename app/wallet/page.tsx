@@ -5,7 +5,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ToastContainer } from "react-toastify"
+import { toast, ToastContainer } from "react-toastify"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -47,8 +47,8 @@ export default function WalletPage() {
             USD: dataBalance.frozenUserUsdBalance,
           })
         }
-      } catch (error) {
-        console.error("Failed to fetch balances", error)
+      } catch {
+        toast.error("Failed to fetch balances!")
       }
 
       try {
@@ -58,8 +58,8 @@ export default function WalletPage() {
         if (dataTrans.success) {
           setTransactions(dataTrans.transactions)
         }
-      } catch (error) {
-        console.error("Failed to fetch transactions", error)
+      } catch {
+        toast.error("Failed to fetch transactions")
       }
 
       try {
@@ -69,8 +69,8 @@ export default function WalletPage() {
         if (dataAnalytics.success) {
           setAnalyticsData(dataAnalytics.analyticsData)
         }
-      } catch (error) {
-        console.error("Failed to fetch analytics", error)
+      } catch {
+        toast.error("Failed to fetch analytics")
       }
     }
   }

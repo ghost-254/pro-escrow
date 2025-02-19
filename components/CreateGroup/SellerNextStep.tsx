@@ -1,10 +1,11 @@
-/* eslint-disable */
+//components/CreateGroup/SellerNextStep.tsx
 
+/* eslint-disable */
 "use client"
 
 import React, { useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
-import { previousStep } from "@/lib/slices/groupCreationSlice"
+import { previousStep, resetGroupCreation } from "@/lib/slices/groupCreationSlice"
 import { RootState } from "@/lib/stores/store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -88,7 +89,7 @@ const SellerNextStep = () => {
       const allParticipants = (data.participants || []) as string[]
       const otherParticipants = allParticipants.filter((par) => par !== user.uid)
 
-      // Create a notification for the seller
+      // Notification for seller
       await addDoc(collection(db, "notifications"), {
         userId: user.uid,
         message: `You joined ${shortGroupName} group.`,
@@ -97,7 +98,7 @@ const SellerNextStep = () => {
         createdAt: Timestamp.now(),
       })
 
-      // Create notifications for existing participants
+      // Notification for existing participants
       const joinedMsg = user.displayName
         ? `User ${user.displayName} has joined ${shortGroupName} group chat.`
         : `User ${user.uid} has joined ${shortGroupName} group chat.`
@@ -111,8 +112,10 @@ const SellerNextStep = () => {
         })
       }
       toast.success(`You have been added to group ${groupId}.`)
+      // Reset the group creation state before redirecting
+      dispatch(resetGroupCreation())
       router.push(`/group-chat/${groupId}`)
-    } catch (error) {
+    } catch {
       toast.error("Failed to join the group.")
     }
   }
@@ -123,32 +126,21 @@ const SellerNextStep = () => {
 
   return (
     <div className="space-y-6">
-      <Typography variant="h2" className="mb-4">
-        Seller Confirmation
-      </Typography>
-      <Typography variant="h4" className="mb-2">
-        Summary of Your Details
-      </Typography>
+      <Typography variant="h2" className="mb-4">Seller Confirmation</Typography>
+      <Typography variant="h4" className="mb-2">Summary of Your Details</Typography>
       <Card className="p-4 mb-4">
         <div className="space-y-2">
-          <Typography variant="p">
-            <strong>Item/Service:</strong> {itemDescription}
-          </Typography>
+          <Typography variant="p"><strong>Item/Service:</strong> {itemDescription}</Typography>
           <Typography variant="p">
             <strong>Price:</strong>{" "}
             {currency === "KES" ? `KES ${price.toFixed(2)}` : `$${price.toFixed(2)}`}
           </Typography>
-          <Typography variant="p">
-            <strong>Service:</strong> {serviceNature}
-          </Typography>
-          <Typography variant="p">
-            <strong>Escrow Fee Responsibility:</strong> {escrowFeeResponsibility}
-          </Typography>
+          <Typography variant="p"><strong>Service:</strong> {serviceNature}</Typography>
+          <Typography variant="p"><strong>Escrow Fee Responsibility:</strong> {escrowFeeResponsibility}</Typography>
         </div>
       </Card>
       <Typography variant="h3" className="mb-4">
-        Ask the buyer to send you the Xcrow Group link. Paste it below and click{" "}
-        <strong>Join</strong>.
+        Ask the buyer to send you the Xcrow Group link. Paste it below and click <strong>Join Group</strong>.
       </Typography>
       <Input
         placeholder="Paste group link here..."
@@ -156,12 +148,8 @@ const SellerNextStep = () => {
         onChange={(e) => setGroupLink(e.target.value)}
       />
       <div className="flex justify-between mt-4">
-        <Button variant="outline" onClick={handleBack}>
-          Back
-        </Button>
-        <Button onClick={handleJoinGroup} variant="secondary">
-          Join Group
-        </Button>
+        <Button variant="outline" onClick={handleBack}>Back</Button>
+        <Button onClick={handleJoinGroup} variant="secondary">Join Group</Button>
       </div>
     </div>
   )
