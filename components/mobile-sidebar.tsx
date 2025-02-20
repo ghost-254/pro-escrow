@@ -1,5 +1,7 @@
 // components/mobile-sidebar.tsx
 
+/* eslint-disable */
+
 'use client'
 
 import React, { useEffect, useState, MouseEvent } from 'react'
@@ -275,7 +277,6 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                   label="Group Chats"
                   showNewBadge
                 />
-                <MenuItem href="/wallet" icon={Wallet} label="My Wallet" />
                 <MenuItem
                   href="/notifications"
                   icon={Bell}
@@ -285,7 +286,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
               </nav>
             </div>
 
-            {/* ESCROW SERVICES */}
+            {/* ESCROW SERVICES 
             <div>
               <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">
                 ESCROW SERVICES
@@ -296,6 +297,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                 <MenuItem href="/disputes" icon={AlertCircle} label="Disputes" />
               </nav>
             </div>
+            */}
 
             {/* ACCOUNT */}
             <div>
@@ -304,6 +306,8 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
               </h4>
               <nav className="space-y-1">
                 <MenuItem href="/profile" icon={User} label="Profile" />
+                <MenuItem href="/wallet" icon={Wallet} label="My Wallet" />
+                <MenuItem href="/support" icon={HelpCircle} label="Support" />
               </nav>
             </div>
           </div>
@@ -311,7 +315,6 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
 
         {/* Footer */}
         <div className="sticky bottom-0 mb-0 z-50 bg-muted border-t p-4 space-y-1 overflow-hidden">
-          <MenuItem href="/support" icon={HelpCircle} label="Support" />
           <MenuItem href="mailto:support@xcrow.co" icon={Mails} label="support@xcrow.co" />
         </div>
       </div>

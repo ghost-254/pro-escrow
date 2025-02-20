@@ -2,7 +2,7 @@
 
 "use client"
 
-import React from "react"
+import React, { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSelector } from "react-redux"
 import { collection, query, where, getDocs } from "firebase/firestore"
@@ -14,7 +14,6 @@ import { Badge } from "@/components/ui/badge"
 import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { toast } from "react-toastify"
-import { Skeleton } from "@/components/ui/skeleton"
 
 interface ChatGroup {
   id: string
@@ -22,20 +21,23 @@ interface ChatGroup {
   type: "Buy" | "Sell"
   price: number
   currency: string
-  status: "active" | "complete"
+  status: "Pending Release" | "In Progress" | "Completed" | "Disputed"
   participants: number
   createdAt: Date
   itemDescription: string
 }
 
-export default function GroupChatIndexPage() {
+interface MobileSidebarOverlayProps {
+  onClose: () => void
+}
+
+export default function MobileSidebarOverlay({ onClose }: MobileSidebarOverlayProps) {
   const router = useRouter()
   const user = useSelector((state: RootState) => state.auth.user)
-  const [groups, setGroups] = React.useState<ChatGroup[]>([])
-  const [searchQuery, setSearchQuery] = React.useState("")
-  const [isLoading, setIsLoading] = React.useState(true)
+  const [groups, setGroups] = useState<ChatGroup[]>([])
+  const [searchQuery, setSearchQuery] = useState("")
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!user?.uid) return
 
     const fetchGroups = async () => {
@@ -64,8 +66,7 @@ export default function GroupChatIndexPage() {
             type: data.type || "Buy",
             price: data.price || 0,
             currency: data.currency || "USD",
-            // Map any status not equal to "complete" to "active"
-            status: data.status === "complete" ? "complete" : "active",
+            status: data.status || "Pending Release",
             participants: (data.participants || []).length,
             createdAt,
             itemDescription: description,
@@ -75,10 +76,8 @@ export default function GroupChatIndexPage() {
         // Sort groups by creation time descending (latest first)
         groupData.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
         setGroups(groupData)
-      } catch (error: any) {
+      } catch {
         toast.error("Failed to fetch groups")
-      } finally {
-        setIsLoading(false)
       }
     }
 
@@ -91,12 +90,17 @@ export default function GroupChatIndexPage() {
       group.itemDescription.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  // Updated badge color function for two statuses.
+  // Define badge colors for status.
   const getStatusColor = (status: string) => {
-    if (status === "active") {
-      return "bg-orange-500 text-white"
-    } else {
-      return "bg-yellow-500 text-white"
+    switch (status) {
+      case "Completed":
+        return "bg-emerald-500 text-white"
+      case "Disputed":
+        return "bg-red-500 text-white"
+      case "In Progress":
+        return "bg-blue-500 text-white"
+      default:
+        return "bg-yellow-500 text-black"
     }
   }
 
@@ -105,55 +109,47 @@ export default function GroupChatIndexPage() {
     type === "Buy" ? "bg-emerald-500" : "bg-red-500"
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      <div className="p-4 border-b">
-        <div className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-50" onClick={onClose}>
+      <div
+        className="absolute left-0 top-0 bottom-0 w-64 bg-white dark:bg-gray-900 overflow-y-auto p-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Typography variant="h3" className="mb-4">
+          Groups
+        </Typography>
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500 dark:text-gray-400" />
           <Input
             placeholder="Search chats..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-muted/50"
+            className="pl-9 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
           />
         </div>
-      </div>
-      <ScrollArea className="flex-1">
-        <div className="space-y-2 p-4">
-          {isLoading ? (
-            // Display 3 skeleton items while loading.
-            [1, 2, 3].map((i) => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="h-6 w-1/2" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-1/3" />
-              </div>
-            ))
-          ) : (
-            filteredGroups.map((group) => (
+        <ScrollArea className="flex-1">
+          <div className="space-y-2">
+            {filteredGroups.map((group) => (
               <div
                 key={group.id}
-                onClick={() => router.push(`/group-chat/${group.id}`)}
-                className="
-                  flex flex-col space-y-2 p-4 rounded-lg
-                  bg-muted/50 hover:bg-muted cursor-pointer transition-colors
-                "
+                onClick={() => {
+                  router.push(`/group-chat/${group.id}`)
+                  onClose()
+                }}
+                className="flex flex-col space-y-2 p-4 rounded-lg bg-muted/50 hover:bg-muted cursor-pointer transition-colors"
               >
                 <div className="flex items-center justify-between">
-                  <Badge className={getTypeColor(group.type)}>
-                    {group.type}
-                  </Badge>
-                  <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                  <Badge className={getTypeColor(group.type)}>{group.type}</Badge>
+                  <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
                     <span>👥 {group.participants}</span>
                     <span>{group.createdAt.toLocaleDateString()}</span>
                   </div>
                 </div>
-
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
                     <Typography variant="h3" className="font-medium">
                       {group.name}
                     </Typography>
-                    <Typography variant="p" className="text-sm text-muted-foreground">
+                    <Typography variant="p" className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">
                       {group.itemDescription}
                     </Typography>
                   </div>
@@ -163,15 +159,14 @@ export default function GroupChatIndexPage() {
                       : `$${group.price.toFixed(2)}`}
                   </Typography>
                 </div>
-
                 <Badge variant="secondary" className={`w-fit ${getStatusColor(group.status)}`}>
                   {group.status}
                 </Badge>
               </div>
-            ))
-          )}
-        </div>
-      </ScrollArea>
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
     </div>
   )
 }

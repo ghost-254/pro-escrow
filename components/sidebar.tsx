@@ -11,9 +11,6 @@ import {
   Home,
   Wallet,
   HelpCircle,
-  Shield,
-  BadgeCheck,
-  AlertCircle,
   X,
   Bell,
   User,
@@ -187,7 +184,6 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
                 label="Group Chats"
                 showNewBadge
               />
-              <MenuItem href="/wallet" icon={Wallet} label="My Wallet" />
               <MenuItem
                 href="/notifications"
                 icon={Bell}
@@ -197,7 +193,7 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
             </nav>
           </div>
 
-          {/* ESCROW SERVICES */}
+          {/* ESCROW SERVICES
           <div>
             <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">
               ESCROW SERVICES
@@ -208,6 +204,7 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
               <MenuItem href="/disputes" icon={AlertCircle} label="Disputes" />
             </nav>
           </div>
+          */}
 
           {/* ACCOUNT */}
           <div>
@@ -216,13 +213,14 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
             </h4>
             <nav className="space-y-1">
               <MenuItem href="/profile" icon={User} label="Profile" />
+              <MenuItem href="/wallet" icon={Wallet} label="My Wallet" />
+              <MenuItem href="/support" icon={HelpCircle} label="Support" />
             </nav>
           </div>
         </div>
         </ScrollArea>
         {/* Footer */}
         <div className="sticky bottom-0 mb-0 z-50 bg-muted border-t p-4 space-y-1 overflow-hidden">
-          <MenuItem href="/support" icon={HelpCircle} label="Support" />
           <MenuItem href="emailto:support@xcrow.co" icon={Mails} label="support@xcrow.co" />
         </div>
     

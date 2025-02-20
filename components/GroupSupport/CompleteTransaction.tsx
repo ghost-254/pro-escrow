@@ -1,6 +1,4 @@
-//components/GroupSupport/CompletionPopup.tsx
 /* eslint-disable */
-
 "use client"
 
 import React, { useState } from "react"
@@ -19,19 +17,34 @@ import { useSelector } from "react-redux"
 import type { RootState } from "@/lib/stores/store"
 import { ModalButtonProps } from "@/lib/types"
 
-import { doc, getDoc, updateDoc } from "firebase/firestore"
+import { doc, getDoc, updateDoc, addDoc, collection } from "firebase/firestore"
 import { db } from "@/lib/firebaseConfig"
+
+// Import Shadcn UI tooltip components
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 
 interface CompleteTransactionProps extends ModalButtonProps {
   groupId: string
 }
 
 /**
- * Mark the transaction as complete for either buyer or seller.
- * If both booleans become true => status="complete".
- *
- * Also, if user is the first to click "Complete" (meaning both sides were false),
- * set transactionStatus.initiator = "buyer"|"seller" and rejection=null.
+ * Helper: get user profile from Firestore
+ */
+async function getUserProfile(uid: string) {
+  const snap = await getDoc(doc(db, "users", uid))
+  if (!snap.exists()) return null
+  const data = snap.data()
+  return {
+    firstName: data.firstName || "",
+    lastName: data.lastName || "",
+    email: data.email || "",
+  }
+}
+
+/**
+ * Mark the transaction as complete. 
+ * - If only one side is complete, we notify the other user. 
+ * - If both are complete, the final logic in `page.tsx` handles the payout and final status.
  */
 const CompleteTransaction: React.FC<CompleteTransactionProps> = ({
   groupId,
@@ -60,19 +73,13 @@ const CompleteTransaction: React.FC<CompleteTransactionProps> = ({
         toast.error("Group not found.")
         return
       }
-      const data = snap.data() || {}
 
-      // Our participants array is e.g.:
-      // [
-      //   { uid: "UID_OF_BUYER" }, // or just "UID"
-      //   { uid: "UID_OF_SELLER" }
-      // ]
+      const data = snap.data() || {}
       const participants = data.participants || []
       if (participants.length < 2) {
         toast.error("Not enough participants to complete.")
         return
       }
-
       if (data.status === "complete") {
         toast.info("Transaction is already complete.")
         setIsOpen(false)
@@ -101,31 +108,25 @@ const CompleteTransaction: React.FC<CompleteTransactionProps> = ({
         return
       }
 
+      // transactionStatus
       const ts = data.transactionStatus || {
         buyerComplete: false,
         sellerComplete: false,
       }
 
-      // If both buyerComplete & sellerComplete are false => user is the first
-      // => set initiator = "buyer"|"seller", rejection=null
+      // If both buyerComplete & sellerComplete are false => user is first
       if (!ts.buyerComplete && !ts.sellerComplete) {
         ts.initiator = isBuyer ? "buyer" : "seller"
         ts.rejection = null
       }
 
-      // Now set the correct side to true
-      if (isBuyer) {
-        ts.buyerComplete = true
-      }
-      if (isSeller) {
-        ts.sellerComplete = true
-      }
+      // Mark the correct side
+      if (isBuyer) ts.buyerComplete = true
+      if (isSeller) ts.sellerComplete = true
 
-      // If both are true => status=complete
       let newStatus = data.status || "active"
       if (ts.buyerComplete && ts.sellerComplete) {
         newStatus = "complete"
-        // Clear initiator & rejection because final
         ts.initiator = null
         ts.rejection = null
       }
@@ -134,6 +135,22 @@ const CompleteTransaction: React.FC<CompleteTransactionProps> = ({
         transactionStatus: ts,
         status: newStatus,
       })
+
+      // Send a notification to the other user that I marked complete
+      const otherUid = isBuyer ? sellerUid : buyerUid
+      if (otherUid) {
+        const myProfile = await getUserProfile(user.uid)
+
+        await addDoc(collection(db, "notifications"), {
+          userId: otherUid,
+          message: `${
+            myProfile?.firstName || "User"
+          } has marked group [${groupId}] as complete (Reason: "${selectedReason}"). Please confirm if you agree.`,
+          link: `/group-chat/${groupId}`,
+          read: false,
+          createdAt: new Date(),
+        })
+      }
 
       if (newStatus === "complete") {
         toast.success("Both parties have completed. Transaction is now COMPLETE.")
@@ -150,41 +167,51 @@ const CompleteTransaction: React.FC<CompleteTransactionProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className={buttonClass}>
-          <CheckCircle style={{ width: iconSize, height: iconSize }} className="mr-1" />
-          Complete
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Complete Transaction</DialogTitle>
-          <DialogDescription>
-            Confirm that this order or service is fully completed.
-          </DialogDescription>
-        </DialogHeader>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              <Button variant="outline" className={buttonClass}>
+                <CheckCircle style={{ width: iconSize, height: iconSize }} className="mr-1" />
+                Complete
+              </Button>
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-xs">Mark this transaction as complete.</p>
+          </TooltipContent>
 
-        <div className="space-y-4 mt-2">
-          <label className="block text-sm font-medium">Select a Reason</label>
-          <select
-            className="border w-full p-2 rounded"
-            value={selectedReason}
-            onChange={(e) => setSelectedReason(e.target.value)}
-          >
-            <option value="">Select a reason</option>
-            <option value="Order Successfully Completed">Order Successfully Completed</option>
-            <option value="Service Delivered">Service Delivered</option>
-            <option value="Other">Other</option>
-          </select>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Complete Transaction</DialogTitle>
+              <DialogDescription>
+                Confirm that this order or service is fully completed.
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="flex justify-end space-x-2 mt-4">
-            <Button variant="outline" onClick={() => setIsOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleComplete}>Confirm</Button>
-          </div>
-        </div>
-      </DialogContent>
+            <div className="space-y-4 mt-2">
+              <label className="block text-sm font-medium">Select a Reason</label>
+              <select
+                className="border w-full p-2 rounded"
+                value={selectedReason}
+                onChange={(e) => setSelectedReason(e.target.value)}
+              >
+                <option value="">Select a reason</option>
+                <option value="Order Successfully Completed">Order Successfully Completed</option>
+                <option value="Service Delivered">Service Delivered</option>
+                <option value="Other">Other</option>
+              </select>
+
+              <div className="flex justify-end space-x-2 mt-4">
+                <Button variant="outline" onClick={() => setIsOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleComplete}>Confirm</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Tooltip>
+      </TooltipProvider>
     </Dialog>
   )
 }

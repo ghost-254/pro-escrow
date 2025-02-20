@@ -30,7 +30,9 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  ArrowLeft,
 } from "lucide-react"
+import { RiMenuFoldFill } from "react-icons/ri";
 
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -58,7 +60,8 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog"
-
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
+import MobileSidebarOverlay from "@/components/GroupSupport/MobileSidebarOverlay"
 interface Message {
   id?: string
   senderId: string
@@ -96,8 +99,10 @@ export default function GroupChatPage() {
   const [transactionType, setTransactionType] = useState("")
   const [currency, setCurrency] = useState("USD")
   const [status, setStatus] = useState("active")
+  // New state for the group name – using same naming convention.
+  const [groupName, setGroupName] = useState("")
 
-  // ---------- Completion watchers ----------
+  // Completion watchers
   const [buyerComplete, setBuyerComplete] = useState(false)
   const [sellerComplete, setSellerComplete] = useState(false)
   const [initiator, setInitiator] = useState<"buyer" | "seller" | null>(null)
@@ -106,7 +111,7 @@ export default function GroupChatPage() {
   const [popupMsg, setPopupMsg] = useState("")
   const [showRejectionPopup, setShowRejectionPopup] = useState(false)
 
-  // ---------- Cancel watchers ----------
+  // Cancel watchers
   const [buyerCancel, setBuyerCancel] = useState(false)
   const [sellerCancel, setSellerCancel] = useState(false)
   const [cancelInitiator, setCancelInitiator] = useState<"buyer" | "seller" | null>(null)
@@ -119,13 +124,96 @@ export default function GroupChatPage() {
   const [typingUsers, setTypingUsers] = useState<TypingStatus[]>([])
   const [isHeaderVisible, setIsHeaderVisible] = useState(false)
 
+  // New state: mobile sidebar toggle for hamburger menu.
+  // Mobile sidebar toggle for hamburger menu
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false)
+  const mobileSidebarToggle = () => setShowMobileSidebar(!showMobileSidebar)
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const [buyerUid, setBuyerUid] = useState<string>("")
   const [sellerUid, setSellerUid] = useState<string>("")
 
-  // -- Listen to group doc
+  // -- Utility to get user profile
+  async function getUserProfile(uid: string) {
+    const snap = await getDoc(doc(db, "users", uid))
+    if (!snap.exists()) return null
+    const data = snap.data()
+    return {
+      firstName: data.firstName || "",
+      lastName: data.lastName || "",
+      email: data.email || "",
+      userKesBalance: data.userKesBalance || 0,
+      userUsdBalance: data.userUsdBalance || 0,
+      frozenUserKesBalance: data.frozenUserKesBalance || 0,
+      frozenUserUsdBalance: data.frozenUserUsdBalance || 0,
+    }
+  }
+
+  // -- Finalize payout logic (unchanged)
+  const finalizePayout = async (groupRef: any, groupData: any) => {
+    const frozenKes = groupData.frozenKesBalance || 0
+    const frozenUsd = groupData.frozenUsdBalance || 0
+    const fee = groupData.escrowFee || 0
+
+    const totalFrozen = groupData.currency === "KES" ? frozenKes : frozenUsd
+    const sellerAmount = totalFrozen - fee
+    if (sellerAmount < 0) {
+      throw new Error("Escrow fee is larger than the total frozen. Check logic.")
+    }
+
+    const buyerProfile = await getUserProfile(groupData.buyerUid)
+    if (!buyerProfile) throw new Error("Buyer profile not found.")
+    let newBuyerFrozenKes = buyerProfile.frozenUserKesBalance
+    let newBuyerFrozenUsd = buyerProfile.frozenUserUsdBalance
+    if (groupData.currency === "KES") {
+      newBuyerFrozenKes -= totalFrozen
+      if (newBuyerFrozenKes < 0) newBuyerFrozenKes = 0
+    } else {
+      newBuyerFrozenUsd -= totalFrozen
+      if (newBuyerFrozenUsd < 0) newBuyerFrozenUsd = 0
+    }
+    await updateDoc(doc(db, "users", groupData.buyerUid), {
+      frozenUserKesBalance: newBuyerFrozenKes,
+      frozenUserUsdBalance: newBuyerFrozenUsd,
+    })
+
+    const sellerProfile = await getUserProfile(groupData.sellerUid)
+    if (!sellerProfile) throw new Error("Seller profile not found.")
+
+    let newSellerKes = sellerProfile.userKesBalance
+    let newSellerUsd = sellerProfile.userUsdBalance
+    if (groupData.currency === "KES") {
+      newSellerKes += sellerAmount
+    } else {
+      newSellerUsd += sellerAmount
+    }
+    await updateDoc(doc(db, "users", groupData.sellerUid), {
+      userKesBalance: newSellerKes,
+      userUsdBalance: newSellerUsd,
+    })
+
+    await addDoc(collection(db, "notifications"), {
+      userId: groupData.buyerUid,
+      message: `Transaction in group [${groupRef.id}] is complete. We deducted ${totalFrozen} ${groupData.currency} from your frozen funds, from which ${fee} is the escrow fee, and ${sellerAmount} is credited to the seller.`,
+      link: `/group-chat/${groupRef.id}`,
+      read: false,
+      createdAt: new Date(),
+    })
+
+    await addDoc(collection(db, "notifications"), {
+      userId: groupData.sellerUid,
+      message: `Transaction in group [${groupRef.id}] is complete. You have been credited with ${sellerAmount} ${groupData.currency}, while the escrow fee of ${fee} is deducted from the buyer's total freeze.`,
+      link: `/group-chat/${groupRef.id}`,
+      read: false,
+      createdAt: new Date(),
+    })
+
+    toast.success(`Seller credited with ${sellerAmount} ${groupData.currency}, fee ${fee}.`)
+  }
+
+  // Listen to group doc
   useEffect(() => {
     if (!groupId || !user) {
       router.push("/")
@@ -144,27 +232,21 @@ export default function GroupChatPage() {
       const participants = data.participants || []
       setParticipantsCount(participants.length)
 
-      // Identify buyer = participants[0], seller = participants[1]
+      let buyer = ""
+      let seller = ""
       if (participants.length > 0) {
-        let buyer = ""
-        let seller = ""
-
-        if (typeof participants[0] === "string") {
-          buyer = participants[0]
-        } else if (participants[0] && typeof participants[0] === "object") {
+        if (typeof participants[0] === "string") buyer = participants[0]
+        else if (participants[0] && typeof participants[0] === "object") {
           buyer = participants[0].uid
         }
         if (participants[1]) {
-          if (typeof participants[1] === "string") {
-            seller = participants[1]
-          } else if (participants[1] && typeof participants[1] === "object") {
+          if (typeof participants[1] === "string") seller = participants[1]
+          else if (participants[1] && typeof participants[1] === "object") {
             seller = participants[1].uid
           }
         }
         setBuyerUid(buyer)
         setSellerUid(seller)
-
-        // For display
         if (buyer) {
           const creatorSnap = await getDoc(doc(db, "users", buyer))
           if (creatorSnap.exists()) {
@@ -176,6 +258,8 @@ export default function GroupChatPage() {
             setCreatorName(buyer)
           }
         }
+        // Set group name using naming convention.
+        setGroupName(`Xcrow_${groupId.slice(0, 4)}`)
       }
 
       setItemDescription(data.itemDescription || "")
@@ -185,21 +269,17 @@ export default function GroupChatPage() {
       setTransactionType(data.transactionType || "")
       setCurrency(data.currency || "USD")
 
-      // Extract transactionStatus
       const ts = data.transactionStatus || {}
       setBuyerComplete(!!ts.buyerComplete)
       setSellerComplete(!!ts.sellerComplete)
       setInitiator(ts.initiator || null)
       setRejection(ts.rejection || null)
-
-      // Cancel fields
       setBuyerCancel(!!ts.buyerCancel)
       setSellerCancel(!!ts.sellerCancel)
       setCancelInitiator(ts.cancelInitiator || null)
       setCancelRejection(ts.cancelRejection || null)
     })
 
-    // Listen to messages
     const msgsRef = collection(db, "groups", groupId, "messages")
     const msgsQuery = query(msgsRef, orderBy("timestamp", "asc"))
     const unsubMsgs = onSnapshot(msgsQuery, (snapshot) => {
@@ -232,12 +312,10 @@ export default function GroupChatPage() {
     }
   }, [groupId])
 
-  // Scroll to bottom on messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  // Set isTyping doc
   useEffect(() => {
     if (!user?.uid) return
     const userTypingRef = doc(db, "groups", groupId, "typing", user.uid)
@@ -246,103 +324,19 @@ export default function GroupChatPage() {
       userId: user.uid,
       displayName: user.displayName || user.uid,
       isTyping,
-    }).catch(() => {
-      // no-op
-    })
+    }).catch(() => {})
   }, [newMessage, user?.uid, user?.displayName, groupId])
 
   const isBuyer = user?.uid === buyerUid
   const isSeller = user?.uid === sellerUid
 
-  /**
-   * Final step to pay the seller from the buyer's frozen amount.
-   * Called after both sides confirm. We do this only once.
-   */
-  const finalizePayout = async (groupRef: any, groupData: any) => {
-    try {
-      // If for some reason it's already complete, skip
-      if (groupData.status === "complete") {
-        return
-      }
-      // We expect groupData.frozenKesBalance or .frozenUsdBalance
-      const frozenKes = groupData.frozenKesBalance || 0
-      const frozenUsd = groupData.frozenUsdBalance || 0
-
-      const fee = groupData.escrowFee || 0
-
-      // The actual total frozen => sum of whichever currency
-      let totalFrozen = 0
-      let currencyKeyForSeller: "userKesBalance" | "userUsdBalance" = "userUsdBalance"
-      let currencyKeyForBuyerFrozen: "frozenUserKesBalance" | "frozenUserUsdBalance" =
-        "frozenUserUsdBalance"
-
-      if (groupData.currency === "KES") {
-        totalFrozen = frozenKes
-        currencyKeyForSeller = "userKesBalance"
-        currencyKeyForBuyerFrozen = "frozenUserKesBalance"
-      } else {
-        totalFrozen = frozenUsd
-        currencyKeyForSeller = "userUsdBalance"
-        currencyKeyForBuyerFrozen = "frozenUserUsdBalance"
-      }
-
-      // The seller gets totalFrozen - fee
-      const sellerAmount = totalFrozen - fee
-      if (sellerAmount < 0) {
-        // If fees are higher than the total, something is off
-        throw new Error("Escrow fee is higher than the frozen amount.")
-      }
-
-      // 1) Deduct from the buyer's frozen
-      const buyerDocRef = doc(db, "users", buyerUid)
-      const buyerSnap = await getDoc(buyerDocRef)
-      if (!buyerSnap.exists()) {
-        throw new Error("Buyer document not found.")
-      }
-      const buyerData = buyerSnap.data() || {}
-      const currentBuyerFrozen = buyerData[currencyKeyForBuyerFrozen] || 0
-      let newBuyerFrozen = currentBuyerFrozen - totalFrozen
-      if (newBuyerFrozen < 0) {
-        newBuyerFrozen = 0 // Avoid negative
-      }
-
-      // 2) Add to the seller's normal balance
-      const sellerDocRef = doc(db, "users", sellerUid)
-      const sellerSnap = await getDoc(sellerDocRef)
-      if (!sellerSnap.exists()) {
-        throw new Error("Seller document not found.")
-      }
-      const sellerData = sellerSnap.data() || {}
-      const currentSellerBalance = sellerData[currencyKeyForSeller] || 0
-      const newSellerBalance = currentSellerBalance + sellerAmount
-
-      // 3) Update buyer doc & seller doc
-      await updateDoc(buyerDocRef, {
-        [currencyKeyForBuyerFrozen]: newBuyerFrozen,
-      })
-      await updateDoc(sellerDocRef, {
-        [currencyKeyForSeller]: newSellerBalance,
-      })
-
-      // 4) Optionally, record platform's share if you track revenue
-      // E.g. totalFrozen - sellerAmount = fee, which is your escrow revenue.
-
-      toast.success(
-        `Seller credited with ${sellerAmount.toFixed(2)} ${groupData.currency}. Escrow fee: ${fee}`
-      )
-    } catch (err: any) {
-      toast.error("Failed to finalize payout: " + err.message)
-    }
-  }
-
-  // --------------------- COMPLETION watchers ---------------------
+  // Completion watchers
   useEffect(() => {
     if (status === "complete") {
       setShowPopup(false)
       setShowRejectionPopup(false)
       return
     }
-    // If there's a rejection => show RejectionPopup to initiator
     if (rejection) {
       if ((initiator === "buyer" && isBuyer) || (initiator === "seller" && isSeller)) {
         setShowRejectionPopup(true)
@@ -352,9 +346,6 @@ export default function GroupChatPage() {
     } else {
       setShowRejectionPopup(false)
     }
-
-    // Show completion popup if exactly one side is true, no rejection,
-    // and I'm the "other" side
     if (!rejection && status !== "complete") {
       if (buyerComplete && !sellerComplete && isSeller) {
         setPopupMsg("Buyer marked the order as completed. Do you agree?")
@@ -368,33 +359,26 @@ export default function GroupChatPage() {
     }
   }, [status, buyerComplete, sellerComplete, rejection, initiator, isBuyer, isSeller])
 
-  /**
-   * Called if user chooses "Agree" on the final completion popup
-   * -> both sides become true, we finalize payout, set status to "complete."
-   */
   const handleAgree = async () => {
     try {
       const groupRef = doc(db, "groups", groupId)
       const snap = await getDoc(groupRef)
       if (!snap.exists()) return
-
       const data = snap.data() || {}
       const ts = data.transactionStatus || {}
 
-      // Both sides
       ts.buyerComplete = true
       ts.sellerComplete = true
       ts.initiator = null
       ts.rejection = null
 
-      // First, finalize payout
+      // Finalize payout to seller and send notifications.
       await finalizePayout(groupRef, {
         ...data,
         buyerUid,
         sellerUid,
       })
 
-      // Then mark the doc as complete
       await updateDoc(groupRef, {
         transactionStatus: ts,
         status: "complete",
@@ -403,21 +387,19 @@ export default function GroupChatPage() {
       toast.success("Transaction is now COMPLETE.")
       setShowPopup(false)
     } catch (error: any) {
-      toast.error("Failed to complete transaction. " + error.message)
+      toast.error("Failed to set transaction as complete. " + error.message)
     }
   }
 
   const handleDisagree = async () => {
-    if (!user?.uid) return
     try {
+      if (!user?.uid) return
       const groupRef = doc(db, "groups", groupId)
       const snap = await getDoc(groupRef)
       if (!snap.exists()) return
-
       const data = snap.data() || {}
       const ts = data.transactionStatus || {}
 
-      // revert both sides
       ts.buyerComplete = false
       ts.sellerComplete = false
 
@@ -426,7 +408,6 @@ export default function GroupChatPage() {
       } else if (isSeller) {
         ts.rejection = { by: "seller", time: new Date().toISOString() }
       }
-
       await updateDoc(groupRef, { transactionStatus: ts })
       toast.info("You have disagreed. The request is removed.")
       setShowPopup(false)
@@ -440,11 +421,9 @@ export default function GroupChatPage() {
       const groupRef = doc(db, "groups", groupId)
       const snap = await getDoc(groupRef)
       if (!snap.exists()) return
-
       const data = snap.data() || {}
       const ts = data.transactionStatus || {}
       ts.rejection = null
-
       await updateDoc(groupRef, { transactionStatus: ts })
     } catch (err: any) {
       toast.error("Error clearing rejection: " + err.message)
@@ -453,15 +432,13 @@ export default function GroupChatPage() {
     }
   }
 
-  // --------------------- CANCEL watchers ---------------------
+  // Cancel watchers
   useEffect(() => {
     if (status === "cancelled" || status === "complete") {
       setShowCancelPopup(false)
       setShowCancelRejectionPopup(false)
       return
     }
-
-    // If there's a cancelRejection => show CancelRejectionPopup to the cancelInitiator
     if (cancelRejection) {
       if ((cancelInitiator === "buyer" && isBuyer) || (cancelInitiator === "seller" && isSeller)) {
         setShowCancelRejectionPopup(true)
@@ -471,8 +448,6 @@ export default function GroupChatPage() {
     } else {
       setShowCancelRejectionPopup(false)
     }
-
-    // Show the "CancelPopup" if exactly one side is true, no cancelRejection, and I'm the other side
     if (!cancelRejection) {
       if (buyerCancel && !sellerCancel && isSeller) {
         setCancelPopupMsg("Buyer wants to CANCEL the transaction. Do you agree?")
@@ -484,27 +459,16 @@ export default function GroupChatPage() {
         setShowCancelPopup(false)
       }
     }
-  }, [
-    status,
-    buyerCancel,
-    sellerCancel,
-    cancelInitiator,
-    cancelRejection,
-    isBuyer,
-    isSeller,
-  ])
+  }, [status, buyerCancel, sellerCancel, cancelInitiator, cancelRejection, isBuyer, isSeller])
 
-  // If user *agrees* to cancel
   const handleAgreeCancel = async () => {
     try {
       const groupRef = doc(db, "groups", groupId)
       const snap = await getDoc(groupRef)
       if (!snap.exists()) return
-
       const data = snap.data() || {}
       const ts = data.transactionStatus || {}
 
-      // Both sides = true => status="cancelled"
       ts.buyerCancel = true
       ts.sellerCancel = true
       ts.cancelInitiator = null
@@ -521,17 +485,14 @@ export default function GroupChatPage() {
     }
   }
 
-  // If user *disagrees* to cancel
   const handleDisagreeCancel = async () => {
     try {
       const groupRef = doc(db, "groups", groupId)
       const snap = await getDoc(groupRef)
       if (!snap.exists()) return
-
       const data = snap.data() || {}
       const ts = data.transactionStatus || {}
 
-      // Revert or clear out the request
       ts.buyerCancel = false
       ts.sellerCancel = false
 
@@ -541,10 +502,7 @@ export default function GroupChatPage() {
         ts.cancelRejection = { by: "seller", time: new Date().toISOString() }
       }
 
-      await updateDoc(groupRef, {
-        transactionStatus: ts,
-      })
-
+      await updateDoc(groupRef, { transactionStatus: ts })
       toast.info("You have disagreed. Cancel request is removed.")
       setShowCancelPopup(false)
     } catch (err: any) {
@@ -552,17 +510,14 @@ export default function GroupChatPage() {
     }
   }
 
-  // The initiator sees CancelRejectionPopup. Once they close => remove `cancelRejection`
   const handleCloseCancelRejectionPopup = async () => {
     try {
       const groupRef = doc(db, "groups", groupId)
       const snap = await getDoc(groupRef)
       if (!snap.exists()) return
-
       const data = snap.data() || {}
       const ts = data.transactionStatus || {}
       ts.cancelRejection = null
-
       await updateDoc(groupRef, { transactionStatus: ts })
     } catch (err: any) {
       toast.error("Error clearing cancelRejection: " + err.message)
@@ -571,8 +526,14 @@ export default function GroupChatPage() {
     }
   }
 
-  // --------------------- Chat input / messaging ---------------------
+  // Chat input disabled when status is complete or cancelled.
+  const isChatDisabled = status === "complete" || status === "cancelled"
+
   const handleSendMessage = async () => {
+    if (isChatDisabled) {
+      toast.warn("Chat is disabled because this transaction is " + status + ".")
+      return
+    }
     if ((!newMessage.trim() && !imageFile) || !user) return
     setIsSending(true)
     try {
@@ -587,7 +548,7 @@ export default function GroupChatPage() {
         senderId: user.uid,
         senderName: user.displayName || "Anonymous",
         content: newMessage.trim(),
-        imageURL, // null if no file
+        imageURL,
         timestamp: serverTimestamp(),
       })
       setNewMessage("")
@@ -609,24 +570,74 @@ export default function GroupChatPage() {
     (typingUser) => typingUser.userId !== user?.uid && typingUser.isTyping
   )
 
-  // --------------------- RENDER ---------------------
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-background">
-      {/* Desktop header */}
+      {/* NEW THIN HEADER: Back arrow, group name, hamburger menu */}
+      <div className="flex items-center justify-between p-2 border-b dark:border-gray-800 bg-gray-100 dark:bg-gray-900">
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push("/group-chat")}
+            className="mr-2 text-gray-900 dark:text-white"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <span className="text-sm font-semibold text-gray-900 dark:text-white">
+            {groupName}
+          </span>
+        </div>
+        <div className="md:hidden">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={mobileSidebarToggle}
+            className="text-lg text-gray-900 dark:text-white"
+          >
+            <RiMenuFoldFill className="w-6 h-6 text-lg" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Mobile sidebar overlay */}
+     {/* Mobile sidebar overlay */}
+     {showMobileSidebar && (
+        <MobileSidebarOverlay onClose={mobileSidebarToggle} />
+      )}
+
+      {/* Existing Desktop header */}
       <header className="bg-gray-100 dark:bg-gray-900 border-b dark:border-gray-800 p-4 hidden lg:block">
         <div className="grid grid-cols-3 gap-2">
           <Card className="p-2 flex flex-col items-center space-y-1">
-            <Badge className="bg-green-600 text-white text-xs flex items-center justify-center h-6">
-              Payment Confirmed
-            </Badge>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge className="bg-green-600 text-white text-xs flex items-center justify-center h-6">
+                    Payment Confirmed
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">This means we have confirmed the buyer's payment.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <EngageSupport buttonClass="text-xs h-6 flex items-center p-1" iconSize={16} />
           </Card>
 
           <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
             {status === "complete" ? (
-              <Badge className="bg-green-600 text-white text-xs flex items-center justify-center h-6">
-                Transaction Completed
-              </Badge>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge className="bg-green-600 text-white text-xs flex items-center justify-center h-6">
+                      Transaction Completed
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">You have both confirmed the transaction is complete.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             ) : (
               <CompleteTransaction
                 groupId={groupId}
@@ -636,9 +647,18 @@ export default function GroupChatPage() {
             )}
 
             {status === "cancelled" ? (
-              <Badge className="bg-red-600 text-white text-xs flex items-center justify-center h-6">
-                Transaction Cancelled
-              </Badge>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge className="bg-red-600 text-white text-xs flex items-center justify-center h-6">
+                      Transaction Cancelled
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Both parties agreed to cancel.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             ) : (
               <CancelTransaction
                 groupId={groupId}
@@ -671,9 +691,7 @@ export default function GroupChatPage() {
         message={popupMsg}
         onAgree={handleAgree}
         onDisagree={handleDisagree}
-        onClose={(val) => {
-          if (!val) setShowPopup(false)
-        }}
+        onClose={(val) => !val && setShowPopup(false)}
       />
       <RejectionPopup
         open={showRejectionPopup}
@@ -691,9 +709,7 @@ export default function GroupChatPage() {
         message={cancelPopupMsg}
         onAgree={handleAgreeCancel}
         onDisagree={handleDisagreeCancel}
-        onClose={(val) => {
-          if (!val) setShowCancelPopup(false)
-        }}
+        onClose={(val) => !val && setShowCancelPopup(false)}
       />
       <CancelRejectionPopup
         open={showCancelRejectionPopup}
@@ -705,7 +721,7 @@ export default function GroupChatPage() {
         onClose={handleCloseCancelRejectionPopup}
       />
 
-      {/* Mobile header */}
+      {/* Existing Mobile header */}
       <div className="md:hidden bg-white dark:bg-gray-900 border-b dark:border-gray-800">
         <Button
           variant="ghost"
@@ -870,6 +886,12 @@ export default function GroupChatPage() {
           </div>
         ))}
 
+        {isChatDisabled && (
+          <p className="text-red-500 text-xs mb-2">
+            Chat is disabled because this transaction is {status}.
+          </p>
+        )}
+
         <div className="flex flex-col space-y-2">
           {imagePreview && (
             <div className="relative inline-block">
@@ -910,7 +932,7 @@ export default function GroupChatPage() {
             <Button
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
-              disabled={isSending}
+              disabled={isSending || isChatDisabled}
               className="h-8 text-xs text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 hover:bg-orange-50 dark:hover:bg-gray-800 flex items-center"
             >
               <Paperclip className="w-3 h-3 mr-1" />
@@ -919,6 +941,7 @@ export default function GroupChatPage() {
               placeholder="Type your message..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
+              disabled={isChatDisabled}
               className="flex-grow resize-none bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs text-gray-900 dark:text-white"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -929,7 +952,7 @@ export default function GroupChatPage() {
             />
             <Button
               onClick={handleSendMessage}
-              disabled={isSending}
+              disabled={isSending || isChatDisabled}
               className="bg-emerald-500 hover:bg-orange-500 text-white h-8 text-xs flex items-center"
             >
               <Send className="w-3 h-3 mr-1" />
@@ -942,7 +965,6 @@ export default function GroupChatPage() {
   )
 }
 
-/** Small UI for "someone is typing" bubbles. */
 function TypingBubble() {
   return (
     <div className="flex items-center space-x-[2px]">

@@ -1,6 +1,5 @@
 //components/GroupSupport/CancelTransaction.tsx
 /* eslint-disable */
-
 "use client"
 
 import React, { useState } from "react"
@@ -21,6 +20,13 @@ import { useSelector } from "react-redux"
 import type { RootState } from "@/lib/stores/store"
 import { db } from "@/lib/firebaseConfig"
 import { doc, getDoc, updateDoc } from "firebase/firestore"
+
+import {
+  Tooltip,
+  TooltipProvider,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip"
 
 interface CancelTransactionProps extends ModalButtonProps {
   groupId: string
@@ -56,15 +62,7 @@ const CancelTransaction: React.FC<CancelTransactionProps> = ({
     }
 
     try {
-      // 1) Get group doc
-      // 2) Identify if the user is buyer or seller
-      // 3) If this is the first time (both buyerCancel & sellerCancel are false),
-      //    set cancelInitiator = "buyer"/"seller" & set that side's "cancel" to true, cancelRejection=null.
-      // 4) If it ends up both sides are true => status="cancelled"
       const groupRef = doc(db, "groups", groupId)
-      // In your real code, you likely pass `groupId` as a prop to CancelTransaction (like in CompleteTransaction).
-      // For example: const groupRef = doc(db, "groups", groupId);
-
       const snap = await getDoc(groupRef)
       if (!snap.exists()) {
         toast.error("Group not found.")
@@ -81,12 +79,15 @@ const CancelTransaction: React.FC<CancelTransactionProps> = ({
       // Identify buyer vs seller
       let buyerUid = ""
       let sellerUid = ""
-      if (typeof participants[0] === "string") buyerUid = participants[0]
-      else if (participants[0] && typeof participants[0] === "object") {
+
+      if (typeof participants[0] === "string") {
+        buyerUid = participants[0]
+      } else if (participants[0] && typeof participants[0] === "object") {
         buyerUid = participants[0].uid
       }
-      if (typeof participants[1] === "string") sellerUid = participants[1]
-      else if (participants[1] && typeof participants[1] === "object") {
+      if (typeof participants[1] === "string") {
+        sellerUid = participants[1]
+      } else if (participants[1] && typeof participants[1] === "object") {
         sellerUid = participants[1].uid
       }
 
@@ -147,52 +148,63 @@ const CancelTransaction: React.FC<CancelTransactionProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className={buttonClass}>
-          <XCircle style={{ width: iconSize, height: iconSize }} className="mr-1" />
-          Cancel Transaction
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Cancel Transaction</DialogTitle>
-          <DialogDescription>
-            Select a reason to request cancellation.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 mt-2">
-          <label className="block text-sm font-medium">Reason</label>
-          <select
-            className="border w-full p-2 rounded"
-            value={selectedReason}
-            onChange={(e) => setSelectedReason(e.target.value)}
-          >
-            <option value="">Select a reason</option>
-            <option value="Service Not Delivered">Service Not Delivered</option>
-            <option value="Delayed Delivery">Delayed Delivery</option>
-            <option value="Other">Other</option>
-          </select>
+      {/* Wrap with TooltipProvider -> Tooltip -> TooltipTrigger asChild -> DialogTrigger asChild -> Button */}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              <Button variant="outline" className={buttonClass}>
+                <XCircle style={{ width: iconSize, height: iconSize }} className="mr-1" />
+                Cancel Transaction
+              </Button>
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-xs">Use this button to cancel this transaction</p>
+          </TooltipContent>
 
-          <div className="flex items-center space-x-2 mt-2">
-            <input
-              type="checkbox"
-              id="confirmCancel"
-              checked={confirmCancel}
-              onChange={(e) => setConfirmCancel(e.target.checked)}
-            />
-            <label htmlFor="confirmCancel" className="text-sm">
-              I confirm that I want to cancel the transaction.
-            </label>
-          </div>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Cancel Transaction</DialogTitle>
+              <DialogDescription>
+                Select a reason to request cancellation.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 mt-2">
+              <label className="block text-sm font-medium">Reason</label>
+              <select
+                className="border w-full p-2 rounded"
+                value={selectedReason}
+                onChange={(e) => setSelectedReason(e.target.value)}
+              >
+                <option value="">Select a reason</option>
+                <option value="Service Not Delivered">Service Not Delivered</option>
+                <option value="Delayed Delivery">Delayed Delivery</option>
+                <option value="Other">Other</option>
+              </select>
 
-          <div className="flex justify-end space-x-2 mt-4">
-            <Button variant="outline" onClick={() => setIsOpen(false)}>
-              Close
-            </Button>
-            <Button onClick={handleCancel}>Submit</Button>
-          </div>
-        </div>
-      </DialogContent>
+              <div className="flex items-center space-x-2 mt-2">
+                <input
+                  type="checkbox"
+                  id="confirmCancel"
+                  checked={confirmCancel}
+                  onChange={(e) => setConfirmCancel(e.target.checked)}
+                />
+                <label htmlFor="confirmCancel" className="text-sm">
+                  I confirm that I want to cancel the transaction.
+                </label>
+              </div>
+
+              <div className="flex justify-end space-x-2 mt-4">
+                <Button variant="outline" onClick={() => setIsOpen(false)}>
+                  Close
+                </Button>
+                <Button onClick={handleCancel}>Submit</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Tooltip>
+      </TooltipProvider>
     </Dialog>
   )
 }
