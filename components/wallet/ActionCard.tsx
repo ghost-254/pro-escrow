@@ -1,5 +1,4 @@
 /* eslint-disable  */
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -25,6 +24,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getAuth } from "firebase/auth";
+import { db } from "@/lib/firebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
 
 interface ActionCardProps {
   type: "deposit" | "withdraw";
@@ -258,27 +259,36 @@ export function ActionCard({ type }: ActionCardProps) {
       setIsProcessing(false);
       return;
     }
+
     try {
-      const balanceRes = await fetch(`/api/user/getWalletBalance?uid=${currentUser.uid}`);
-      const balanceData = await balanceRes.json();
-      if (!balanceData.success) {
-        toast.error("Failed to retrieve wallet balance");
+      // Fetch user data from Firestore
+      const userRef = doc(db, "users", currentUser.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        toast.error("User not found in database");
         setIsProcessing(false);
         return;
       }
-      const availableKES = Number(balanceData.userKesBalance || 0);
+
+      const userData = userSnap.data();
+      const userEmail = userData.email;
+      if (!userEmail) {
+        toast.error("User email is missing in the database");
+        setIsProcessing(false);
+        return;
+      }
+
+      // Check user's KES balance
+      const availableKES = Number(userData.userKesBalance || 0);
       if (availableKES < Number(amount)) {
         toast.error("Withdrawal amount exceeds your available KES balance");
         setIsProcessing(false);
         return;
       }
-    } catch {
-      toast.error("Error checking wallet balance");
-      setIsProcessing(false);
-      return;
-    }
-    try {
-      const response = await fetch("/api/withdrawal", {
+
+      // Initiate Mpesa withdrawal
+      const response = await fetch("/api/withdrawals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -287,8 +297,10 @@ export function ActionCard({ type }: ActionCardProps) {
           phoneNumber,
           amount,
           uid: currentUser.uid,
+          email: userEmail, // Include the user's email in the request
         }),
       });
+
       const result = await response.json();
       if (response.ok && result.success) {
         toast.success("Withdrawal initiated successfully!");
@@ -297,6 +309,8 @@ export function ActionCard({ type }: ActionCardProps) {
       }
     } catch (err: any) {
       toast.error(err.message || "An error occurred during withdrawal");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -330,7 +344,9 @@ export function ActionCard({ type }: ActionCardProps) {
           {/* For Deposits */}
           {type === "deposit" && (
             <div className="space-y-2">
-              <Label htmlFor="amount">Amount ({method === "mpesa" ? "KES" : "USD"})</Label>
+              <Label htmlFor="amount">
+                Amount ({method === "mpesa" ? "KES" : "USD"})
+              </Label>
               <Input
                 id="amount"
                 placeholder={`Enter amount in ${method === "mpesa" ? "KES" : "USD"}`}
@@ -346,7 +362,9 @@ export function ActionCard({ type }: ActionCardProps) {
           {type === "withdraw" && (
             <div className="flex flex-col md:flex-row md:space-x-4 space-y-2 md:space-y-0">
               <div className="flex-1">
-                <Label htmlFor="amount">Amount ({method === "mpesa" ? "KES" : "USD"})</Label>
+                <Label htmlFor="amount">
+                  Amount ({method === "mpesa" ? "KES" : "USD"})
+                </Label>
                 <Input
                   id="amount"
                   placeholder={`Enter amount in ${method === "mpesa" ? "KES" : "USD"}`}
@@ -368,15 +386,30 @@ export function ActionCard({ type }: ActionCardProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">First Name</Label>
-                <Input id="firstName" placeholder="Enter your first name" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                <Input
+                  id="firstName"
+                  placeholder="Enter your first name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lastName">Last Name</Label>
-                <Input id="lastName" placeholder="Enter your last name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                <Input
+                  id="lastName"
+                  placeholder="Enter your last name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phoneNumber">Phone Number</Label>
-                <Input id="phoneNumber" placeholder="Enter your Safaricom phone number" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
+                <Input
+                  id="phoneNumber"
+                  placeholder="Enter your Safaricom phone number"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                />
                 <p className="text-xs text-muted-foreground">
                   Only Safaricom numbers are accepted for Mpesa withdrawals and deposits.
                 </p>
@@ -387,7 +420,12 @@ export function ActionCard({ type }: ActionCardProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="walletAddress">USDT Wallet Address</Label>
-                <Input id="walletAddress" placeholder="Enter your USDT wallet address" value={walletAddress} onChange={(e) => setWalletAddress(e.target.value)} />
+                <Input
+                  id="walletAddress"
+                  placeholder="Enter your USDT wallet address"
+                  value={walletAddress}
+                  onChange={(e) => setWalletAddress(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="cryptoNetwork">Network</Label>

@@ -1,49 +1,87 @@
 // app/api/transactions/route.ts
 /* eslint-disable */
 
-import { NextResponse } from "next/server"
-import { db } from "@/lib/firebaseConfig"
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore"
+import { NextResponse } from "next/server";
+import { db } from "@/lib/firebaseConfig";
+import { collection, query, where, getDocs } from "firebase/firestore";
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url)
-    const uid = searchParams.get("uid")
+    const { searchParams } = new URL(request.url);
+    const uid = searchParams.get("uid");
     if (!uid) {
-      return NextResponse.json({ success: false, error: "Missing uid" }, { status: 400 })
+      return NextResponse.json({ success: false, error: "Missing uid" }, { status: 400 });
     }
 
-    const q = query(
-      collection(db, "deposits"),
-      where("uid", "==", uid),
-      orderBy("createdAt", "desc")
-    )
+    // Query deposits and withdrawals for this uid.
+    const depositsQuery = query(collection(db, "deposits"), where("uid", "==", uid));
+    const withdrawalsQuery = query(collection(db, "withdrawals"), where("uid", "==", uid));
 
-    const querySnapshot = await getDocs(q)
-    const transactions = querySnapshot.docs.map((doc) => {
-      const data = doc.data()
-      const createdAt = data.createdAt?.toDate()
+    const [depositsSnapshot, withdrawalsSnapshot] = await Promise.all([
+      getDocs(depositsQuery),
+      getDocs(withdrawalsQuery),
+    ]);
 
-      return {
-        // Use first 5 letters of the document ID, prefixed with "Ref-"
-        ref: `Ref-${doc.id.slice(0, 5)}`,
-        type: data.transactionType || "Unknown",
+    const transactions: Array<{
+      ref: string;
+      type: string;
+      method: string;
+      amount: number;
+      date: string;
+      status: string;
+      currency: string;
+      fee: number;
+      netAmount: number;
+      timestamp: number;
+    }> = [];
+
+    // Map deposits to the common format.
+    depositsSnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      const createdAt = data.createdAt?.toDate();
+      transactions.push({
+        ref: `Ref-${docSnap.id.slice(0, 5)}`,
+        type: data.transactionType || "Deposit",
         method: data.method || "",
         amount: data.amount || 0,
         date: createdAt ? createdAt.toLocaleString() : "Unknown Date",
         status: data.status || "Unknown Status",
-        // Compute currency: if method is crypto then USD, else KES.
         currency: data.method === "crypto" ? "USD" : "KES",
         fee: data.fee || 0,
         netAmount: data.netAmount || 0,
-      }
-    })
+        timestamp: createdAt ? createdAt.getTime() : 0,
+      });
+    });
 
-    return NextResponse.json({ success: true, transactions })
+    // Map withdrawals to the common format.
+    withdrawalsSnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      const createdAt = data.createdAt?.toDate();
+      transactions.push({
+        ref: `Ref-${docSnap.id.slice(0, 5)}`,
+        type: data.transactionType || "Withdraw",
+        method: data.method || "",
+        amount: data.amount || 0,
+        date: createdAt ? createdAt.toLocaleString() : "Unknown Date",
+        status: data.status || "Unknown Status",
+        currency: data.method === "crypto" ? "USD" : "KES",
+        fee: data.fee || 0,
+        netAmount: data.netAmount || 0,
+        timestamp: createdAt ? createdAt.getTime() : 0,
+      });
+    });
+
+    // Sort all transactions by timestamp in descending order.
+    transactions.sort((a, b) => b.timestamp - a.timestamp);
+
+    // Remove the timestamp property before sending the response.
+    const finalTransactions = transactions.map(({ timestamp, ...rest }) => rest);
+
+    return NextResponse.json({ success: true, transactions: finalTransactions });
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message || "Internal Server Error" },
       { status: 500 }
-    )
+    );
   }
 }
