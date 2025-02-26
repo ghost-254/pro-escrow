@@ -1,30 +1,11 @@
+//app/api/payout/route.ts
 /* eslint-disable */
 
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebaseConfig"; // Adjust the import based on your Firebase setup
+import { db } from "@/lib/firebaseConfig";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import axios from "axios";
-import crypto from "crypto";
+import { callCryptomusPayoutApi } from "@/lib/cryptomusWithdrawal";
 
-const MERCHANT_ID = process.env.NEXT_SERVER_CRYPTOMUS_MERCHANT_ID;
-const API_KEY = process.env.NEXT_SERVER_CRYPTOMUS_PAYOUT_API_KEY;
-
-if (!MERCHANT_ID || !API_KEY) {
-  throw new Error("Cryptomus configuration missing");
-}
-
-/**
- * Generates the Cryptomus signature.
- */
-const generateSignature = (data: any) => {
-  const jsonData = JSON.stringify(data, Object.keys(data).sort());
-  const base64Data = Buffer.from(jsonData).toString("base64");
-  return crypto.createHash("md5").update(base64Data + API_KEY).digest("hex");
-};
-
-/**
- * Handles crypto withdrawals from USD balance.
- */
 export async function POST(request: Request) {
   try {
     const { uid, amount, currency, network, address, orderId } = await request.json();
@@ -37,7 +18,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if the user has sufficient USD balance
+    // 1. Check user and balance
     const userRef = doc(db, "users", uid);
     const userSnapshot = await getDoc(userRef);
     if (!userSnapshot.exists()) {
@@ -49,7 +30,6 @@ export async function POST(request: Request) {
 
     const userData = userSnapshot.data();
     const usdBalance = userData.userUsdBalance || 0;
-
     if (usdBalance < Number(amount)) {
       return NextResponse.json(
         { success: false, error: "Insufficient USD balance" },
@@ -57,46 +37,48 @@ export async function POST(request: Request) {
       );
     }
 
-    // Prepare the payout payload
+    // 2. Prepare payload for Cryptomus
     const payload = {
       amount: amount.toString(),
-      currency: "USD", // Withdraw from USD balance
-      to_currency: currency, // Target cryptocurrency (e.g., USDT, BTC)
-      network, // Blockchain network (e.g., TRON, ETH)
-      order_id: orderId, // Unique order ID
-      address, // Wallet address to receive the payout
-      url_callback: `${process.env.NEXT_PUBLIC_BASE_URL}/api/payout/webhook`, // Webhook URL
-      is_subtract: false, // Deduct fees from the balance
+      currency: "USD",
+      to_currency: "USDT", // We assume USDT
+      network,
+      order_id: orderId, // The unique order ID from Firestore
+      address,
+      url_callback: `${process.env.NEXT_PUBLIC_BASE_URL}/api/payout/webhook`,
+      is_subtract: false,
     };
 
-    // Generate the signature
-    const sign = generateSignature(payload);
+    // 3. Call Cryptomus Payout API
+    const cryptomusResponse = await callCryptomusPayoutApi("payout", payload);
 
-    // Send the payout request to Cryptomus
-    const response = await axios.post("https://api.cryptomus.com/v1/payout", payload, {
-      headers: {
-        merchant: MERCHANT_ID,
-        sign,
-        "Content-Type": "application/json",
-      },
-    });
+    // Log for debugging (remove in production)
+    console.log("Payout response from Cryptomus:", cryptomusResponse);
 
-    if (response.data.state !== 0) {
+    // 4. Handle Cryptomus response
+    if (cryptomusResponse.state !== 0) {
+      console.log("Payout failed with message:", cryptomusResponse.message);
       return NextResponse.json(
-        { success: false, error: response.data.message || "Payout creation failed" },
+        { success: false, error: "Your order failed to process" },
         { status: 400 }
       );
     }
 
-    // Update the user's USD balance in Firestore
+    // 5. Deduct from user's balance
     const newUsdBalance = usdBalance - Number(amount);
     await updateDoc(userRef, { userUsdBalance: newUsdBalance });
 
+    // 6. Update status of the withdrawal document
+    const withdrawalRef = doc(db, "withdrawals", orderId);
+    await updateDoc(withdrawalRef, { status: "processing" });
+
+    // 7. Return success
     return NextResponse.json({
       success: true,
-      payout: response.data.result,
+      payout: cryptomusResponse.result,
     });
   } catch (error: any) {
+    console.log("Error in payout processing:", error.message);
     return NextResponse.json(
       { success: false, error: error.message || "Payout processing failed" },
       { status: 500 }

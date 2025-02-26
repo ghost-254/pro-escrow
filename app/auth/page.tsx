@@ -35,12 +35,10 @@ import Typography from '@/components/ui/typography'
 import { cn } from '@/lib/utils'
 import Image from 'next/image'
 import { getTimeOfDay } from '@/lib/dateTime'
-import useWallet from 'hooks/useWallet'
 
 const logo = '/logo11xx.png'
 
 export default function AuthPage(): JSX.Element {
-  const { initializeUserWallet } = useWallet()
   
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin')
   const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -126,7 +124,7 @@ export default function AuthPage(): JSX.Element {
       await signInWithEmailAndPassword(auth, signInEmail, signInPassword)
       toast.success('Signed in successfully!')
       setTimeout(() => {
-        router.push('/')
+        router.push('/dashboard')
       }, 1500)
     } catch (error) {
       const errorMessage =
@@ -232,9 +230,6 @@ export default function AuthPage(): JSX.Element {
         email: signUpEmail,
         createdAt: new Date().toISOString(),
       })
-
-      // Create a wallet for the user
-      await initializeUserWallet(user.uid)
 
       toast.success('Account created successfully!')
       setIsDialogOpen(false)

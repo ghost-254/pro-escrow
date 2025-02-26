@@ -1,89 +1,29 @@
-'use client'
+import type React from "react"
+import { Inter } from "next/font/google"
+import { ThemeProvider } from "@/components/theme-provider"
+import "./globals.css"
+import type { Metadata } from "next"
 
-import { Inter } from 'next/font/google'
-import { ThemeProvider } from '@/components/theme-provider'
-import { Navigation } from '@/components/navigation'
-import { Sidebar } from '@/components/sidebar'
-import { ToastContainer } from 'react-toastify'
-import { Providers } from './global.redux/provider'
-import { RouteGuard } from '@/components/route-guard'
-import 'react-toastify/dist/ReactToastify.css'
-import './globals.css'
-import Head from 'next/head'
-import { metadata } from '@/lib/metadata'
-import { usePathname } from 'next/navigation'
-import { WalletProvider } from '../context/walletContext'
-import { TransactionProvider } from '../context/transactionContext'
-import { UserProvider } from '../context/userContext'
-import AuthProvider from '@/components/AuthProvider'
-import { Provider } from 'react-redux'
-import { persistor, store } from '@/lib/stores/store'
-import { PersistGate } from 'redux-persist/integration/react'
+const inter = Inter({ subsets: ["latin"] })
 
-const inter = Inter({ subsets: ['latin'] })
+export const metadata: Metadata = {
+  title: "Xcrow - Secure Escrow for Online Transactions",
+  description: "Xcrow brings buyers and sellers together in a safe, monitored environment for confident deals.",
+}
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  // We no longer hide or show elements based on route.
-  // If you want to do so, you can read the pathname:
-  usePathname()
-
   return (
     <html lang="en" suppressHydrationWarning>
-      <Head>
-        <title>{metadata.title as string}</title>
-        <meta name="description" content={metadata.description as string} />
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"
-        />
-      </Head>
-
-      <body className={`${inter.className} bg-background antialiased`}>
-        <Providers>
-          <Provider store={store}>
-            <PersistGate loading={null} persistor={persistor}>
-              <TransactionProvider>
-                <UserProvider>
-                  <WalletProvider>
-                    <AuthProvider>
-                      <ThemeProvider
-                        attribute="class"
-                        defaultTheme="dark"
-                        enableSystem={false}
-                        storageKey="escrow-theme"
-                      >
-                        <RouteGuard>
-                          {/* Header Nav always visible */}
-                          <Navigation />
-
-                          {/* Two-column layout without a footer */}
-                          <div className="flex h-screen">
-                            {/* Sidebar: hidden on mobile, scrollable */}
-                            <div className="hidden lg:flex lg:flex-col border-r bg-muted w-64 h-full overflow-y-auto">
-                              <Sidebar />
-                            </div>
-
-                            {/* Main content (scrollable) */}
-                            <div className="flex-1 h-full overflow-y-auto">
-                              {children}
-                            </div>
-                          </div>
-                        </RouteGuard>
-                      </ThemeProvider>
-                    </AuthProvider>
-                  </WalletProvider>
-                </UserProvider>
-              </TransactionProvider>
-            </PersistGate>
-          </Provider>
-
-          <ToastContainer position="bottom-right" theme="colored" />
-        </Providers>
+      <body className={inter.className}>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="escrow-theme">
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   )
 }
+

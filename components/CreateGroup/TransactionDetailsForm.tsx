@@ -37,7 +37,7 @@ function calculateEscrowFeeUSD(price: number): number {
 }
 
 function calculateEscrowFeeKES(price: number): number {
-  const conversionRate = 120
+  const conversionRate = 130
   if (price <= 5 * conversionRate) return 0
   else if (price <= 10 * conversionRate) return 1 * conversionRate
   else if (price <= 50 * conversionRate) return 3 * conversionRate

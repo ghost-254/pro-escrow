@@ -1,16 +1,32 @@
-/* eslint-disable */
+'use client'
 
-"use client"
-
-import { useState, useEffect } from "react"
-import { useTheme } from "next-themes"
-import { Button } from "@/components/ui/button"
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useSelector, useDispatch } from 'react-redux'
+import type { RootState } from '@/lib/stores/store'
+import { setUser } from '@/lib/slices/authSlice'
+import { auth } from '@/lib/firebaseConfig'
+import { onAuthStateChanged } from 'firebase/auth'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import {
+  ArrowRight,
+  DollarSign,
+  Users,
+  MessageCircle,
+  Check,
+} from 'lucide-react'
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { ArrowRight, Menu, Sun, Moon, Users, Shield, MessageCircle } from "lucide-react"
-import Link from "next/link"
-import { Footer } from "@/components/footer"
+import { useTheme } from 'next-themes'
+import Image from 'next/image'
 
 // Add this function at the top of your file, outside of the component
 function formatCurrency(amount: number, currency: "USD" | "KES"): string {
@@ -36,14 +52,13 @@ function calculateFee(amount: number, currency: "USD" | "KES"): number {
 }
 
 export default function Home() {
-  const [mounted, setMounted] = useState(false)
-  const { theme, setTheme } = useTheme()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const router = useRouter()
+  const dispatch = useDispatch()
+  const user = useSelector((state: RootState) => state.auth.user)
+  const { setTheme } = useTheme()
   const [calculatorCurrency, setCalculatorCurrency] = useState<"USD" | "KES">("USD")
   const [calculatorAmount, setCalculatorAmount] = useState<string>("")
   const [calculatedFee, setCalculatedFee] = useState<number | null>(null)
-
-  useEffect(() => setMounted(true), [])
 
   useEffect(() => {
     if (calculatorAmount) {
@@ -58,160 +73,115 @@ export default function Home() {
     }
   }, [calculatorAmount, calculatorCurrency])
 
-  if (!mounted) return null
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      dispatch(setUser(currentUser))
+    })
 
-  // Add this inside your component, before the return statement
-  const feeStructure = [
-    { range: "0 - 5", feeUSD: "0", feeKES: "0" },
-    { range: "5.01 - 10", feeUSD: "1", feeKES: "130" },
-    { range: "10.01 - 50", feeUSD: "3", feeKES: "390" },
-    { range: "50.01 - 80", feeUSD: "5", feeKES: "650" },
-    { range: "80.01 - 200", feeUSD: "10", feeKES: "1,300" },
-    { range: "200.01 - 500", feeUSD: "20", feeKES: "2,600" },
-    { range: "500.01 - 1,000", feeUSD: "50", feeKES: "6,500" },
-    { range: "1,000.01 - 2,000", feeUSD: "100", feeKES: "13,000" },
-    { range: "2,000.01+", feeUSD: "5%", feeKES: "5%" },
-  ]
+    return () => unsubscribe()
+  }, [dispatch])
+
+  const handleGetStarted = () => {
+    if (user) {
+      router.push('/dashboard/group-chat')
+    } else {
+      setTheme('light')
+
+      router.push('/auth')
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">
-      {/* Navigation */}
-      <header className="fixed w-full top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700">
-        <nav className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              Xcrow
-            </Link>
-
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-8">
-              <Button variant="outline" asChild>
-                <Link href="/dashboard">Dashboard</Link>
-              </Button>
-              <Button className="bg-purple-600 hover:bg-purple-700 text-white">
-                <Link href="/auth">Get Started</Link>
-              </Button>
-              <button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="p-2 rounded-full bg-gray-200 dark:bg-gray-700"
-              >
-                {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-              </button>
-            </div>
-
-            {/* Mobile menu button */}
-            <button
-              className="md:hidden text-gray-700 dark:text-gray-300"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+  
+      <div className="flex flex-col gap-12 pb-8">
+        {/* Hero Section with updated gradient */}
+        <section className="bg-gradient-to-r from-primary via-green-500 to-secondary text-white dark:from-primary-dark dark:via-green-700 dark:to-secondary-dark py-20">
+          <div className="container mx-auto text-center px-4">
+            <h1 className=" text-3xl md:text-4xl font-bold mb-5">
+              Secure Escrow for Online Transactions
+            </h1>
+            <p className="text-md mb-8">
+              Xcrow brings buyers and sellers together in a safe, monitored
+              environment for confident deals.
+            </p>
+            
+            <Button
+              onClick={handleGetStarted}
+              size="lg"
+              className="bg-white text-primary hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700"
             >
-              <Menu className="h-6 w-6" />
-            </button>
+              Create Xcrow Group-chat Now
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
           </div>
+        </section>
 
-          {/* Mobile Navigation */}
-          {mobileMenuOpen && (
-            <div className="md:hidden pt-4 pb-3 space-y-3">
-              <Button variant="outline" asChild className="w-full">
-                <Link href="/dashboard">Dashboard</Link>
-              </Button>
-              <Button className="bg-purple-600 hover:bg-purple-700 text-white w-full">
-                <Link href="/auth">Get Started</Link>
-              </Button>
-            </div>
-          )}
-        </nav>
-      </header>
-
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-6">
-        <div className="container mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white leading-tight">
-                Secure Escrow for
-                <span className="text-purple-600 dark:text-purple-400"> Online Transactions</span>
-              </h1>
-              <p className="text-lg text-gray-700 dark:text-gray-300 max-w-lg">
-                Xcrow brings buyers and sellers together in a safe, monitored environment for confident deals.
-              </p>
-              <div className="flex flex-wrap gap-4">
-              <Link href="/dashboard/create-group">
-                <Button size="lg" className="bg-purple-600 hover:bg-purple-700 text-white">
-                    Create Xcrow Group
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-              <Link href="/dashboard">
-                <Button size="lg" variant="outline">
-                   Learn More 
-                </Button>
-              </Link>
-              </div>
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-green-400 rounded-2xl transform rotate-3 scale-105 opacity-20 dark:opacity-10"></div>
-              <div className="relative bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl">
-                <h3 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">How Xcrow Works</h3>
-                <ul className="space-y-4">
-                  <li className="flex items-center space-x-3">
-                    <Users className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                    <span className="text-gray-700 dark:text-gray-300">Connect with buyers or sellers from online marketplaces (Facebook, Twitter, WhatsApp, & Telegram etc.)</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                    <Shield className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                    <span className="text-gray-700 dark:text-gray-300">Bring them to Xcrow to secure funds</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                    <MessageCircle className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                    <span className="text-gray-700 dark:text-gray-300">Communicate safely in monitored chats</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                    <ArrowRight className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                    <span className="text-gray-700 dark:text-gray-300">Complete transaction with confidence</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-20 px-6 bg-gray-100 dark:bg-gray-800">
-        <div className="container mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-900 dark:text-white">
-            Why Choose <span className="text-purple-600 dark:text-purple-400">Xcrow</span>
+        {/* How It Works Section - Updated to reflect the new process */}
+        <section className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-10">
+            How Xcrow Works
           </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                title: "Secure Transactions",
-                icon: Shield,
-                description: "Your funds are protected throughout the entire process.",
-              },
-              {
-                title: "Monitored Communication",
-                icon: MessageCircle,
-                description: "Chat safely within our monitored escrow groups.",
-              },
-              {
-                title: "User-Friendly Platform",
-                icon: Users,
-                description: "Easy-to-use interface for smooth transactions.",
-              },
-            ].map((feature, index) => (
-              <div key={index} className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-md">
-                <feature.icon className="h-12 w-12 text-purple-600 dark:text-purple-400 mb-4" />
-                <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">{feature.title}</h3>
-                <p className="text-gray-700 dark:text-gray-300">{feature.description}</p>
-              </div>
-            ))}
+          <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-[1rem]">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Users className="mr-2 h-6 w-6 text-primary" />
+                  1. Connect
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                  Buyer and seller join a Xcrow group to discuss and agree on
+                  terms.
+                </CardDescription>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <DollarSign className="mr-2 h-6 w-6 text-primary" />
+                  2. Deposit
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                  Buyer makes a deposit to Xcrow, which is held securely in
+                  escrow.
+                </CardDescription>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <MessageCircle className="mr-2 h-6 w-6 text-primary" />
+                  3. Deliver & Communicate
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                  Seller delivers the service. Both parties communicate in the
+                  monitored Xcrow group chat.
+                </CardDescription>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Check className="mr-2 h-6 w-6 text-primary" />
+                  4. Confirm & Release
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                  Both parties confirm satisfaction. Xcrow releases the payment
+                  to the seller.
+                </CardDescription>
+              </CardContent>
+            </Card>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Fees & Payment Methods Section */}
+         {/* Fees & Payment Methods Section */}
       <section className="py-20 px-6 bg-white dark:bg-gray-900">
         <div className="container mx-auto">
           <div className="text-center mb-12">
@@ -283,10 +253,12 @@ export default function Home() {
                 {/* M-PESA Payments */}
                 <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-shadow">
                   <div className="w-32 h-16 mx-auto mb-4 relative">
-                    <img
+                    <Image
                       src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/mpesa-logo-UOM7KIBywOrvuJudP1Znke4JlRthXT.png"
                       alt="M-PESA"
                       className="w-full h-full object-contain"
+                      width={100}
+                      height={100}
                     />
                   </div>
                   <h4 className="font-semibold text-gray-900 dark:text-white mb-2">M-PESA</h4>
@@ -340,27 +312,82 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-6">
-        <div className="container mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900 dark:text-white">
+        {/* Benefits Section */}
+        <section className="bg-muted dark:bg-gray-800 py-14">
+          <div className="container mx-auto px-4">
+            <h2 className="text-3xl font-bold text-center mb-10">
+              Why Choose Xcrow
+            </h2>
+            <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-[1rem]">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Secure Transactions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>
+                    Our escrow service ensures that funds are only released when
+                    both parties are satisfied, protecting both buyers and
+                    sellers throughout the process.
+                  </CardDescription>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Monitored Group Chats</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>
+                    Communicate safely within our monitored Xcrow group chats,
+                    ensuring transparency and reducing the risk of disputes.
+                  </CardDescription>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Dispute Resolution</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>
+                    In case of disagreements, our team provides fair and
+                    efficient dispute resolution based on the monitored chat
+                    history and transaction details.
+                  </CardDescription>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Flexible Service Escrow</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>
+                    Perfect for service-based transactions, our platform allows
+                    for clear communication, milestone tracking, and secure
+                    payment release upon mutual confirmation.
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="container mx-auto text-center px-4 pb-8 mb-5">
+          <h2 className="text-3xl font-bold mb-6">
             Ready to Transact with Confidence?
           </h2>
-          <p className="text-lg text-gray-700 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
-            Join Xcrow today and experience secure, monitored service transactions.
+          <p className="text-ms mb-8">
+            Join Xcrow today and experience secure, monitored service
+            transactions.
           </p>
-          <Link href="/auth">
-            <Button size="lg" className="bg-purple-600 hover:bg-purple-700 text-white">
-              Get Started Now
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </Link>
-        </div>
-      </section>
-
-      {/* Footer Section */}
-      <Footer />
-    </div>
+          <Button
+            onClick={handleGetStarted}
+            size="lg"
+            className="bg-primary text-white hover:bg-primary/90 dark:bg-primary-dark dark:hover:bg-primary-dark/90"
+          >
+            {user ? 'Create Xcrow Group' : 'Sign Up Now'}
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </Button>
+        </section>
+      </div>
   )
 }
-

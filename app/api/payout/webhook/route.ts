@@ -1,3 +1,5 @@
+//app/api/payout/webhook.route.ts
+
 /* eslint-disable */
 
 import { NextResponse } from "next/server";
@@ -58,14 +60,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // Process the payout status
-    const payoutRef = doc(db, "payouts", order_id);
+    // Process the payout status using the withdrawal document
+    const withdrawalRef = doc(db, "withdrawals", order_id);
     if (status === "paid") {
-      await updateDoc(payoutRef, { status: "paid" });
-      return NextResponse.json({ success: true, message: "Payout marked as paid" });
+      await updateDoc(withdrawalRef, { status: "paid" });
+      return NextResponse.json({ success: true, message: "Withdrawal marked as paid" });
     } else if (status === "fail") {
-      await updateDoc(payoutRef, { status: "failed" });
-      return NextResponse.json({ success: true, message: "Payout marked as failed" });
+      await updateDoc(withdrawalRef, { status: "failed" });
+      return NextResponse.json({ success: true, message: "Withdrawal marked as failed" });
     }
 
     // For other statuses, simply acknowledge receipt

@@ -99,10 +99,10 @@ export function UserMenu() {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={() => router.push("/profile")}>
+        <DropdownMenuItem onSelect={() => router.push("/dashboard/profile")}>
           Profile
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => router.push("/settings")}>
+        <DropdownMenuItem onSelect={() => router.push("/dashboard/settings")}>
           Settings
         </DropdownMenuItem>
         <DropdownMenuSeparator />

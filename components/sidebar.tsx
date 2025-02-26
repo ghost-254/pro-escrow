@@ -158,7 +158,7 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
             </div>
           )}
 
-          <Link href="/create-group">
+          <Link href="/dashboard/create-group">
             <Button
               onClick={handleShowTransactModal}
               className="w-full justify-start bg-primary text-white hover:bg-primary/90"
@@ -177,15 +177,15 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
               MAIN MENU
             </h4>
             <nav className="space-y-1 flex flex-col gap-[0.3rem]">
-              <MenuItem href="/" icon={Home} label="Dashboard" />
+              <MenuItem href="/dashboard" icon={Home} label="Dashboard" />
               <MenuItem
-                href="/group-chat"
+                href="/dashboard/group-chat"
                 icon={Users}
                 label="Group Chats"
                 showNewBadge
               />
               <MenuItem
-                href="/notifications"
+                href="/dashboard/notifications"
                 icon={Bell}
                 label="Notifications"
                 isNotifications
@@ -199,9 +199,9 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
               ESCROW SERVICES
             </h4>
             <nav className="space-y-1 flex flex-col gap-[0.3rem]">
-              <MenuItem href="/orders" icon={Shield} label="Active Escrows" />
-              <MenuItem href="/completed" icon={BadgeCheck} label="Completed" />
-              <MenuItem href="/disputes" icon={AlertCircle} label="Disputes" />
+              <MenuItem href="/dashboard/orders" icon={Shield} label="Active Escrows" />
+              <MenuItem href="/dashboard/completed" icon={BadgeCheck} label="Completed" />
+              <MenuItem href="/dashboard/disputes" icon={AlertCircle} label="Disputes" />
             </nav>
           </div>
           */}
@@ -212,9 +212,9 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
               ACCOUNT
             </h4>
             <nav className="space-y-1">
-              <MenuItem href="/profile" icon={User} label="Profile" />
-              <MenuItem href="/wallet" icon={Wallet} label="My Wallet" />
-              <MenuItem href="/support" icon={HelpCircle} label="Support" />
+              <MenuItem href="/dashboard/profile" icon={User} label="Profile" />
+              <MenuItem href="/dashboard/wallet" icon={Wallet} label="My Wallet" />
+              <MenuItem href="/dashboard/support" icon={HelpCircle} label="Support" />
             </nav>
           </div>
         </div>

@@ -22,19 +22,13 @@ export function Navigation() {
   const { theme, setTheme } = useTheme()
 
   const handleChangetheme = () => {
-    setTheme('light') //when navigating to login make it light
+    setTheme('light')
   }
 
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
     setMounted(true)
   }, [])
-
-  const handleInteraction = () => {
-    if (!user) {
-      router.push('/auth')
-    }
-  }
 
   // If you want to prevent a flash of the wrong logo on initial load:
   if (!mounted) {
@@ -71,16 +65,16 @@ export function Navigation() {
           <Button
             variant="ghost"
             className="text-primary  hover:text-primary-foreground hover:text-white hover:bg-primary hidden lg:inline-flex"
-            onClick={handleInteraction}
+            onClick= {() => router.push('/')}
           >
-            Sell
+            Home
           </Button>
           <Button
             variant="ghost"
             className="hover:text-secondary-foreground text-secondary hover:text-white hover:bg-secondary hidden lg:inline-flex"
-            onClick={handleInteraction}
+            onClick= {() => router.push('/dashbaord/#pricing')}
           >
-            Buy
+            Pricing
           </Button>
 
           {/* Theme Toggle */}

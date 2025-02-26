@@ -1,3 +1,5 @@
+//components/wallet/ActionCard.tsx
+
 /* eslint-disable  */
 "use client";
 
@@ -25,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { getAuth } from "firebase/auth";
 import { db } from "@/lib/firebaseConfig";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, addDoc, collection } from "firebase/firestore";
 
 interface ActionCardProps {
   type: "deposit" | "withdraw";
@@ -184,7 +186,7 @@ export function ActionCard({ type }: ActionCardProps) {
    */
   const handleCryptoWithdrawal = async (currentUser: any) => {
     // Validate minimum withdrawal amount
-    if (Number(amount) < 10) {
+    if (Number(amount) < 3) {
       toast.error("Minimum crypto withdrawal is 10 USD");
       setIsProcessing(false);
       return;
@@ -214,16 +216,30 @@ export function ActionCard({ type }: ActionCardProps) {
         return;
       }
 
-      // Initiate crypto withdrawal
+      // Create a withdrawal document in Firestore
+      const withdrawalDocRef = await addDoc(collection(db, "withdrawals"), {
+        uid: currentUser.uid,
+        amount: Number(amount),
+        currency: "USD",
+        method: "Crypto",
+        walletAddress,
+        cryptoNetwork,
+        status: "pending",
+        createdAt: new Date(),
+      });
+      const orderId = withdrawalDocRef.id;
+
+      // Initiate crypto withdrawal with the generated order ID
       const response = await fetch("/api/payout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           uid: currentUser.uid,
           amount,
+          currency: "USD",
           network: cryptoNetwork,
           address: walletAddress,
-          orderId: `withdrawal_${Date.now()}`, // Unique order ID
+          orderId: orderId,
         }),
       });
       const result = await response.json();
@@ -297,7 +313,7 @@ export function ActionCard({ type }: ActionCardProps) {
           phoneNumber,
           amount,
           uid: currentUser.uid,
-          email: userEmail, // Include the user's email in the request
+          email: userEmail,
         }),
       });
 
