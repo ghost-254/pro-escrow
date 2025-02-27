@@ -1,9 +1,12 @@
+//app/auth/page.tsx
+
 'use client'
 
 import React, { useState, useEffect, FormEvent, JSX } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-toastify'
+import "react-toastify/dist/ReactToastify.css"
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -35,11 +38,16 @@ import Typography from '@/components/ui/typography'
 import { cn } from '@/lib/utils'
 import Image from 'next/image'
 import { getTimeOfDay } from '@/lib/dateTime'
-
-const logo = '/logo11xx.png'
+import { useTheme } from 'next-themes'
 
 export default function AuthPage(): JSX.Element {
-  
+  const { theme } = useTheme()
+  // Decide which logo to show based on the current theme
+  const logoSrc =
+    theme === 'dark'
+      ? '/logo11X.png' // Dark mode logo
+      : '/logo11xx.png' // Light mode logo
+
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin')
   const [isLoading, setIsLoading] = useState<boolean>(false)
 
@@ -133,6 +141,8 @@ export default function AuthPage(): JSX.Element {
       setIsLoading(false)
     }
   }
+
+
 
   // ----------------- SIGN UP LOGIC -----------------
   const validateSignUpForm = (): boolean => {
@@ -234,7 +244,7 @@ export default function AuthPage(): JSX.Element {
       toast.success('Account created successfully!')
       setIsDialogOpen(false)
       setTimeout(() => {
-        router.push('/')
+        router.push('/dashboard')
       }, 1500)
     } catch (error) {
       const errorMessage =
@@ -250,31 +260,24 @@ export default function AuthPage(): JSX.Element {
   }, [password])
 
   return (
-    <div
-      className="flex flex-col items-center justify-center"
-      style={{
-        minHeight: '100vh',
-        background: '#f5f5f5',
-        overflowY: 'auto',
-      }}
-    >
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 overflow-y-auto flex flex-col items-center justify-center py-8">
       {/* Logo / Brand */}
-      <div className="flex items-center space-x-2 py-[1rem] ">
+      <div className="flex items-center space-x-2 py-4">
         <Image
-          src={logo}
-          alt="Platform Logo"
+          src={logoSrc}
+          alt="Xcrow Logo"
           width={90}
           height={90}
           className="object-contain"
           priority
         />
       </div>
-      <Card className="w-[96%] md:max-w-md bg-white shadow-lg border-0">
+      <Card className="w-[96%] md:max-w-md bg-white dark:bg-gray-800 shadow-lg border-0">
         <CardHeader>
-          <Typography variant="h1" className="font-bold text-gray-600">
+          <Typography variant="h1" className="font-bold text-gray-600 dark:text-gray-200">
             {activeTab === 'signin' ? 'Welcome Back!' : 'Join Xcrow Today!'}
           </Typography>
-          <CardDescription>
+          <CardDescription className="text-gray-500 dark:text-gray-300">
             {activeTab === 'signin'
               ? `Good ${getTimeOfDay()} 👋, sign in to your account`
               : `Good ${getTimeOfDay()} 👋, create an account to get started`}
@@ -287,7 +290,7 @@ export default function AuthPage(): JSX.Element {
             onValueChange={(val) => setActiveTab(val as 'signin' | 'signup')}
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-2 bg-gray-50 font-bold rounded-lg shadow-sm">
+            <TabsList className="grid w-full grid-cols-2 bg-gray-50 dark:bg-gray-700 font-bold rounded-lg shadow-sm">
               <TabsTrigger
                 value="signin"
                 className={cn(
@@ -311,7 +314,7 @@ export default function AuthPage(): JSX.Element {
             {/* ------------ SIGN IN ------------- */}
             <TabsContent value="signin">
               <form onSubmit={handleSignInSubmit}>
-                <div className="md:space-y-4 space-y-2 ">
+                <div className="md:space-y-4 space-y-2">
                   <Input
                     id="signinEmail"
                     placeholder="Email"
@@ -346,20 +349,21 @@ export default function AuthPage(): JSX.Element {
                     <button
                       type="button"
                       onClick={handleToggleShowPassword}
-                      className="absolute right-2 top-[0.3rem] md:top-[-0.2rem] lg:top-[-0.2rem] text-gray-400
-                        dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100"
+                      className="absolute right-2 top-[0.3rem] text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100"
                     >
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
 
                   <div className="w-full text-end">
+                    <Link href='/password-reset'>
                     <Typography
                       variant="span"
-                      className="text-primary cursor-pointer hover:opacity-[0.77]"
+                      className="text-primary cursor-pointer hover:opacity-80"
                     >
                       Forgot password?
                     </Typography>
+                    </Link>
                   </div>
 
                   <Button
@@ -456,8 +460,7 @@ export default function AuthPage(): JSX.Element {
                     <button
                       type="button"
                       onClick={handleToggleShowPassword}
-                      className="absolute right-2 top-[0.8rem] text-gray-400
-                        dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100"
+                      className="absolute right-2 top-[0.8rem] text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100"
                     >
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
@@ -520,14 +523,9 @@ export default function AuthPage(): JSX.Element {
                     <button
                       type="button"
                       onClick={handleToggleShowConfirmPassword}
-                      className="absolute right-2 top-[0.8rem] text-gray-400
-                        dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100"
+                      className="absolute right-2 top-[0.8rem] text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100"
                     >
-                      {showConfirmPassword ? (
-                        <EyeOff size={20} />
-                      ) : (
-                        <Eye size={20} />
-                      )}
+                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
 
@@ -536,9 +534,8 @@ export default function AuthPage(): JSX.Element {
                     <Checkbox
                       id="terms"
                       required
-                      className="w-[1.5rem h-[1.5rem]"
+                      className="w-[1.5rem] h-[1.5rem]"
                     />
-
                     <label
                       htmlFor="terms"
                       className="text-sm text-gray-500 dark:text-gray-400"
@@ -574,8 +571,7 @@ export default function AuthPage(): JSX.Element {
           <DialogHeader>
             <DialogTitle>Confirm Your Details</DialogTitle>
             <DialogDescription className="dark:text-gray-300">
-              Please verify all information is correct before creating your
-              account.
+              Please verify all information is correct before creating your account.
             </DialogDescription>
           </DialogHeader>
 
@@ -597,7 +593,6 @@ export default function AuthPage(): JSX.Element {
           <div className="flex items-center space-x-2 mt-2">
             <Checkbox
               id="confirmCheck"
-              // Type for onCheckedChange: (checked: boolean | "indeterminate") => void
               onChange={(e) => setConfirmCheck(e.target.checked)}
             />
             <Label

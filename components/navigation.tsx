@@ -19,11 +19,7 @@ export function Navigation() {
   const router = useRouter()
 
   // This helps avoid a "theme flash" or SSR mismatch:
-  const { theme, setTheme } = useTheme()
-
-  const handleChangetheme = () => {
-    setTheme('light')
-  }
+  const { theme } = useTheme()
 
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
@@ -86,7 +82,6 @@ export function Navigation() {
           ) : (
             <Link href="/auth">
               <Button
-                onClick={handleChangetheme}
                 className="bg-accent text-accent-foreground hover:bg-accent/90"
               >
                 Sign In

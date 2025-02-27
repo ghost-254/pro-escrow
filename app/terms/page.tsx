@@ -12,8 +12,8 @@ import { GoBackButton } from '@/components/GoBackButton'
 
 export default function TermsOfService() {
   return (
-    <ScrollArea className="h-[calc(100vh-4rem)] w-full mr-8 ml-8">
-      <div className="container w-full px-4">
+    <ScrollArea className="h-[calc(100vh-4rem)] w-full">
+      <div className="container max-w-4xl py-6 md:py-12 px-4">
         <div className="mb-8 space-y-2">
           <div className="flex items-center gap-[1rem]">
             <GoBackButton/>

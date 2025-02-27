@@ -1,5 +1,4 @@
 // components/AuthProvider.tsx
-
 "use client"
 
 import React, { useEffect } from "react"
@@ -12,10 +11,10 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const dispatch = useDispatch()
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
         // Check token expiration
-        const tokenResult = await getIdTokenResult(user)
+        const tokenResult = await getIdTokenResult(firebaseUser)
         const expirationTime = new Date(tokenResult.expirationTime).getTime()
         const currentTime = Date.now()
 
@@ -24,8 +23,19 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           await auth.signOut()
           dispatch(setUser(null))
         } else {
-          // Token is valid, set the user
-          dispatch(setUser(user))
+          // Token is valid, map Firebase User to SerializableUser
+          const serializableUser = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            photoURL: firebaseUser.photoURL,
+            emailVerified: firebaseUser.emailVerified,
+            userUsdBalance: 0, // Default value
+            userKesBalance: 0, // Default value
+            frozenUserUsdBalance: 0, // Default value
+            frozenUserKesBalance: 0, // Default value
+          }
+          dispatch(setUser(serializableUser))
         }
       } else {
         // User is signed out

@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
       'avatars.mds.yandex.net',
       'firebasestorage.googleapis.com',
       'encrypted-tbn0.gstatic.com',
+      'hebbkx1anhila5yf.public.blob.vercel-storage.com',
     ], // Added Firebase Storage domain
   },
 }

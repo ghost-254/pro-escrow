@@ -1,4 +1,4 @@
-// services/firebaseService.ts
+// services/userService.ts
 import {
   collection,
   getDocs,
@@ -65,4 +65,3 @@ export const loginUser = async (email: string, password: string) => {
 export const logoutUser = async (): Promise<void> => {
   await signOut(auth)
 }
-//
