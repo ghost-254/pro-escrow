@@ -7,14 +7,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { auth } from '@/lib/firebaseConfig'
 import { sendPasswordResetEmail } from 'firebase/auth'
-import { useTheme } from 'next-themes'
 
 export default function PasswordResetPage(): JSX.Element {
   const [email, setEmail] = useState('')
   const [emailError, setEmailError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const { theme } = useTheme()
 
   // Simple email validation function.
   const validateEmail = (email: string): string => {

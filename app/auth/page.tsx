@@ -142,8 +142,6 @@ export default function AuthPage(): JSX.Element {
     }
   }
 
-
-
   // ----------------- SIGN UP LOGIC -----------------
   const validateSignUpForm = (): boolean => {
     let valid = true

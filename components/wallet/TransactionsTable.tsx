@@ -2,56 +2,71 @@
 
 /* eslint-disable */
 
-"use client"
+"use client";
 
-import { useState, useEffect, useMemo } from "react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { ChevronDown, ChevronUp } from "lucide-react"
-import type { Transaction } from "@/../types/wallet"
-import { getAuth } from "firebase/auth"
-import { toast } from "react-toastify"
-
+import { useState, useEffect, useMemo } from "react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import type { Transaction } from "@/../types/wallet";
+import { getAuth } from "firebase/auth";
+import { toast } from "react-toastify";
 
 export function TransactionsTable({ searchTerm, filter }: { searchTerm: string; filter: string }) {
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [showAll, setShowAll] = useState(false)
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [showAll, setShowAll] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      const auth = getAuth()
-      const currentUser = auth.currentUser
-      if (currentUser) {
-        try {
-          const res = await fetch(`/api/transactions?uid=${currentUser.uid}`)
-          const data = await res.json()
-          if (data.success) {
-            setTransactions(data.transactions)
-          } else {
-            toast.error("Failed to fetch transactions")
-          }
-        } catch {
+  const fetchTransactions = async () => {
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      try {
+        const res = await fetch(`/api/transactions?uid=${currentUser.uid}`);
+        const data = await res.json();
+        if (data.success) {
+          setTransactions(data.transactions);
+        } else {
+          toast.error("Failed to fetch transactions");
         }
+      } catch (error) {
+        toast.error("An error occurred while fetching transactions");
+      } finally {
+        setIsRefreshing(false);
       }
     }
-    fetchTransactions()
-  }, [])
+  };
+
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchTransactions();
+  };
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((transaction) => {
       const matchesSearch = Object.values(transaction).some(
         (value) => typeof value === "string" && value.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-      const matchesFilter = filter === "all" || transaction.type.toLowerCase() === filter.toLowerCase()
-      return matchesSearch && matchesFilter
-    })
-  }, [transactions, searchTerm, filter])
+      );
+      const matchesFilter = filter === "all" || transaction.type.toLowerCase() === filter.toLowerCase();
+      return matchesSearch && matchesFilter;
+    });
+  }, [transactions, searchTerm, filter]);
 
-  const displayedTransactions = showAll ? filteredTransactions : filteredTransactions.slice(0, 10)
+  const displayedTransactions = showAll ? filteredTransactions : filteredTransactions.slice(0, 10);
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
+      </div>
       <div className="rounded-md border max-h-[400px] overflow-auto">
         <Table>
           <TableHeader className="sticky top-0 bg-background z-10">
@@ -108,5 +123,5 @@ export function TransactionsTable({ searchTerm, filter }: { searchTerm: string; 
         </Button>
       )}
     </div>
-  )
+  );
 }

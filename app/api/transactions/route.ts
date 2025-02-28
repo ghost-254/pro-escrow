@@ -39,13 +39,14 @@ export async function GET(request: Request) {
     depositsSnapshot.forEach((docSnap) => {
       const data = docSnap.data();
       const createdAt = data.createdAt?.toDate();
+      const status = data.status === "paid" || data.status === "paid_over" ? "Completed" : data.status;
       transactions.push({
         ref: `Ref-${docSnap.id.slice(0, 5)}`,
         type: data.transactionType || "Deposit",
         method: data.method || "",
         amount: data.amount || 0,
         date: createdAt ? createdAt.toLocaleString() : "Unknown Date",
-        status: data.status || "Unknown Status",
+        status,
         currency: data.method === "crypto" ? "USD" : "KES",
         fee: data.fee || 0,
         netAmount: data.netAmount || 0,
@@ -57,14 +58,15 @@ export async function GET(request: Request) {
     withdrawalsSnapshot.forEach((docSnap) => {
       const data = docSnap.data();
       const createdAt = data.createdAt?.toDate();
+      const status = data.status === "paid" || data.status === "paid_over" ? "Completed" : data.status;
       transactions.push({
         ref: `Ref-${docSnap.id.slice(0, 5)}`,
         type: data.transactionType || "Withdraw",
         method: data.method || "",
         amount: data.amount || 0,
         date: createdAt ? createdAt.toLocaleString() : "Unknown Date",
-        status: data.status || "Unknown Status",
-        currency: data.method === "crypto" ? "USD" : "KES",
+        status,
+        currency: data.method === "Crypto" ? "USD" : "KES",
         fee: data.fee || 0,
         netAmount: data.netAmount || 0,
         timestamp: createdAt ? createdAt.getTime() : 0,

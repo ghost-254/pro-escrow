@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RefreshCw, Wallet, ArrowUpCircle, ArrowDownCircle, BarChart2, Search } from "lucide-react"
 import { ActionCard } from "@/components/wallet/ActionCard"
-import { AnalyticsChart } from "@/components/wallet/AnalyticsChart"
 import { TransactionsTable } from "@/components/wallet/TransactionsTable"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -60,17 +59,6 @@ export default function WalletPage() {
         }
       } catch {
         toast.error("Failed to fetch transactions")
-      }
-
-      try {
-        // Fetch analytics.
-        const resAnalytics = await fetch(`/api/analytics?uid=${currentUser.uid}`)
-        const dataAnalytics = await resAnalytics.json()
-        if (dataAnalytics.success) {
-          setAnalyticsData(dataAnalytics.analyticsData)
-        }
-      } catch {
-        toast.error("Failed to fetch analytics")
       }
     }
   }
@@ -159,13 +147,6 @@ export default function WalletPage() {
                 <Button
                   variant="outline"
                   className="text-purple-600 hover:text-orange-500 dark:text-purple-400 dark:hover:text-orange-400"
-                  onClick={fetchBalances}
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" /> Refresh
-                </Button>
-                <Button
-                  variant="outline"
-                  className="text-purple-600 hover:text-orange-500 dark:text-purple-400 dark:hover:text-orange-400"
                   onClick={() => setActiveTab("deposit")}
                 >
                   <ArrowUpCircle className="mr-2 h-4 w-4" /> Deposit
@@ -200,17 +181,6 @@ export default function WalletPage() {
               <ActionCard type="withdraw" />
             </TabsContent>
           </Tabs>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center text-purple-600 dark:text-purple-400">
-                <BarChart2 className="mr-2 h-5 w-5" /> Analytics
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AnalyticsChart data={analyticsData} currency={balanceCurrency} />
-            </CardContent>
-          </Card>
 
           <Card>
             <CardHeader>

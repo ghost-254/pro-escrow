@@ -3,79 +3,45 @@
 /* eslint-disable */
 
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebaseConfig"; // Adjust the import based on your Firebase setup
+import { db } from "@/lib/firebaseConfig";
 import { doc, updateDoc } from "firebase/firestore";
 import crypto from "crypto";
 
+const API_KEY = process.env.NEXT_SERVER_CRYPTOMUS_PAYOUT_API_KEY;
+
+if (!API_KEY) {
+  throw new Error("Cryptomus payout configuration missing");
+}
+
+const generateSignature = (data: any) => {
+  const jsonData = JSON.stringify(data);
+  const base64Data = Buffer.from(jsonData).toString("base64");
+  return crypto.createHash("md5").update(base64Data + API_KEY).digest("hex");
+};
+
 export async function POST(request: Request) {
   try {
-    const rawBody = await request.text();
-    const body = JSON.parse(rawBody);
-
-    // Extract the signature from the request
-    const receivedSign = body.sign;
-    if (!receivedSign) {
-      return NextResponse.json(
-        { success: false, error: "Missing signature" },
-        { status: 400 }
-      );
-    }
-
-    // Remove the signature from the body to avoid including it in the signature calculation
-    delete body.sign;
-
-    // Re-stringify the body (without the sign) and base64-encode it
-    const jsonData = JSON.stringify(body, Object.keys(body).sort());
-    const base64Data = Buffer.from(jsonData).toString("base64");
-
-    // Retrieve the Cryptomus API key from environment variables
-    const apiKey = process.env.NEXT_SERVER_CRYPTOMUS_PAYOUT_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json(
-        { success: false, error: "Cryptomus API key not configured" },
-        { status: 500 }
-      );
-    }
-
-    // Generate the signature: MD5(base64Data + apiKey)
-    const calculatedSign = crypto
-      .createHash("md5")
-      .update(base64Data + apiKey)
-      .digest("hex");
+    const payload = await request.json();
 
     // Verify the signature
-    if (calculatedSign !== receivedSign) {
+    const receivedSign = payload.sign;
+    const calculatedSign = generateSignature(payload);
+
+    if (receivedSign !== calculatedSign) {
       return NextResponse.json(
         { success: false, error: "Invalid signature" },
         { status: 400 }
       );
     }
 
-    // Extract required fields from the webhook payload
-    const { order_id, status } = body;
-    if (!order_id) {
-      return NextResponse.json(
-        { success: false, error: "Missing order_id" },
-        { status: 400 }
-      );
-    }
+    // Update the withdrawal status in the database
+    const withdrawalRef = doc(db, "withdrawals", payload.order_id);
+    await updateDoc(withdrawalRef, { status: payload.status });
 
-    // Process the payout status using the withdrawal document
-    const withdrawalRef = doc(db, "withdrawals", order_id);
-    if (status === "paid") {
-      await updateDoc(withdrawalRef, { status: "paid" });
-      return NextResponse.json({ success: true, message: "Withdrawal marked as paid" });
-    } else if (status === "fail") {
-      await updateDoc(withdrawalRef, { status: "failed" });
-      return NextResponse.json({ success: true, message: "Withdrawal marked as failed" });
-    }
-
-    // For other statuses, simply acknowledge receipt
-    return NextResponse.json({
-      success: true,
-      message: `Webhook processed with status: ${status}`,
-    });
+    // Return success response
+    return NextResponse.json({ success: true });
   } catch (error: any) {
+    console.log("Error in webhook processing:", error.message);
     return NextResponse.json(
       { success: false, error: error.message || "Webhook processing failed" },
       { status: 500 }
