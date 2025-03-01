@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     }
 
     // Compute the HMAC signature
-    const hmac = crypto.createHmac("sha256", apiKey); // Use the API Key as the secret
+    const hmac = crypto.createHmac("sha256", apiKey);
     hmac.update(rawBody);
     const computedSignature = hmac.digest("hex");
 

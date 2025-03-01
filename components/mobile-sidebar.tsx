@@ -24,6 +24,8 @@ import {
   Mails,
   HelpCircle,
   Users,
+  RefreshCcw,
+  FileText,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -310,12 +312,25 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                 <MenuItem href="/dashboard/support" icon={HelpCircle} label="Support" />
               </nav>
             </div>
+
+            {/* ESSENTIALS */}
+          <div>
+            <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">ESSENTIALS</h4>
+            <nav className="space-y-1">
+              <MenuItem href="/terms" icon={FileText} label="Terms of Service" />
+              <MenuItem href="/privacy" icon={Shield} label="Privacy Policy" />
+              <MenuItem href="/refund" icon={RefreshCcw} label="Refund Policy" />
+            </nav>
+          </div>
           </div>
         </ScrollArea>
 
         {/* Footer */}
         <div className="sticky bottom-0 mb-0 z-50 bg-muted border-t p-4 space-y-1 overflow-hidden">
           <MenuItem href="mailto:support@xcrow.co" icon={Mails} label="support@xcrow.co" />
+          <div className="mt-2 text-xs text-center text-muted-foreground">
+          <p>© {new Date().getFullYear()} Xcrow.co</p>
+        </div>
         </div>
       </div>
     </div>

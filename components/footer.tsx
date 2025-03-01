@@ -24,7 +24,7 @@ export function Footer() {
             Privacy
           </Link>
           <span className="hidden md:block">•</span>
-          <Link href="/refund-policy" className="hover:text-foreground">
+          <Link href="/refund" className="hover:text-foreground">
             Refund Policy
           </Link>
         </div>

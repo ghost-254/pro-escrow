@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { ArrowRight, Menu, Sun, Moon, Users, Shield, MessageCircle } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { Footer } from "@/components/footer"
 
 // Add this function at the top of your file, outside of the component
@@ -79,8 +80,16 @@ export default function Home() {
       <header className="fixed w-full top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700">
         <nav className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <Link href="/" className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              Xcrow
+            <Link href="/" className="flex items-center">
+              {mounted && (
+                <Image
+                  src={theme === "dark" ? "/logo11X.png" : "/logo11xx.png"}
+                  alt="Xcrow Logo"
+                  width={100}
+                  height={100}
+                  priority
+                />
+              )}
             </Link>
 
             {/* Desktop Navigation */}
@@ -135,17 +144,17 @@ export default function Home() {
                 Xcrow brings buyers and sellers together in a safe, monitored environment for confident deals.
               </p>
               <div className="flex flex-wrap gap-4">
-              <Link href="/dashboard/create-group">
-                <Button size="lg" className="bg-purple-600 hover:bg-purple-700 text-white">
+                <Link href="/dashboard/create-group">
+                  <Button size="lg" className="bg-purple-600 hover:bg-purple-700 text-white">
                     Create Xcrow Group
                     <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-              <Link href="/dashboard">
-                <Button size="lg" variant="outline">
-                   Learn More 
-                </Button>
-              </Link>
+                  </Button>
+                </Link>
+                <Link href="/dashboard">
+                  <Button size="lg" variant="outline">
+                    Learn More
+                  </Button>
+                </Link>
               </div>
             </div>
 
@@ -156,7 +165,10 @@ export default function Home() {
                 <ul className="space-y-4">
                   <li className="flex items-center space-x-3">
                     <Users className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                    <span className="text-gray-700 dark:text-gray-300">Connect with buyers or sellers from online marketplaces (Facebook, Twitter, WhatsApp, & Telegram etc.)</span>
+                    <span className="text-gray-700 dark:text-gray-300">
+                      Connect with buyers or sellers from online marketplaces (Facebook, Twitter, WhatsApp, & Telegram
+                      etc.)
+                    </span>
                   </li>
                   <li className="flex items-center space-x-3">
                     <Shield className="h-6 w-6 text-purple-600 dark:text-purple-400" />
@@ -291,6 +303,7 @@ export default function Home() {
                   </div>
                   <h4 className="font-semibold text-gray-900 dark:text-white mb-2">M-PESA</h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Mobile money transfers</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Available for Kenyan users only.</p>
                 </div>
               </div>
 

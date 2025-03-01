@@ -1,24 +1,29 @@
-import { ArrowLeft, Clock, DollarSign, ShieldCheck, AlertCircle } from "lucide-react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
+//app/refund/page.tsx
+
+import { Clock, DollarSign, ShieldCheck, AlertCircle } from "lucide-react"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { GoBackButton } from '@/components/GoBackButton'
+import Typography from "@/components/ui/typography"
 
 export default function RefundPolicy() {
   return (
     <ScrollArea className="h-[calc(100vh-4rem)] w-full">
       <div className="container max-w-4xl py-6 md:py-12 px-4">
         <div className="mb-8 space-y-4">
-          <div className="flex items-center gap-2">
-            <Link href="/">
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <ArrowLeft className="h-6 w-6" />
-              </Button>
-            </Link>
-            <h1 className="text-3xl font-bold tracking-tight">Refund Policy</h1>
+        <div className="flex items-center gap-[1rem]">
+            <GoBackButton/>
+            <Typography
+              variant="h1"
+              className="text-2xl font-bold tracking-tight"
+            >
+              Refund Policy
+            </Typography>
           </div>
-          <p className="text-muted-foreground">Last updated: January 22, 2024</p>
+          <Typography variant="p" className="text-muted-foreground">
+            Last updated: January 22, 2025
+          </Typography>
         </div>
 
         {/* Key Points Cards */}

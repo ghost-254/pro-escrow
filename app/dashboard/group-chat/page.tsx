@@ -132,7 +132,7 @@ export default function GroupChatIndexPage() {
             filteredGroups.map((group) => (
               <div
                 key={group.id}
-                onClick={() => router.push(`/group-chat/${group.id}`)}
+                onClick={() => router.push(`/dashboard/group-chat/${group.id}`)}
                 className="
                   flex flex-col space-y-2 p-4 rounded-lg
                   bg-muted/50 hover:bg-muted cursor-pointer transition-colors

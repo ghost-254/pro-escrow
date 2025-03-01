@@ -39,6 +39,8 @@ import { cn } from '@/lib/utils'
 import Image from 'next/image'
 import { getTimeOfDay } from '@/lib/dateTime'
 import { useTheme } from 'next-themes'
+import { sendEmailVerification, signOut } from 'firebase/auth'
+import { query, collection, where, getDocs } from 'firebase/firestore'
 
 export default function AuthPage(): JSX.Element {
   const { theme } = useTheme()
@@ -214,23 +216,35 @@ export default function AuthPage(): JSX.Element {
       toast.error('Please confirm your details first.')
       return
     }
-
+  
     setIsLoading(true)
     try {
-      // Create user
+      // Check if the phone number already exists in Firestore
+      const phoneQuery = query(
+        collection(db, 'users'),
+        where('phoneNumber', '==', phoneNumber)
+      )
+      const phoneSnapshot = await getDocs(phoneQuery)
+      if (!phoneSnapshot.empty) {
+        toast.error('This phone number is already registered.')
+        setIsLoading(false)
+        return
+      }
+  
+      // Create user using Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         signUpEmail,
         password
       )
       const user = userCredential.user
-
+  
       // Update displayName
       await updateProfile(user, {
         displayName: `${firstName} ${lastName}`,
       })
-
-      // Save in Firestore
+  
+      // Save user details in Firestore
       await setDoc(doc(db, 'users', user.uid), {
         firstName,
         lastName,
@@ -238,16 +252,26 @@ export default function AuthPage(): JSX.Element {
         email: signUpEmail,
         createdAt: new Date().toISOString(),
       })
-
-      toast.success('Account created successfully!')
+  
+      // Send verification email
+      await sendEmailVerification(user)
+      toast.success(
+        'Account created successfully! A verification email has been sent. Please verify your email before logging in.'
+      )
+  
+      // Sign the user out so they must verify their email before signing in
+      await signOut(auth)
       setIsDialogOpen(false)
-      setTimeout(() => {
-        router.push('/dashboard')
-      }, 1500)
+      router.push('/auth')
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'An unknown error occurred'
-      toast.error(`Error creating account: ${errorMessage}`)
+      // Check for duplicate email error using Firebase error codes
+      if (error instanceof Error && error.message.includes('auth/email-already-in-use')) {
+        toast.error('This email is already registered.')
+      } else {
+        const errorMessage =
+          error instanceof Error ? error.message : 'An unknown error occurred'
+        toast.error(`Error creating account: ${errorMessage}`)
+      }
       setIsLoading(false)
     }
   }

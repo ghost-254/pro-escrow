@@ -1,3 +1,5 @@
+//app/terms/page.tsx
+
 import {  Scale, Shield, FileText, AlertTriangle } from 'lucide-react'
 import {
   Card,
@@ -25,7 +27,7 @@ export default function TermsOfService() {
             </Typography>
           </div>
           <Typography variant="p" className="text-muted-foreground">
-            Last updated: January 22, 2024
+            Last updated: January 22, 2025
           </Typography>
         </div>
 

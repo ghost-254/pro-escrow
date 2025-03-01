@@ -27,19 +27,27 @@ export default function DashboardLayout({
         <PersistGate loading={null} persistor={persistor}>
           <TransactionProvider>
             <UserProvider>
-                <AuthProvider>
-                  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="escrow-theme">
-                    <RouteGuard>
-                      <Navigation />
-                      <div className="flex h-screen">
-                        <div className="hidden lg:flex lg:flex-col border-r bg-muted w-64 h-full overflow-y-auto">
-                          <Sidebar />
-                        </div>
-                        <div className="flex-1 h-full overflow-y-auto">{children}</div>
-                      </div>
-                    </RouteGuard>
-                  </ThemeProvider>
-                </AuthProvider>
+              <AuthProvider>
+                <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="escrow-theme">
+                  <RouteGuard>
+                    <div className="flex h-screen overflow-hidden">
+                      {/* Sidebar - independently scrollable, hidden on small and medium screens */}
+                      <aside className="hidden lg:flex lg:flex-col w-64 h-screen overflow-y-auto border-r bg-muted">
+                        <Sidebar />
+                      </aside>
+
+                      {/* Main content area */}
+                      <main className="flex-1 flex flex-col h-screen overflow-hidden">
+                        {/* Navigation header - doesn't extend to sidebar */}
+                        <Navigation />
+
+                        {/* Content area - independently scrollable */}
+                        <div className="flex-1 overflow-y-auto">{children}</div>
+                      </main>
+                    </div>
+                  </RouteGuard>
+                </ThemeProvider>
+              </AuthProvider>
             </UserProvider>
           </TransactionProvider>
         </PersistGate>
@@ -48,4 +56,3 @@ export default function DashboardLayout({
     </Providers>
   )
 }
-

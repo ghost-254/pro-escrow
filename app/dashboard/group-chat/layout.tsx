@@ -91,7 +91,7 @@ export default function GroupChatLayout({
         groupData.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
 
         // If a group is selected (pathname includes its id), move it to the top.
-        const selectedGroupId = pathname.split("/")[2] // expecting /group-chat/{groupId}
+        const selectedGroupId = pathname.split("/dashboard")[2] // expecting /group-chat/{groupId}
         if (selectedGroupId) {
           const selectedIndex = groupData.findIndex((grp) => grp.id === selectedGroupId)
           if (selectedIndex > -1) {
@@ -160,7 +160,7 @@ export default function GroupChatLayout({
               filteredGroups.map((group) => (
                 <div
                   key={group.id}
-                  onClick={() => router.push(`/group-chat/${group.id}`)}
+                  onClick={() => router.push(`/dashboard/group-chat/${group.id}`)}
                   className={`flex flex-col space-y-2 p-4 rounded-lg cursor-pointer transition-colors ${
                     pathname.includes(group.id)
                       ? "bg-orange-100 dark:bg-orange-800"
@@ -202,7 +202,7 @@ export default function GroupChatLayout({
 
         <div className="p-4 border-t dark:border-gray-800">
           <Button
-            onClick={() => router.push("/create-group")}
+            onClick={() => router.push("/dashboard/create-group")}
             className="w-full bg-emerald-500 hover:bg-orange-500 text-white"
           >
             Create New Group
@@ -212,7 +212,7 @@ export default function GroupChatLayout({
     )
   }
 
-  const isGroupPage = pathname !== "/group-chat"
+  const isGroupPage = pathname !== "/dashboard/group-chat"
 
   if (isMobile && !isGroupPage) {
     return <GroupsList />

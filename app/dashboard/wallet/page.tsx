@@ -1,80 +1,64 @@
-//app/wallet/page.tsx
+//app/dashboard/wallet/page.tsx
 
-/* eslint-disable */
+/*eslint-disable*/
 
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { toast, ToastContainer } from "react-toastify"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { RefreshCw, Wallet, ArrowUpCircle, ArrowDownCircle, BarChart2, Search } from "lucide-react"
-import { ActionCard } from "@/components/wallet/ActionCard"
-import { TransactionsTable } from "@/components/wallet/TransactionsTable"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import "react-toastify/dist/ReactToastify.css"
-import { getAuth } from "firebase/auth"
+import { useState, useEffect } from "react";
+import { toast, ToastContainer } from "react-toastify";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RefreshCw, Wallet, ArrowUpCircle, ArrowDownCircle, Search } from "lucide-react";
+import { ActionCard } from "@/components/wallet/ActionCard";
+import { TransactionsTable } from "@/components/wallet/TransactionsTable";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import "react-toastify/dist/ReactToastify.css";
+import { getAuth } from "firebase/auth";
 
 export default function WalletPage() {
-  const [balanceCurrency, setBalanceCurrency] = useState<"KES" | "USD">("KES")
-  const [balance, setBalance] = useState<{ KES: number; USD: number }>({ KES: 0, USD: 0 })
-  const [frozenBalance, setFrozenBalance] = useState<{ KES: number; USD: number }>({ KES: 0, USD: 0 })
-  const [analyticsData, setAnalyticsData] = useState<any[]>([])
-  const [transactions, setTransactions] = useState<any[]>([]) // not passed to TransactionsTable
-  const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit")
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filter, setFilter] = useState("all")
+  const [balanceCurrency, setBalanceCurrency] = useState<"KES" | "USD">("KES");
+  const [balance, setBalance] = useState<{ KES: number; USD: number }>({ KES: 0, USD: 0 });
+  const [frozenBalance, setFrozenBalance] = useState<{ KES: number; USD: number }>({ KES: 0, USD: 0 });
+  const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filter, setFilter] = useState("all");
 
-  // Helper function to fetch wallet balances, transactions, and analytics.
   const fetchBalances = async () => {
-    const auth = getAuth()
-    const currentUser = auth.currentUser
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
     if (currentUser) {
       try {
-        // Fetch wallet balances.
-        const resBalance = await fetch(`/api/user/getWalletBalance?uid=${currentUser.uid}`)
-        const dataBalance = await resBalance.json()
+        const resBalance = await fetch(`/api/user/getWalletBalance?uid=${currentUser.uid}`);
+        const dataBalance = await resBalance.json();
         if (dataBalance.success) {
           setBalance({
             KES: dataBalance.userKesBalance,
             USD: dataBalance.userUsdBalance,
-          })
+          });
           setFrozenBalance({
             KES: dataBalance.frozenUserKesBalance,
             USD: dataBalance.frozenUserUsdBalance,
-          })
+          });
         }
       } catch {
-        toast.error("Failed to fetch balances!")
-      }
-
-      try {
-        // Fetch transactions.
-        const resTrans = await fetch(`/api/transactions?uid=${currentUser.uid}`)
-        const dataTrans = await resTrans.json()
-        if (dataTrans.success) {
-          setTransactions(dataTrans.transactions)
-        }
-      } catch {
-        toast.error("Failed to fetch transactions")
+        toast.error("Failed to fetch balances!");
       }
     }
-  }
+  };
 
-  // Initially fetch data.
   useEffect(() => {
-    fetchBalances()
-  }, [])
+    fetchBalances();
+  }, []);
 
   const handleCurrencyChange = (value: "KES" | "USD") => {
-    setBalanceCurrency(value)
+    setBalanceCurrency(value);
     // Optionally, refetch analytics/transactions for the selected currency.
-  }
+  };
 
   return (
-    <div className="bg-background lg:ml-10 lg:mr-10 min-h-screen bg-gray-100 dark:bg-gray-900 ">
+    <div className="bg-background lg:ml-10 lg:mr-10 min-h-screen bg-gray-100 dark:bg-gray-900">
       <div className="container mx-auto p-4">
         <ToastContainer position="top-right" theme="colored" />
 
@@ -92,15 +76,15 @@ export default function WalletPage() {
                   size="icon"
                   className="text-purple-600 hover:text-orange-500 dark:text-purple-400 dark:hover:text-orange-400 transition-transform duration-300 ease-in-out"
                   onClick={async () => {
-                    const icon = document.querySelector("#refresh-icon")
+                    const icon = document.querySelector("#refresh-icon");
                     if (icon) {
-                      icon.classList.add("animate-spin")
-                      await fetchBalances()
+                      icon.classList.add("animate-spin");
+                      await fetchBalances();
                       setTimeout(() => {
-                        icon.classList.remove("animate-spin")
-                      }, 3000)
+                        icon.classList.remove("animate-spin");
+                      }, 3000);
                     } else {
-                      await fetchBalances()
+                      await fetchBalances();
                     }
                   }}
                 >
@@ -167,10 +151,7 @@ export default function WalletPage() {
               <TabsTrigger value="deposit" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
                 <ArrowUpCircle className="mr-2 h-4 w-4" /> Deposit
               </TabsTrigger>
-              <TabsTrigger
-                value="withdraw"
-                className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
-              >
+              <TabsTrigger value="withdraw" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
                 <ArrowDownCircle className="mr-2 h-4 w-4" /> Withdraw
               </TabsTrigger>
             </TabsList>
@@ -217,5 +198,5 @@ export default function WalletPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

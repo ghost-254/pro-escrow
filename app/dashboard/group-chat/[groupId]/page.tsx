@@ -197,7 +197,7 @@ export default function GroupChatPage() {
     await addDoc(collection(db, "notifications"), {
       userId: groupData.buyerUid,
       message: `Transaction in group [${groupRef.id}] is complete. We deducted ${totalFrozen} ${groupData.currency} from your frozen funds, from which ${fee} is the escrow fee, and ${sellerAmount} is credited to the seller.`,
-      link: `/group-chat/${groupRef.id}`,
+      link: `/dashboard/group-chat/${groupRef.id}`,
       read: false,
       createdAt: new Date(),
     })
@@ -205,7 +205,7 @@ export default function GroupChatPage() {
     await addDoc(collection(db, "notifications"), {
       userId: groupData.sellerUid,
       message: `Transaction in group [${groupRef.id}] is complete. You have been credited with ${sellerAmount} ${groupData.currency}, while the escrow fee of ${fee} is deducted from the buyer's total freeze.`,
-      link: `/group-chat/${groupRef.id}`,
+      link: `/dashboard/group-chat/${groupRef.id}`,
       read: false,
       createdAt: new Date(),
     })
@@ -216,14 +216,14 @@ export default function GroupChatPage() {
   // Listen to group doc
   useEffect(() => {
     if (!groupId || !user) {
-      router.push("/")
+      router.push("/dashboard")
       return
     }
     const groupRef = doc(db, "groups", groupId)
     const unsubGroup = onSnapshot(groupRef, async (snap) => {
       if (!snap.exists()) {
         toast.error("Group not found.")
-        router.push("/")
+        router.push("/dashboard")
         return
       }
       const data = snap.data() || {}
@@ -578,7 +578,7 @@ export default function GroupChatPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => router.push("/group-chat")}
+            onClick={() => router.push("/dashboard/group-chat")}
             className="mr-2 text-gray-900 dark:text-white"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -599,7 +599,6 @@ export default function GroupChatPage() {
         </div>
       </div>
 
-      {/* Mobile sidebar overlay */}
      {/* Mobile sidebar overlay */}
      {showMobileSidebar && (
         <MobileSidebarOverlay onClose={mobileSidebarToggle} />

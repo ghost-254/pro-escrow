@@ -1,8 +1,11 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import type React from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
+import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -11,24 +14,19 @@ import {
   Home,
   Wallet,
   HelpCircle,
-  X,
   Bell,
   User,
   Users,
   Mails,
+  FileText,
+  Shield,
+  RefreshCcw,
 } from "lucide-react"
 import { useDispatch, useSelector } from "react-redux"
 import type { RootState } from "@/lib/stores/store"
 import { toggleTransactModal } from "@/lib/slices/transact.reducer"
-import Typography from "@/components/ui/typography"
 import { db } from "@/lib/firebaseConfig"
-import {
-  collection,
-  onSnapshot,
-  query,
-  where,
-  orderBy,
-} from "firebase/firestore"
+import { collection, onSnapshot, query, where, orderBy } from "firebase/firestore"
 
 interface SidebarProps {
   isMobile?: boolean
@@ -39,8 +37,15 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const dispatch = useDispatch()
   const user = useSelector((state: RootState) => state.auth.user)
+  const { theme } = useTheme()
 
   const [unreadCount, setUnreadCount] = useState<number>(0)
+
+  // Decide which logo to show
+  const logoSrc =
+    theme === "dark"
+      ? "/logo11X.png" // Dark mode logo
+      : "/logo11xx.png" // Light mode logo
 
   // Real-time unread notifications for this user
   useEffect(() => {
@@ -55,7 +60,7 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
       notifsRef,
       where("userId", "==", user.uid),
       where("read", "==", false),
-      orderBy("createdAt", "desc")
+      orderBy("createdAt", "desc"),
     )
 
     const unsubscribe = onSnapshot(notificationsQuery, (snapshot) => {
@@ -79,23 +84,30 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
     label,
     showNewBadge = false,
     isNotifications = false,
+    onClick,
   }: {
     href: string
     icon: React.ElementType
     label: string
     showNewBadge?: boolean
     isNotifications?: boolean
+    onClick?: () => void
   }) => {
     const isActive = href === pathname
 
     return (
-      <Link href={href} onClick={isMobile ? onClose : undefined}>
+      <Link
+        href={href}
+        onClick={() => {
+          if (onClick) onClick()
+          if (isMobile && onClose) onClose()
+        }}
+      >
         <Button
           variant="ghost"
           className={cn(
             "w-full justify-start relative",
-            isActive &&
-              "bg-[#dddddd] dark:bg-gray-600 font-semibold hover:bg-[#dddddd] hover:dark:bg-gray-600"
+            isActive && "bg-[#dddddd] dark:bg-gray-600 font-semibold hover:bg-[#dddddd] hover:dark:bg-gray-600",
           )}
         >
           <Icon className="mr-2 h-4 w-4" />
@@ -145,85 +157,77 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
   }
 
   return (
-    <div className="flex flex-col h-full mb-[5rem] overflow-hidden">
+    <div className="flex flex-col h-full">
+      {/* Logo */}
+      <div className="flex justify-left items-center p-4 border-b h-14">
+        <Link href="/dashboard" className="flex items-center space-x-2">
+          <Image
+            src={logoSrc || "/placeholder.svg"}
+            alt="Xcrow Logo"
+            width={90}
+            height={85}
+            className="object-contain"
+            priority
+          />
+          <span className="sr-only">Xcrow</span>
+        </Link>
+      </div>
+
+      {/* Create Xcrow Group Button */}
+      <div className="p-4 border-b">
+        <Link href="/dashboard/create-group">
+          <Button
+            onClick={handleShowTransactModal}
+            className="w-full justify-start bg-primary text-white hover:bg-primary/90"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Create Xcrow Group
+          </Button>
+        </Link>
+      </div>
+
+      {/* Scrollable Content */}
       <ScrollArea className="flex-1">
-        {/* Header */}
-        <div className="sticky top-0 z-10 bg-muted border-b p-4">
-          {isMobile && (
-            <div className="flex items-center justify-between mb-4">
-              <Typography variant="span">Menu</Typography>
-              <Button variant="ghost" size="icon" onClick={onClose}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-
-          <Link href="/dashboard/create-group">
-            <Button
-              onClick={handleShowTransactModal}
-              className="w-full justify-start bg-primary text-white hover:bg-primary/90"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Create Xcrow Group
-            </Button>
-          </Link>
-        </div>
-
-        {/* Scrollable Content */}
         <div className="p-4 space-y-4">
           {/* MAIN MENU */}
           <div>
-            <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">
-              MAIN MENU
-            </h4>
+            <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">MAIN MENU</h4>
             <nav className="space-y-1 flex flex-col gap-[0.3rem]">
               <MenuItem href="/dashboard" icon={Home} label="Dashboard" />
-              <MenuItem
-                href="/dashboard/group-chat"
-                icon={Users}
-                label="Group Chats"
-                showNewBadge
-              />
-              <MenuItem
-                href="/dashboard/notifications"
-                icon={Bell}
-                label="Notifications"
-                isNotifications
-              />
+              <MenuItem href="/dashboard/group-chat" icon={Users} label="Group Chats" showNewBadge />
+              <MenuItem href="/dashboard/notifications" icon={Bell} label="Notifications" isNotifications />
             </nav>
           </div>
-
-          {/* ESCROW SERVICES
-          <div>
-            <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">
-              ESCROW SERVICES
-            </h4>
-            <nav className="space-y-1 flex flex-col gap-[0.3rem]">
-              <MenuItem href="/dashboard/orders" icon={Shield} label="Active Escrows" />
-              <MenuItem href="/dashboard/completed" icon={BadgeCheck} label="Completed" />
-              <MenuItem href="/dashboard/disputes" icon={AlertCircle} label="Disputes" />
-            </nav>
-          </div>
-          */}
 
           {/* ACCOUNT */}
           <div>
-            <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">
-              ACCOUNT
-            </h4>
+            <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">ACCOUNT</h4>
             <nav className="space-y-1">
               <MenuItem href="/dashboard/profile" icon={User} label="Profile" />
               <MenuItem href="/dashboard/wallet" icon={Wallet} label="My Wallet" />
               <MenuItem href="/dashboard/support" icon={HelpCircle} label="Support" />
             </nav>
           </div>
+
+          {/* ESSENTIALS */}
+          <div>
+            <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">ESSENTIALS</h4>
+            <nav className="space-y-1">
+              <MenuItem href="/terms" icon={FileText} label="Terms of Service" />
+              <MenuItem href="/privacy" icon={Shield} label="Privacy Policy" />
+              <MenuItem href="/refund" icon={RefreshCcw} label="Refund Policy" />
+            </nav>
+          </div>
         </div>
-        </ScrollArea>
-        {/* Footer */}
-        <div className="sticky bottom-0 mb-0 z-50 bg-muted border-t p-4 space-y-1 overflow-hidden">
-          <MenuItem href="emailto:support@xcrow.co" icon={Mails} label="support@xcrow.co" />
+      </ScrollArea>
+
+      {/* Footer */}
+      <div className="p-4 border-t mt-auto">
+        <MenuItem href="mailto:support@xcrow.co" icon={Mails} label="support@xcrow.co" />
+        <div className="mt-2 text-xs text-center text-muted-foreground">
+          <p>© {new Date().getFullYear()} Xcrow.co</p>
         </div>
-    
+      </div>
     </div>
   )
 }
