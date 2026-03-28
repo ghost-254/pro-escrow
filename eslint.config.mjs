@@ -1,11 +1,9 @@
 import nextCoreWebVitals from 'eslint-config-next/core-web-vitals'
 import nextTypescript from 'eslint-config-next/typescript'
-import storybook from 'eslint-plugin-storybook'
 
 const config = [
   ...nextCoreWebVitals,
   ...nextTypescript,
-  ...storybook.configs['flat/recommended'],
   {
     languageOptions: {
       globals: {
@@ -47,12 +45,6 @@ const config = [
       'import/no-named-as-default': 'off',
       'react/no-unescaped-entities': 'off',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
-    },
-  },
-  {
-    files: ['*.stories.@(ts|tsx|js|jsx|mjs|cjs)'],
-    rules: {
-      'storybook/hierarchy-separator': 'error',
     },
   },
   {
