@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 
 import { adminDb } from "@/lib/firebaseAdmin"
-import { requireSessionUser, SessionAuthError } from "@/lib/serverAuth"
+import { requireSessionUser } from "@/lib/serverAuth"
+import { getErrorDetails } from "@/lib/serverErrors"
 
 export async function GET() {
   try {
@@ -27,11 +28,11 @@ export async function GET() {
       frozenUserKesBalance: Number(data.frozenUserKesBalance || 0),
       frozenUserUsdBalance: Number(data.frozenUserUsdBalance || 0),
     })
-  } catch (error: Error | unknown) {
-    const status = error instanceof SessionAuthError ? error.status : 500
+  } catch (error: unknown) {
+    const { message, status } = getErrorDetails(error, "Failed to fetch wallet balance.", 500)
 
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to fetch wallet balance." },
+      { success: false, error: message },
       { status }
     )
   }

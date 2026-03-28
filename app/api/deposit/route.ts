@@ -156,11 +156,12 @@ export async function POST(request: Request) {
       depositId,
       status: finalStatus,
     })
-  } catch (error: Error | unknown) {
+  } catch (error: unknown) {
     const status = error instanceof SessionAuthError ? error.status : 500
+    const errorMessage = error instanceof Error ? error.message : "Deposit request failed."
 
     return NextResponse.json(
-      { success: false, error: error.message || "Deposit request failed." },
+      { success: false, error: errorMessage },
       { status }
     )
   }

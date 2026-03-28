@@ -3,7 +3,8 @@ import { Timestamp } from 'firebase-admin/firestore'
 
 import { adminDb } from '@/lib/firebaseAdmin'
 import { sendGroupSupportEmails } from '@/lib/emailService'
-import { assertSameOrigin, requireSessionUser, SessionAuthError } from '@/lib/serverAuth'
+import { assertSameOrigin, requireSessionUser } from '@/lib/serverAuth'
+import { getErrorDetails } from '@/lib/serverErrors'
 
 function trimValue(value: unknown) {
   return typeof value === 'string' ? value.trim() : ''
@@ -67,13 +68,17 @@ export async function POST(request: Request) {
       success: true,
       message: 'Support request sent. Please wait for assistance.',
     })
-  } catch (error: Error | unknown) {
-    const status = error instanceof SessionAuthError ? error.status : error?.status || 500
+  } catch (error: unknown) {
+    const { message, status } = getErrorDetails(
+      error,
+      'We could not send the support request right now.',
+      500
+    )
 
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'We could not send the support request right now.',
+        error: message,
       },
       { status }
     )

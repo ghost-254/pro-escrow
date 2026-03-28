@@ -4,7 +4,8 @@ import { Timestamp } from "firebase-admin/firestore"
 import { adminDb } from "@/lib/firebaseAdmin"
 import { callCryptomusDepositApi } from "@/lib/cryptomusDeposit"
 import { startDepositCronJob } from "@/lib/depositCronJob"
-import { assertSameOrigin, requireSessionUser, SessionAuthError } from "@/lib/serverAuth"
+import { assertSameOrigin, requireSessionUser } from "@/lib/serverAuth"
+import { getErrorDetails } from "@/lib/serverErrors"
 
 export async function POST(request: Request) {
   try {
@@ -73,11 +74,11 @@ export async function POST(request: Request) {
       depositId,
       invoice: cryptomusData.result,
     })
-  } catch (error: Error | unknown) {
-    const status = error instanceof SessionAuthError ? error.status : 500
+  } catch (error: unknown) {
+    const { message, status } = getErrorDetails(error, "Deposit creation failed", 500)
 
     return NextResponse.json(
-      { success: false, error: error.message || "Deposit creation failed" },
+      { success: false, error: message },
       { status }
     )
   }

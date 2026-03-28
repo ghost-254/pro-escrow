@@ -5,6 +5,7 @@ import { validateEmailAddress } from '@/lib/authValidation'
 import { adminDb } from '@/lib/firebaseAdmin'
 import { sendSupportContactEmails } from '@/lib/emailService'
 import { assertSameOrigin } from '@/lib/serverAuth'
+import { getErrorDetails } from '@/lib/serverErrors'
 
 function trimValue(value: unknown) {
   return typeof value === 'string' ? value.trim() : ''
@@ -60,13 +61,19 @@ export async function POST(request: Request) {
       success: true,
       message: 'Your message has been sent successfully.',
     })
-  } catch (error: Error | unknown) {
+  } catch (error: unknown) {
+    const { message, status } = getErrorDetails(
+      error,
+      'We could not send your message right now.',
+      500
+    )
+
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'We could not send your message right now.',
+        error: message,
       },
-      { status: error?.status || 500 }
+      { status }
     )
   }
 }

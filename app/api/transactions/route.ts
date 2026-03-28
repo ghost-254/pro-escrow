@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 
 import { adminDb } from "@/lib/firebaseAdmin"
-import { requireSessionUser, SessionAuthError } from "@/lib/serverAuth"
+import { requireSessionUser } from "@/lib/serverAuth"
+import { getErrorDetails } from "@/lib/serverErrors"
 
 export async function GET() {
   try {
@@ -71,11 +72,11 @@ export async function GET() {
         ({ _timestamp, ...transaction }: Record<string, unknown>) => transaction
       ),
     })
-  } catch (error: Error | unknown) {
-    const status = error instanceof SessionAuthError ? error.status : 500
+  } catch (error: unknown) {
+    const { message, status } = getErrorDetails(error, "Internal Server Error", 500)
 
     return NextResponse.json(
-      { success: false, error: error.message || "Internal Server Error" },
+      { success: false, error: message },
       { status }
     )
   }

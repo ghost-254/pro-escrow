@@ -3,6 +3,7 @@ import crypto from "crypto"
 import { FieldValue, Timestamp } from "firebase-admin/firestore"
 
 import { adminDb } from "@/lib/firebaseAdmin"
+import { getErrorDetails } from "@/lib/serverErrors"
 
 const FINAL_FAILURE_STATUSES = ["fail", "cancel", "system_fail"]
 
@@ -73,10 +74,12 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json({ success: true })
-  } catch (error: Error | unknown) {
+  } catch (error: unknown) {
+    const { message, status } = getErrorDetails(error, "Webhook processing failed", 500)
+
     return NextResponse.json(
-      { success: false, error: error.message || "Webhook processing failed" },
-      { status: 500 }
+      { success: false, error: message },
+      { status }
     )
   }
 }

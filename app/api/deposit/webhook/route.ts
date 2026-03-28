@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { Timestamp } from "firebase-admin/firestore"
 
 import { adminDb } from "@/lib/firebaseAdmin"
+import { getErrorDetails } from "@/lib/serverErrors"
 
 export async function POST(request: Request) {
   try {
@@ -16,10 +17,16 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json({ success: true })
-  } catch (error: Error | unknown) {
+  } catch (error: unknown) {
+    const { message, status } = getErrorDetails(
+      error,
+      "Failed to process deposit callback.",
+      500
+    )
+
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to process deposit callback." },
-      { status: 500 }
+      { success: false, error: message },
+      { status }
     )
   }
 }
