@@ -4,16 +4,16 @@ type Event = MouseEvent | TouchEvent
 
 export function useOnClickOutside<T extends HTMLElement = HTMLElement>(
   ref: RefObject<T>,
-  handler: (event: Event) => void,
+  handler: (_event: Event) => void,
 ) {
   useEffect(() => {
-    const listener = (event: Event) => {
+    const listener = (_event: Event) => {
       const el = ref?.current
-      if (!el || el.contains((event?.target as Node) || null)) {
+      if (!el || el.contains(((_event?.target as Node) || null))) {
         return
       }
 
-      handler(event)
+      handler(_event)
     }
 
     document.addEventListener("mousedown", listener)

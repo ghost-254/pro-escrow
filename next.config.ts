@@ -2,28 +2,61 @@
 
 import type { NextConfig } from 'next';
 
-const nextConfig: NextConfig = {
-  eslint: {
-    // Allows production builds to complete even if there are ESLint errors.
-    ignoreDuringBuilds: true,
+const securityHeaders = [
+  {
+    key: 'X-Content-Type-Options',
+    value: 'nosniff',
   },
+  {
+    key: 'X-Frame-Options',
+    value: 'DENY',
+  },
+  {
+    key: 'Referrer-Policy',
+    value: 'strict-origin-when-cross-origin',
+  },
+  {
+    key: 'Permissions-Policy',
+    value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()',
+  },
+]
+
+const nextConfig: NextConfig = {
+  poweredByHeader: false,
   images: {
-    domains: [
-      'avatars.mds.yandex.net',
-      'firebasestorage.googleapis.com',
-      'encrypted-tbn0.gstatic.com',
-      'hebbkx1anhila5yf.public.blob.vercel-storage.com',
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'avatars.mds.yandex.net',
+      },
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'encrypted-tbn0.gstatic.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'hebbkx1anhila5yf.public.blob.vercel-storage.com',
+      },
     ],
   },
-  webpack: (config, { isServer }) => {
-    // Only apply the fallback for client-side bundles.
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        process: require.resolve('process/browser'),
-      };
-    }
-    return config;
+  turbopack: {
+    resolveAlias: {
+      process: {
+        browser: 'process/browser',
+      },
+    },
+  },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: securityHeaders,
+      },
+    ]
   },
 };
 

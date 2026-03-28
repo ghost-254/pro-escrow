@@ -76,7 +76,7 @@ const TransactionDetailsForm = () => {
       setLoading(true)
       setError(null)
       try {
-        const response = await fetch(`/api/user/getWalletBalance?uid=${user.uid}`)
+        const response = await fetch("/api/user/getWalletBalance")
         const data = await response.json()
         if (!data.success) {
           throw new Error(data.error || "Failed to fetch wallet balances.")

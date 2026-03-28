@@ -12,16 +12,6 @@ import { Input } from "@/components/ui/input"
 import Typography from "@/components/ui/typography"
 import { toast } from "react-toastify"
 import { useRouter } from "next/navigation"
-import { db } from "@/lib/firebaseConfig"
-import {
-  doc,
-  updateDoc,
-  arrayUnion,
-  getDoc,
-  collection,
-  addDoc,
-  Timestamp,
-} from "firebase/firestore"
 import { Card } from "@/components/ui/card"
 
 const SellerNextStep = () => {
@@ -38,6 +28,9 @@ const SellerNextStep = () => {
     try {
       const url = new URL(link)
       const segments = url.pathname.split("/")
+      if (segments.length >= 4 && segments[1] === "dashboard" && segments[2] === "group-chat") {
+        return segments[3]
+      }
       if (segments.length >= 3 && segments[1] === "group-chat") {
         return segments[2]
       }
@@ -62,61 +55,33 @@ const SellerNextStep = () => {
       return
     }
     try {
-      const groupRef = doc(db, "groups", groupId)
-      const groupSnap = await getDoc(groupRef)
-      if (!groupSnap.exists()) {
-        toast.error("Invalid Group Link: The group does not exist.")
-        return
+      const response = await fetch("/api/groups/join", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          groupId,
+          itemDescription,
+          price,
+          serviceNature,
+          currency,
+          escrowFeeResponsibility,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to join the secure group.")
       }
 
-      // Record seller summary in the "sellerSummaries" collection
-      await addDoc(collection(db, "sellerSummaries"), {
-        sellerId: user.uid,
-        itemDescription,
-        price,
-        serviceNature,
-        currency,
-        escrowFeeResponsibility,
-        createdAt: Timestamp.now(),
-      })
-
-      // Update group's participants
-      await updateDoc(groupRef, {
-        participants: arrayUnion(user.uid),
-      })
-      const shortGroupName = `Xcrow_${groupId.slice(0, 4)}`
-      const data = groupSnap.data() || {}
-      const allParticipants = (data.participants || []) as string[]
-      const otherParticipants = allParticipants.filter((par) => par !== user.uid)
-
-      // Notification for seller
-      await addDoc(collection(db, "notifications"), {
-        userId: user.uid,
-        message: `You joined ${shortGroupName} group.`,
-        link: `/group-chat/${groupId}`,
-        read: false,
-        createdAt: Timestamp.now(),
-      })
-
-      // Notification for existing participants
-      const joinedMsg = user.displayName
-        ? `User ${user.displayName} has joined ${shortGroupName} group chat.`
-        : `User ${user.uid} has joined ${shortGroupName} group chat.`
-      for (const participantUid of otherParticipants) {
-        await addDoc(collection(db, "notifications"), {
-          userId: participantUid,
-          message: joinedMsg,
-          link: `/group-chat/${groupId}`,
-          read: false,
-          createdAt: Timestamp.now(),
-        })
-      }
       toast.success(`You have been added to group ${groupId}.`)
       // Reset the group creation state before redirecting
       dispatch(resetGroupCreation())
-      router.push(`/group-chat/${groupId}`)
-    } catch {
-      toast.error("Failed to join the group.")
+      router.push(`/dashboard/group-chat/${groupId}`)
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to join the group.")
     }
   }
 

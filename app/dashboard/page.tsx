@@ -59,6 +59,7 @@ export default function Home() {
   const [calculatedFee, setCalculatedFee] = useState<number | null>(null)
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (calculatorAmount) {
       const amount = Number.parseFloat(calculatorAmount)
       if (!isNaN(amount)) {
@@ -69,6 +70,7 @@ export default function Home() {
     } else {
       setCalculatedFee(null)
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [calculatorAmount, calculatorCurrency])
 
   const handleGetStarted = () => {

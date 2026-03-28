@@ -214,7 +214,7 @@ export default function RefundPolicy() {
               hesitate to contact our support team:
             </p>
             <div className="space-y-2">
-              <p className="text-muted-foreground">Email: support@xcrow.co</p>
+              <p className="text-muted-foreground">Email: support@xcrowtrust.com</p>
               <p className="text-muted-foreground">Support Hours: 24/7</p>
               <p className="text-muted-foreground">Response Time: Within 24 hours</p>
             </div>

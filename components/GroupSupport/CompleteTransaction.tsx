@@ -17,28 +17,11 @@ import { useSelector } from "react-redux"
 import type { RootState } from "@/lib/stores/store"
 import { ModalButtonProps } from "@/lib/types"
 
-import { doc, getDoc, updateDoc, addDoc, collection } from "firebase/firestore"
-import { db } from "@/lib/firebaseConfig"
-
 // Import Shadcn UI tooltip components
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 
 interface CompleteTransactionProps extends ModalButtonProps {
   groupId: string
-}
-
-/**
- * Helper: get user profile from Firestore
- */
-async function getUserProfile(uid: string) {
-  const snap = await getDoc(doc(db, "users", uid))
-  if (!snap.exists()) return null
-  const data = snap.data()
-  return {
-    firstName: data.firstName || "",
-    lastName: data.lastName || "",
-    email: data.email || "",
-  }
 }
 
 /**
@@ -67,96 +50,24 @@ const CompleteTransaction: React.FC<CompleteTransactionProps> = ({
     }
 
     try {
-      const groupRef = doc(db, "groups", groupId)
-      const snap = await getDoc(groupRef)
-      if (!snap.exists()) {
-        toast.error("Group not found.")
-        return
-      }
-
-      const data = snap.data() || {}
-      const participants = data.participants || []
-      if (participants.length < 2) {
-        toast.error("Not enough participants to complete.")
-        return
-      }
-      if (data.status === "complete") {
-        toast.info("Transaction is already complete.")
-        setIsOpen(false)
-        setSelectedReason("")
-        return
-      }
-
-      // Identify buyer/seller UIDs
-      let buyerUid = ""
-      let sellerUid = ""
-      if (typeof participants[0] === "string") {
-        buyerUid = participants[0]
-      } else if (participants[0] && typeof participants[0] === "object") {
-        buyerUid = participants[0].uid
-      }
-      if (typeof participants[1] === "string") {
-        sellerUid = participants[1]
-      } else if (participants[1] && typeof participants[1] === "object") {
-        sellerUid = participants[1].uid
-      }
-
-      const isBuyer = user.uid === buyerUid
-      const isSeller = user.uid === sellerUid
-      if (!isBuyer && !isSeller) {
-        toast.error("You are not a participant in this group.")
-        return
-      }
-
-      // transactionStatus
-      const ts = data.transactionStatus || {
-        buyerComplete: false,
-        sellerComplete: false,
-      }
-
-      // If both buyerComplete & sellerComplete are false => user is first
-      if (!ts.buyerComplete && !ts.sellerComplete) {
-        ts.initiator = isBuyer ? "buyer" : "seller"
-        ts.rejection = null
-      }
-
-      // Mark the correct side
-      if (isBuyer) ts.buyerComplete = true
-      if (isSeller) ts.sellerComplete = true
-
-      let newStatus = data.status || "active"
-      if (ts.buyerComplete && ts.sellerComplete) {
-        newStatus = "complete"
-        ts.initiator = null
-        ts.rejection = null
-      }
-
-      await updateDoc(groupRef, {
-        transactionStatus: ts,
-        status: newStatus,
+      const response = await fetch(`/api/groups/${groupId}/actions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "request-complete",
+          reason: selectedReason,
+        }),
       })
 
-      // Send a notification to the other user that I marked complete
-      const otherUid = isBuyer ? sellerUid : buyerUid
-      if (otherUid) {
-        const myProfile = await getUserProfile(user.uid)
+      const result = await response.json()
 
-        await addDoc(collection(db, "notifications"), {
-          userId: otherUid,
-          message: `${
-            myProfile?.firstName || "User"
-          } has marked group [${groupId}] as complete (Reason: "${selectedReason}"). Please confirm if you agree.`,
-          link: `/group-chat/${groupId}`,
-          read: false,
-          createdAt: new Date(),
-        })
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to mark this group as complete.")
       }
 
-      if (newStatus === "complete") {
-        toast.success("Both parties have completed. Transaction is now COMPLETE.")
-      } else {
-        toast.success("Your completion is recorded. Waiting for the other party.")
-      }
+      toast.success(result.message || "Your completion request has been recorded.")
 
       setIsOpen(false)
       setSelectedReason("")

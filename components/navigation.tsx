@@ -18,7 +18,9 @@ export function Navigation() {
 
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     setMounted(true)
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [])
 
   // If you want to prevent a flash of the wrong logo on initial load:

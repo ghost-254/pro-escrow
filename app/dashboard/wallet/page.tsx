@@ -30,7 +30,7 @@ export default function WalletPage() {
     const currentUser = auth.currentUser;
     if (currentUser) {
       try {
-        const resBalance = await fetch(`/api/user/getWalletBalance?uid=${currentUser.uid}`);
+        const resBalance = await fetch("/api/user/getWalletBalance");
         const dataBalance = await resBalance.json();
         if (dataBalance.success) {
           setBalance({

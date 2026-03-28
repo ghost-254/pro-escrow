@@ -4,7 +4,6 @@
 
 import { configureStore } from "@reduxjs/toolkit";
 import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from "redux-persist";
-import storage from "redux-persist/lib/storage"; // defaults to localStorage for web
 import { combineReducers } from "redux";
 import transactReducer from "@/lib/slices/transact.reducer";
 import chatMoreInfoReducer from "@/lib/slices/chat.moreinfo.reducer";
@@ -12,6 +11,24 @@ import addFundsReducer from "@/lib/slices/addfunds.reducer";
 import authReducer from "@/lib/slices/authSlice";
 import groupCreationReducer from "@/lib/slices/groupCreationSlice";
 import depositInfoReducer from "@/lib/slices/deposit.info.reducer";
+
+const createNoopStorage = () => ({
+  getItem() {
+    return Promise.resolve(null);
+  },
+  setItem(_key: string, value: string) {
+    return Promise.resolve(value);
+  },
+  removeItem() {
+    return Promise.resolve();
+  },
+});
+
+const storage =
+  typeof window !== "undefined"
+    ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require("redux-persist/lib/storage").default
+    : createNoopStorage();
 
 // Configure Redux Persist to whitelist both 'depositInfo' and 'groupCreation'
 const persistConfig = {

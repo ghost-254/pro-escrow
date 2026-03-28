@@ -31,28 +31,28 @@ interface TransactionContextProps {
   transactions: Transaction[] // New state to store multiple transactions
   isLoading: boolean
   isTransacting: boolean
-  getUserTransactionById: (userId: string) => Promise<void>
-  refreshUserTransactions: (userId: string) => Promise<void>
-  modifyTransaction: (id: string, data: Partial<Transaction>) => Promise<void>
+  getUserTransactionById: (_userId: string) => Promise<void>
+  refreshUserTransactions: (_userId: string) => Promise<void>
+  modifyTransaction: (_id: string, _data: Partial<Transaction>) => Promise<void>
   processDepositTransaction: (
-    userId: string,
-    amount: number,
-    transactionDetails: { paymentMethod: string; paymentDetails: string },
-    transactionFee: number,
-    transactionStatus: string,
-    transactionType: string
+    _userId: string,
+    _amount: number,
+    _transactionDetails: { paymentMethod: string; paymentDetails: string },
+    _transactionFee: number,
+    _transactionStatus: string,
+    _transactionType: string
   ) => Promise<void>
   processWithdrawalTransaction: (
-    userId: string,
-    amount: number,
-    transactionDetails: { paymentMethod: string; paymentDetails: string }
+    _userId: string,
+    _amount: number,
+    _transactionDetails: { paymentMethod: string; paymentDetails: string }
   ) => Promise<void>
   getUserTransactionsByFilter: (
-    searchTerm: string,
-    userId: string,
-    transactionType: string,
-    transactionStatus: string
-  ) => Promise<void> // Modify the function to not return an array directly
+    _searchTerm: string,
+    _userId: string,
+    _transactionType: string,
+    _transactionStatus: string
+  ) => Promise<void>
 }
 
 export const TransactionContext = createContext<
@@ -79,7 +79,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
         toast.error('No transaction found for this user')
         setTransaction(null)
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to fetch transaction data')
     } finally {
       setIsLoading(false)
@@ -103,7 +103,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
         status: transactionStatus, // Pass transactionStatus as status
       })
       setTransactions(fetchedTransactions) // Store the fetched transactions in state
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to fetch transactions')
     } finally {
       setIsLoading(false)
@@ -156,6 +156,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
         userId,
         paymentMethod: transactionDetails.paymentMethod,
       }
+      /* eslint-disable-next-line no-console */
       console.log(transactionStatus)
 
       await recordDepositTransaction(transactionData) //update transactions
@@ -165,6 +166,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
 
       await processWalletDeposit(userId, transactionData.amount) // Update wallet only when status is "Completed"
     } catch (error) {
+      /* eslint-disable-next-line no-console */
       console.error('Failed to process deposit transaction:', error)
     } finally {
       setIsTransacting(false)
@@ -195,6 +197,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({
       await recordWithdrawalTransaction(transactionData)
       await processWalletWithdrawal(userId, transactionData.amount)
     } catch (error) {
+      /* eslint-disable-next-line no-console */
       console.error('Failed to process withdrawal transaction:', error)
     } finally {
       setIsTransacting(false)

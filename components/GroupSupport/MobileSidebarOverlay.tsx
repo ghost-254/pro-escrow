@@ -21,7 +21,7 @@ interface ChatGroup {
   type: "Buy" | "Sell"
   price: number
   currency: string
-  status: "Pending Release" | "In Progress" | "Completed" | "Disputed"
+  status: "active" | "complete" | "cancelled"
   participants: number
   createdAt: Date
   itemDescription: string
@@ -66,7 +66,12 @@ export default function MobileSidebarOverlay({ onClose }: MobileSidebarOverlayPr
             type: data.type || "Buy",
             price: data.price || 0,
             currency: data.currency || "USD",
-            status: data.status || "Pending Release",
+            status:
+              data.status === "complete"
+                ? "complete"
+                : data.status === "cancelled"
+                  ? "cancelled"
+                  : "active",
             participants: (data.participants || []).length,
             createdAt,
             itemDescription: description,
@@ -93,12 +98,10 @@ export default function MobileSidebarOverlay({ onClose }: MobileSidebarOverlayPr
   // Define badge colors for status.
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Completed":
+      case "complete":
         return "bg-emerald-500 text-white"
-      case "Disputed":
+      case "cancelled":
         return "bg-red-500 text-white"
-      case "In Progress":
-        return "bg-blue-500 text-white"
       default:
         return "bg-yellow-500 text-black"
     }
@@ -132,7 +135,7 @@ export default function MobileSidebarOverlay({ onClose }: MobileSidebarOverlayPr
               <div
                 key={group.id}
                 onClick={() => {
-                  router.push(`/group-chat/${group.id}`)
+                  router.push(`/dashboard/group-chat/${group.id}`)
                   onClose()
                 }}
                 className="flex flex-col space-y-2 p-4 rounded-lg bg-muted/50 hover:bg-muted cursor-pointer transition-colors"

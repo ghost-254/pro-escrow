@@ -1,110 +1,134 @@
-//app/api/payout/route.ts
-/* eslint-disable */
+import { NextResponse } from "next/server"
+import { FieldValue, Timestamp } from "firebase-admin/firestore"
 
-// app/api/payout/route.ts
-
-import { NextResponse } from "next/server";
-import { db } from "@/lib/firebaseConfig";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { callCryptomusPayoutApi } from "@/lib/cryptomusWithdrawal";
-import { startCronJob } from "@/lib/cronJob";
+import { adminDb } from "@/lib/firebaseAdmin"
+import { callCryptomusPayoutApi } from "@/lib/cryptomusWithdrawal"
+import { startCronJob } from "@/lib/cronJob"
+import { assertSameOrigin, requireSessionUser, SessionAuthError } from "@/lib/serverAuth"
 
 export async function POST(request: Request) {
   try {
-    // Parse the request body
-    const { uid, amount, currency, network, address, orderId } = await request.json();
+    assertSameOrigin(request)
+    const sessionUser = await requireSessionUser()
+    const { amount, network, address } = await request.json()
 
-    // Validate required fields
-    const requiredFields = { uid, amount, currency, network, address, orderId };
-    const missingFields = Object.entries(requiredFields)
-      .filter(([_, value]) => !value)
-      .map(([key]) => key);
-
-    if (missingFields.length > 0) {
+    if (!amount || !network || !address) {
       return NextResponse.json(
-        { success: false, error: `Missing required fields: ${missingFields.join(", ")}` },
+        { success: false, error: "Missing required payout fields." },
         { status: 400 }
-      );
+      )
     }
 
-    // Validate amount is a positive number
-    if (isNaN(amount) || Number(amount) <= 0) {
+    const numericAmount = Number(amount)
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
       return NextResponse.json(
-        { success: false, error: "Amount must be a positive number" },
+        { success: false, error: "Amount must be a positive number." },
         { status: 400 }
-      );
+      )
     }
 
-    // 1. Check user and balance
-    const userRef = doc(db, "users", uid);
-    const userSnapshot = await getDoc(userRef);
+    const userRef = adminDb.collection("users").doc(sessionUser.uid)
+    const withdrawalRef = adminDb.collection("withdrawals").doc()
+    const orderId = withdrawalRef.id
 
-    if (!userSnapshot.exists()) {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 }
-      );
+    await adminDb.runTransaction(async (transaction) => {
+      const userSnapshot = await transaction.get(userRef)
+
+      if (!userSnapshot.exists) {
+        throw new Error("User not found")
+      }
+
+      const usdBalance = Number(userSnapshot.data()?.userUsdBalance || 0)
+      if (usdBalance < numericAmount) {
+        throw new Error("Insufficient USD balance")
+      }
+
+      transaction.update(userRef, {
+        userUsdBalance: FieldValue.increment(-numericAmount),
+        updatedAt: Timestamp.now(),
+      })
+
+      transaction.set(withdrawalRef, {
+        uid: sessionUser.uid,
+        amount: numericAmount,
+        currency: "USD",
+        method: "Crypto",
+        walletAddress: address,
+        cryptoNetwork: network,
+        status: "initiated",
+        transactionType: "Withdraw",
+        balanceDeducted: true,
+        balanceRefunded: false,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      })
+    })
+
+    try {
+      const payload = {
+        amount: numericAmount.toString(),
+        currency: "USD",
+        to_currency: "USDT",
+        network,
+        order_id: orderId,
+        address,
+        url_callback: `${process.env.NEXT_PUBLIC_BASE_URL}/api/payout/webhook`,
+        is_subtract: false,
+      }
+
+      const cryptomusResponse = await callCryptomusPayoutApi("payout", payload)
+
+      if (cryptomusResponse.state !== 0) {
+        throw new Error(cryptomusResponse.message || "Payout failed to process")
+      }
+
+      await withdrawalRef.update({
+        status: "processing",
+        payoutPayload: payload,
+        payoutResult: cryptomusResponse.result,
+        updatedAt: Timestamp.now(),
+      })
+
+      startCronJob(orderId)
+
+      return NextResponse.json({
+        success: true,
+        payout: cryptomusResponse.result,
+        withdrawalId: orderId,
+      })
+    } catch (error: Error | unknown) {
+      await adminDb.runTransaction(async (transaction) => {
+        const withdrawalSnapshot = await transaction.get(withdrawalRef)
+
+        if (!withdrawalSnapshot.exists) {
+          return
+        }
+
+        const withdrawalData = withdrawalSnapshot.data() ?? {}
+
+        if (withdrawalData.balanceDeducted && !withdrawalData.balanceRefunded) {
+          transaction.update(userRef, {
+            userUsdBalance: FieldValue.increment(numericAmount),
+            updatedAt: Timestamp.now(),
+          })
+        }
+
+        transaction.update(withdrawalRef, {
+          status: "failed",
+          balanceRefunded: true,
+          failureReason: error instanceof Error ? error.message : "Payout failed to initialize.",
+          updatedAt: Timestamp.now(),
+        })
+      })
+
+      throw error
     }
+  } catch (error: Error | unknown) {
+    const status = error instanceof SessionAuthError ? error.status : 500
 
-    const userData = userSnapshot.data();
-    const usdBalance = userData.userUsdBalance || 0;
-
-    // Validate sufficient balance
-    if (usdBalance < Number(amount)) {
-      return NextResponse.json(
-        { success: false, error: "Insufficient USD balance" },
-        { status: 400 }
-      );
-    }
-
-    // 2. Prepare payload for Cryptomus
-    const payload = {
-      amount: amount.toString(),
-      currency: "USD", // Assuming the payout is in USD
-      to_currency: "USDT", // Assuming the payout is converted to USDT
-      network,
-      order_id: orderId, // Unique order ID from Firestore
-      address,
-      url_callback: `${process.env.NEXT_PUBLIC_BASE_URL}/api/payout/webhook`, // Webhook URL
-      is_subtract: false, // Do not subtract fees from the payout amount
-    };
-
-    // 3. Call Cryptomus Payout API
-    const cryptomusResponse = await callCryptomusPayoutApi("payout", payload);
-
-    // Log the response for debugging
-    console.log("Payout response from Cryptomus:", cryptomusResponse);
-
-    // 4. Handle Cryptomus response
-    if (cryptomusResponse.state !== 0) {
-      console.error("Payout failed with message:", cryptomusResponse.message);
-      return NextResponse.json(
-        { success: false, error: cryptomusResponse.message || "Payout failed to process" },
-        { status: 400 }
-      );
-    }
-
-    // 5. Deduct from user's balance
-    const newUsdBalance = usdBalance - Number(amount);
-    await updateDoc(userRef, { userUsdBalance: newUsdBalance });
-
-    // 6. Update status of the withdrawal document
-    const withdrawalRef = doc(db, "withdrawals", orderId);
-    await updateDoc(withdrawalRef, { status: "processing" });
-
-    // 7. Start the cron job to monitor the payout status
-    startCronJob(orderId);
-
-    // 8. Return success response
-    return NextResponse.json({
-      success: true,
-      payout: cryptomusResponse.result,
-    });
-  } catch (error: any) {
-    console.error("Error in payout processing:", error.message);
     return NextResponse.json(
-      { success: false, error: error.message || "Payout processing failed" },
-      { status: 500 }
-    );
+      { success: false, error: error instanceof Error ? error.message : "Payout processing failed" },
+      { status }
+    )
   }
 }

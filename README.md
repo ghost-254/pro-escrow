@@ -256,7 +256,7 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 If you find Xcrow helpful or you encounter any issues, feel free to:
 
 - **Open an issue** on GitHub for bugs or feature requests.  
-- **Contact us** at [support@xcrow.co](mailto:support@xcrow.co) for general inquiries.  
+- **Contact us** at [support@xcrowtrust.com](mailto:support@xcrowtrust.com) for general inquiries.  
 - **Star the repository** to show your support and help others discover Xcrow.
 
 ---

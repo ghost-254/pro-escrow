@@ -1,65 +1,113 @@
-//app/auth/page.tsx
-
 'use client'
 
-import React, { useState, useEffect, FormEvent, JSX } from 'react'
+import React, { FormEvent, JSX, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth'
+import { Eye, EyeOff } from 'lucide-react'
 import { toast } from 'react-toastify'
-import "react-toastify/dist/ReactToastify.css"
+
+import { BrandLogo } from '@/components/brand-logo'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
 } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Checkbox from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
-import { Eye, EyeOff } from 'lucide-react'
-import { auth, db } from '@/lib/firebaseConfig'
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  updateProfile,
-} from 'firebase/auth'
-import { doc, setDoc } from 'firebase/firestore'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Typography from '@/components/ui/typography'
-import { cn } from '@/lib/utils'
-import Image from 'next/image'
+import {
+  normalizeEmail,
+  normalizePhoneNumber,
+  normalizeVerificationCode,
+  validateEmailAddress,
+  validateName,
+  validatePasswordStrength,
+  validatePhoneNumber,
+  validateVerificationCode,
+} from '@/lib/authValidation'
+import { syncServerSession } from '@/lib/clientAuthSession'
 import { getTimeOfDay } from '@/lib/dateTime'
-import { useTheme } from 'next-themes'
-import { sendEmailVerification, signOut } from 'firebase/auth'
-import { query, collection, where, getDocs } from 'firebase/firestore'
+import { auth } from '@/lib/firebaseConfig'
+import { cn } from '@/lib/utils'
+
+type AuthResponse = {
+  success?: boolean
+  error?: string
+  message?: string
+  email?: string
+  requiresVerification?: boolean
+}
+
+function getFirebaseSignInErrorMessage(error: unknown) {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof error.code === 'string'
+  ) {
+    switch (error.code) {
+      case 'auth/invalid-credential':
+      case 'auth/wrong-password':
+      case 'auth/user-not-found':
+        return 'Invalid email or password.'
+      case 'auth/too-many-requests':
+        return 'Too many failed attempts. Please wait and try again.'
+      case 'auth/network-request-failed':
+        return 'Network error. Check your connection and try again.'
+      default:
+        break
+    }
+  }
+
+  return error instanceof Error ? error.message : 'We could not sign you in right now.'
+}
+
+async function postAuthJson(
+  url: string,
+  payload: Record<string, string>,
+  fallbackMessage: string
+) {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+  const data = (await response.json().catch(() => null)) as AuthResponse | null
+
+  if (!response.ok || !data?.success) {
+    throw new Error(data?.error || fallbackMessage)
+  }
+
+  return data
+}
 
 export default function AuthPage(): JSX.Element {
-  const { theme } = useTheme()
-  // Decide which logo to show based on the current theme
-  const logoSrc =
-    theme === 'dark'
-      ? '/logo11X.png' // Dark mode logo
-      : '/logo11xx.png' // Light mode logo
+  const router = useRouter()
 
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin')
-  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [timeOfDay, setTimeOfDay] = useState('')
 
-  // Sign In States
   const [signInEmail, setSignInEmail] = useState('')
   const [signInPassword, setSignInPassword] = useState('')
   const [signInEmailError, setSignInEmailError] = useState('')
   const [signInPasswordError, setSignInPasswordError] = useState('')
 
-  // Sign Up States
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
@@ -67,13 +115,11 @@ export default function AuthPage(): JSX.Element {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
-  // Real-time password criteria
   const [isEightChars, setIsEightChars] = useState(false)
   const [hasUpperCase, setHasUpperCase] = useState(false)
   const [hasNumber, setHasNumber] = useState(false)
   const [hasSymbol, setHasSymbol] = useState(false)
 
-  // Show errors
   const [firstNameError, setFirstNameError] = useState('')
   const [lastNameError, setLastNameError] = useState('')
   const [phoneNumberError, setPhoneNumberError] = useState('')
@@ -81,242 +127,375 @@ export default function AuthPage(): JSX.Element {
   const [passwordError, setPasswordError] = useState('')
   const [confirmPasswordError, setConfirmPasswordError] = useState('')
 
-  // Show/hide password fields
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  // Dialog for final sign-up confirmation
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [confirmCheck, setConfirmCheck] = useState(false)
 
-  const router = useRouter()
+  const [verificationEmail, setVerificationEmail] = useState('')
+  const [verificationPassword, setVerificationPassword] = useState('')
+  const [verificationCode, setVerificationCode] = useState('')
+  const [isVerificationDialogOpen, setIsVerificationDialogOpen] = useState(false)
 
-  // Toggle password visibility
-  const handleToggleShowPassword = () => setShowPassword(!showPassword)
+  useEffect(() => {
+    setTimeOfDay(getTimeOfDay())
+  }, [])
+
+  useEffect(() => {
+    setIsEightChars(password.length >= 8)
+    setHasUpperCase(/[A-Z]/.test(password))
+    setHasNumber(/\d/.test(password))
+    setHasSymbol(/[!@#$%^&*(),.?":{}|<>]/.test(password))
+  }, [password])
+
+  const handleToggleShowPassword = () => setShowPassword((currentValue) => !currentValue)
   const handleToggleShowConfirmPassword = () =>
-    setShowConfirmPassword(!showConfirmPassword)
+    setShowConfirmPassword((currentValue) => !currentValue)
 
-  // ----------------- VALIDATIONS -----------------
-  const validateEmail = (email: string): string => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!email) return 'Email is required.'
-    if (!emailRegex.test(email)) return 'Invalid email address.'
-    return ''
+  const openVerificationFlow = ({
+    email,
+    password: nextPassword,
+    openDialog = true,
+  }: {
+    email: string
+    password?: string
+    openDialog?: boolean
+  }) => {
+    const normalizedEmail = normalizeEmail(email)
+
+    setVerificationEmail(normalizedEmail)
+    setVerificationPassword(nextPassword ?? '')
+    setVerificationCode('')
+    setSignInEmail(normalizedEmail)
+
+    if (nextPassword) {
+      setSignInPassword(nextPassword)
+    }
+
+    setActiveTab('signin')
+
+    if (openDialog) {
+      setIsVerificationDialogOpen(true)
+    }
   }
 
-  const validatePassword = (pw: string): string => {
-    if (!pw) return 'Password is required.'
-    if (pw.length < 8) return 'Password must be at least 8 characters.'
-    return ''
+  const validateSignInForm = () => {
+    const normalizedEmail = normalizeEmail(signInEmail)
+    const emailError = validateEmailAddress(normalizedEmail)
+    const passwordValue = signInPassword.trim()
+    const passwordValidationError = passwordValue ? '' : 'Password is required.'
+
+    setSignInEmailError(emailError)
+    setSignInPasswordError(passwordValidationError)
+
+    return {
+      isValid: !emailError && !passwordValidationError,
+      email: normalizedEmail,
+      password: signInPassword,
+    }
   }
 
-  const checkPasswordCriteria = (pw: string) => {
-    setIsEightChars(pw.length >= 8)
-    setHasUpperCase(/[A-Z]/.test(pw))
-    setHasNumber(/\d/.test(pw))
-    setHasSymbol(/[!@#$%^&*(),.?":{}|<>]/.test(pw))
+  const validateSignUpForm = () => {
+    const normalizedFirstName = firstName.trim()
+    const normalizedLastName = lastName.trim()
+    const normalizedPhone = normalizePhoneNumber(phoneNumber)
+    const normalizedEmail = normalizeEmail(signUpEmail)
+    const firstNameValidationError = validateName(normalizedFirstName, 'First name')
+    const lastNameValidationError = validateName(normalizedLastName, 'Last name')
+    const phoneValidationError = validatePhoneNumber(normalizedPhone)
+    const emailValidationError = validateEmailAddress(normalizedEmail)
+    const passwordValidationError = validatePasswordStrength(password)
+    const nextConfirmPasswordError =
+      !confirmPassword
+        ? 'Please confirm your password.'
+        : confirmPassword !== password
+          ? 'Passwords do not match.'
+          : ''
+
+    setFirstNameError(firstNameValidationError)
+    setLastNameError(lastNameValidationError)
+    setPhoneNumberError(phoneValidationError)
+    setSignUpEmailError(emailValidationError)
+    setPasswordError(passwordValidationError)
+    setConfirmPasswordError(nextConfirmPasswordError)
+
+    return {
+      isValid:
+        !firstNameValidationError &&
+        !lastNameValidationError &&
+        !phoneValidationError &&
+        !emailValidationError &&
+        !passwordValidationError &&
+        !nextConfirmPasswordError,
+      email: normalizedEmail,
+      phone: normalizedPhone,
+    }
   }
 
-  // ----------------- SIGN IN LOGIC -----------------
-  const handleSignInSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-
-    // Basic validation
-    const emailErr = validateEmail(signInEmail)
-    const pwErr = validatePassword(signInPassword)
-    setSignInEmailError(emailErr)
-    setSignInPasswordError(pwErr)
-
-    if (emailErr || pwErr) return
+  const handleResendVerificationCode = async () => {
+    if (!verificationEmail) {
+      toast.error('Start signup or sign in with your pending account to request a code.')
+      return
+    }
 
     setIsLoading(true)
+
     try {
-      await signInWithEmailAndPassword(auth, signInEmail, signInPassword)
-      toast.success('Signed in successfully!')
-      setTimeout(() => {
-        router.push('/dashboard')
-      }, 1500)
+      const response = await postAuthJson(
+        '/api/auth/resend-email-code',
+        { email: verificationEmail },
+        'We could not resend the verification code right now.'
+      )
+
+      setIsVerificationDialogOpen(true)
+      toast.success(response.message || 'A fresh verification code has been sent.')
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'An unknown error occurred'
-      toast.error(`Error signing in: ${errorMessage}`)
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'We could not resend the verification code right now.'
+      )
+    } finally {
       setIsLoading(false)
     }
   }
 
-  // ----------------- SIGN UP LOGIC -----------------
-  const validateSignUpForm = (): boolean => {
-    let valid = true
+  const handleSignInSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
 
-    // First name
-    if (!firstName) {
-      setFirstNameError('First name is required (no pseudo).')
-      valid = false
-    } else {
-      setFirstNameError('')
+    const { isValid, email, password: signInPasswordValue } = validateSignInForm()
+
+    if (!isValid) {
+      return
     }
 
-    // Last name
-    if (!lastName) {
-      setLastNameError('Last name is required (no pseudo).')
-      valid = false
-    } else {
-      setLastNameError('')
-    }
+    setIsLoading(true)
 
-    // Phone number
-    if (!phoneNumber) {
-      setPhoneNumberError('Phone number is required.')
-      valid = false
-    } else {
-      const phoneRegex = /^[0-9]{7,15}$/
-      if (!phoneRegex.test(phoneNumber)) {
-        setPhoneNumberError('Invalid phone number format.')
-        valid = false
-      } else {
-        setPhoneNumberError('')
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, signInPasswordValue)
+      await userCredential.user.reload()
+      const currentUser = auth.currentUser ?? userCredential.user
+      const currentUserEmail = normalizeEmail(currentUser.email || email)
+
+      if (!currentUser.emailVerified) {
+        await signOut(auth)
+        openVerificationFlow({
+          email: currentUserEmail,
+          password: signInPasswordValue,
+        })
+
+        try {
+          const response = await postAuthJson(
+            '/api/auth/resend-email-code',
+            { email: currentUserEmail },
+            'Complete your email verification to continue.'
+          )
+
+          toast.error(
+            response.message ||
+              'Complete your email verification to continue. We sent you a fresh code.'
+          )
+        } catch (resendError) {
+          toast.error(
+            resendError instanceof Error
+              ? resendError.message
+              : 'Complete your email verification to continue.'
+          )
+        }
+
+        setIsLoading(false)
+        return
       }
+
+      await syncServerSession(currentUser)
+      toast.success('Signed in successfully.')
+      router.push('/dashboard')
+      router.refresh()
+    } catch (error) {
+      toast.error(getFirebaseSignInErrorMessage(error))
+      setIsLoading(false)
     }
-
-    // Email
-    const emailErr = validateEmail(signUpEmail)
-    setSignUpEmailError(emailErr)
-    if (emailErr) valid = false
-
-    // Password
-    const pwErr = validatePassword(password)
-    setPasswordError(pwErr)
-    if (pwErr) valid = false
-
-    // Confirm password
-    if (!confirmPassword) {
-      setConfirmPasswordError('Please confirm your password.')
-      valid = false
-    } else if (confirmPassword !== password) {
-      setConfirmPasswordError('Passwords do not match.')
-      valid = false
-    } else {
-      setConfirmPasswordError('')
-    }
-
-    return valid
   }
 
-  // Step 1: open summary dialog if form is valid
-  const handleOpenDialog = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (!validateSignUpForm()) return
+  const handleOpenDialog = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
 
+    const { isValid } = validateSignUpForm()
+
+    if (!isValid) {
+      return
+    }
+
+    setConfirmCheck(false)
     setIsDialogOpen(true)
   }
 
-  // Step 2: actually create account in Firebase
   const handleConfirmCreate = async () => {
     if (!confirmCheck) {
       toast.error('Please confirm your details first.')
       return
     }
-  
-    setIsLoading(true)
-    try {
-      // Check if the phone number already exists in Firestore
-      const phoneQuery = query(
-        collection(db, 'users'),
-        where('phoneNumber', '==', phoneNumber)
-      )
-      const phoneSnapshot = await getDocs(phoneQuery)
-      if (!phoneSnapshot.empty) {
-        toast.error('This phone number is already registered.')
-        setIsLoading(false)
-        return
-      }
-  
-      // Create user using Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        signUpEmail,
-        password
-      )
-      const user = userCredential.user
-  
-      // Update displayName
-      await updateProfile(user, {
-        displayName: `${firstName} ${lastName}`,
-      })
-  
-      // Save user details in Firestore
-      await setDoc(doc(db, 'users', user.uid), {
-        firstName,
-        lastName,
-        phoneNumber,
-        email: signUpEmail,
-        createdAt: new Date().toISOString(),
-      })
-  
-      // Send verification email
-      await sendEmailVerification(user)
-      toast.success(
-        'Account created successfully! A verification email has been sent. Please verify your email before logging in.'
-      )
-  
-      // Sign the user out so they must verify their email before signing in
-      await signOut(auth)
+
+    const { isValid, email, phone } = validateSignUpForm()
+
+    if (!isValid) {
       setIsDialogOpen(false)
-      router.push('/auth')
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      const response = await postAuthJson(
+        '/api/auth/signup',
+        {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          phoneNumber: phone,
+          email,
+          password,
+        },
+        'We could not start signup right now.'
+      )
+
+      setIsDialogOpen(false)
+      openVerificationFlow({
+        email: response.email || email,
+        password,
+      })
+      toast.success(response.message || 'Check your email for the 6-digit verification code.')
     } catch (error) {
-      // Check for duplicate email error using Firebase error codes
-      if (error instanceof Error && error.message.includes('auth/email-already-in-use')) {
-        toast.error('This email is already registered.')
-      } else {
-        const errorMessage =
-          error instanceof Error ? error.message : 'An unknown error occurred'
-        toast.error(`Error creating account: ${errorMessage}`)
-      }
+      toast.error(
+        error instanceof Error ? error.message : 'We could not start signup right now.'
+      )
+    } finally {
       setIsLoading(false)
     }
   }
 
-  // Re-check password criteria on each change
-  useEffect(() => {
-    checkPasswordCriteria(password)
-  }, [password])
+  const handleVerifyCode = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    const normalizedCode = normalizeVerificationCode(verificationCode)
+    const codeValidationError = validateVerificationCode(normalizedCode)
+
+    if (codeValidationError) {
+      toast.error(codeValidationError)
+      return
+    }
+
+    if (!verificationEmail) {
+      toast.error('Start signup or sign in first so we know which account to verify.')
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      await postAuthJson(
+        '/api/auth/verify-email-code',
+        {
+          email: verificationEmail,
+          code: normalizedCode,
+        },
+        'We could not verify that code right now.'
+      )
+
+      setVerificationCode('')
+      setIsVerificationDialogOpen(false)
+
+      if (verificationPassword) {
+        const userCredential = await signInWithEmailAndPassword(
+          auth,
+          verificationEmail,
+          verificationPassword
+        )
+        await userCredential.user.reload()
+        const currentUser = auth.currentUser ?? userCredential.user
+
+        await syncServerSession(currentUser)
+        toast.success('Email verified. You are now signed in.')
+        router.push('/dashboard')
+        router.refresh()
+        return
+      }
+
+      toast.success('Email verified. Sign in to continue.')
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'We could not verify that code right now.'
+      )
+      setIsLoading(false)
+      return
+    }
+
+    setIsLoading(false)
+  }
+
+  const signInGreeting = timeOfDay
+    ? `Good ${timeOfDay}, sign in to your account`
+    : 'Sign in to your account'
+  const signUpGreeting = timeOfDay
+    ? `Good ${timeOfDay}, create your account`
+    : 'Create your account'
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 overflow-y-auto flex flex-col items-center justify-center py-8">
-      {/* Logo / Brand */}
+    <div className="flex min-h-screen flex-col items-center justify-center overflow-y-auto bg-gray-100 py-8 dark:bg-gray-900">
       <div className="flex items-center space-x-2 py-4">
-        <Image
-          src={logoSrc}
-          alt="Xcrow Logo"
-          width={90}
-          height={90}
-          className="object-contain"
-          priority
-        />
+        <BrandLogo width={90} height={90} priority />
       </div>
-      <Card className="w-[96%] md:max-w-md bg-white dark:bg-gray-800 shadow-lg border-0">
+
+      <Card className="w-[96%] border-0 bg-white shadow-lg dark:bg-gray-800 md:max-w-md">
         <CardHeader>
           <Typography variant="h1" className="font-bold text-gray-600 dark:text-gray-200">
             {activeTab === 'signin' ? 'Welcome Back!' : 'Join Xcrow Today!'}
           </Typography>
           <CardDescription className="text-gray-500 dark:text-gray-300">
-            {activeTab === 'signin'
-              ? `Good ${getTimeOfDay()} 👋, sign in to your account`
-              : `Good ${getTimeOfDay()} 👋, create an account to get started`}
+            {activeTab === 'signin' ? signInGreeting : signUpGreeting}
           </CardDescription>
         </CardHeader>
 
         <CardContent>
+          {verificationEmail && (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm dark:border-amber-900/60 dark:bg-amber-950/20">
+              <p className="font-semibold text-gray-900 dark:text-gray-100">
+                Email verification required
+              </p>
+              <p className="mt-1 text-gray-600 dark:text-gray-300">
+                Enter the 6-digit code sent to <strong>{verificationEmail}</strong> before
+                you continue.
+              </p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <Button
+                  type="button"
+                  onClick={() => setIsVerificationDialogOpen(true)}
+                  disabled={isLoading}
+                >
+                  Enter Code
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleResendVerificationCode}
+                  disabled={isLoading}
+                >
+                  Resend Code
+                </Button>
+              </div>
+            </div>
+          )}
+
           <Tabs
             value={activeTab}
-            onValueChange={(val) => setActiveTab(val as 'signin' | 'signup')}
+            onValueChange={(value) => setActiveTab(value as 'signin' | 'signup')}
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-2 bg-gray-50 dark:bg-gray-700 font-bold rounded-lg shadow-sm">
+            <TabsList className="grid w-full grid-cols-2 rounded-lg bg-gray-50 font-bold shadow-sm dark:bg-gray-700">
               <TabsTrigger
                 value="signin"
                 className={cn(
-                  'px-4 py-1 text-purple-600 hover:text-purple-800 rounded-lg transition-colors',
+                  'rounded-lg px-4 py-1 text-purple-600 transition-colors hover:text-purple-800',
                   'data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 shadow-sm'
                 )}
               >
@@ -325,7 +504,7 @@ export default function AuthPage(): JSX.Element {
               <TabsTrigger
                 value="signup"
                 className={cn(
-                  'px-4 py-1 text-purple-600 hover:text-purple-800 rounded-lg transition-colors',
+                  'rounded-lg px-4 py-1 text-purple-600 transition-colors hover:text-purple-800',
                   'data-[state=active]:bg-purple-100 data-[state=active]:text-purple-900 shadow-sm'
                 )}
               >
@@ -333,10 +512,9 @@ export default function AuthPage(): JSX.Element {
               </TabsTrigger>
             </TabsList>
 
-            {/* ------------ SIGN IN ------------- */}
             <TabsContent value="signin">
               <form onSubmit={handleSignInSubmit}>
-                <div className="md:space-y-4 space-y-2">
+                <div className="space-y-2 md:space-y-4">
                   <Input
                     id="signinEmail"
                     placeholder="Email"
@@ -345,61 +523,51 @@ export default function AuthPage(): JSX.Element {
                     autoComplete="email"
                     disabled={isLoading}
                     value={signInEmail}
-                    onChange={(e) => setSignInEmail(e.target.value)}
+                    onChange={(event) => setSignInEmail(event.target.value)}
                   />
-                  {signInEmailError && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {signInEmailError}
-                    </p>
-                  )}
+                  {signInEmailError && <p className="mt-1 text-sm text-red-500">{signInEmailError}</p>}
 
-                  <div className="relative md:space-y-4 space-y-2">
+                  <div className="relative space-y-2 md:space-y-4">
                     <Input
                       id="signinPassword"
                       placeholder="Password"
                       type={showPassword ? 'text' : 'password'}
                       autoCapitalize="none"
+                      autoComplete="current-password"
                       disabled={isLoading}
                       value={signInPassword}
-                      onChange={(e) => setSignInPassword(e.target.value)}
+                      onChange={(event) => setSignInPassword(event.target.value)}
                     />
                     {signInPasswordError && (
-                      <p className="text-sm text-red-500 mt-1">
-                        {signInPasswordError}
-                      </p>
+                      <p className="mt-1 text-sm text-red-500">{signInPasswordError}</p>
                     )}
                     <button
                       type="button"
                       onClick={handleToggleShowPassword}
-                      className="absolute right-2 top-[0.3rem] text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100"
+                      className="absolute right-2 top-[0.3rem] text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100"
                     >
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
 
                   <div className="w-full text-end">
-                    <Link href='/password-reset'>
-                    <Typography
-                      variant="span"
-                      className="text-primary cursor-pointer hover:opacity-80"
-                    >
-                      Forgot password?
-                    </Typography>
+                    <Link href="/password-reset">
+                      <Typography
+                        variant="span"
+                        className="cursor-pointer text-primary hover:opacity-80"
+                      >
+                        Forgot password?
+                      </Typography>
                     </Link>
                   </div>
 
-                  <Button
-                    className="w-full h-[2.8rem]"
-                    type="submit"
-                    disabled={isLoading}
-                  >
+                  <Button className="h-[2.8rem] w-full" type="submit" disabled={isLoading}>
                     {isLoading ? 'Signing In...' : 'Sign In'}
                   </Button>
                 </div>
               </form>
             </TabsContent>
 
-            {/* ------------ SIGN UP ------------- */}
             <TabsContent value="signup">
               <form onSubmit={handleOpenDialog}>
                 <div className="space-y-4">
@@ -410,43 +578,31 @@ export default function AuthPage(): JSX.Element {
                         placeholder="First Name"
                         disabled={isLoading}
                         value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
+                        onChange={(event) => setFirstName(event.target.value)}
                       />
-                      {firstNameError && (
-                        <p className="text-sm text-red-500 mt-1">
-                          {firstNameError}
-                        </p>
-                      )}
+                      {firstNameError && <p className="mt-1 text-sm text-red-500">{firstNameError}</p>}
                     </div>
-                    <div className="flex-1 mt-4 sm:mt-0">
+                    <div className="mt-4 flex-1 sm:mt-0">
                       <Input
                         id="lastName"
                         placeholder="Last Name"
                         disabled={isLoading}
                         value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
+                        onChange={(event) => setLastName(event.target.value)}
                       />
-                      {lastNameError && (
-                        <p className="text-sm text-red-500 mt-1">
-                          {lastNameError}
-                        </p>
-                      )}
+                      {lastNameError && <p className="mt-1 text-sm text-red-500">{lastNameError}</p>}
                     </div>
                   </div>
 
                   <Input
                     id="phone"
-                    placeholder="Phone Number (e.g., 254712345678)"
+                    placeholder="Phone Number"
                     type="tel"
                     disabled={isLoading}
                     value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    onChange={(event) => setPhoneNumber(event.target.value)}
                   />
-                  {phoneNumberError && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {phoneNumberError}
-                    </p>
-                  )}
+                  {phoneNumberError && <p className="mt-1 text-sm text-red-500">{phoneNumberError}</p>}
 
                   <Input
                     id="signUpEmail"
@@ -456,13 +612,9 @@ export default function AuthPage(): JSX.Element {
                     autoComplete="email"
                     disabled={isLoading}
                     value={signUpEmail}
-                    onChange={(e) => setSignUpEmail(e.target.value)}
+                    onChange={(event) => setSignUpEmail(event.target.value)}
                   />
-                  {signUpEmailError && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {signUpEmailError}
-                    </p>
-                  )}
+                  {signUpEmailError && <p className="mt-1 text-sm text-red-500">{signUpEmailError}</p>}
 
                   <div className="relative">
                     <Input
@@ -470,58 +622,46 @@ export default function AuthPage(): JSX.Element {
                       placeholder="Password"
                       type={showPassword ? 'text' : 'password'}
                       autoCapitalize="none"
+                      autoComplete="new-password"
                       disabled={isLoading}
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(event) => setPassword(event.target.value)}
                     />
-                    {passwordError && (
-                      <p className="text-sm text-red-500 mt-1">
-                        {passwordError}
-                      </p>
-                    )}
+                    {passwordError && <p className="mt-1 text-sm text-red-500">{passwordError}</p>}
                     <button
                       type="button"
                       onClick={handleToggleShowPassword}
-                      className="absolute right-2 top-[0.8rem] text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100"
+                      className="absolute right-2 top-[0.8rem] text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100"
                     >
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
 
-                  {/* Password Criteria */}
-                  <ul className="list-disc list-inside text-xs ml-1 mb-2">
+                  <ul className="mb-2 ml-1 list-inside list-disc text-xs">
                     <li
                       className={
-                        isEightChars
-                          ? 'text-green-600 dark:text-green-400'
-                          : 'text-red-600'
+                        isEightChars ? 'text-green-600 dark:text-green-400' : 'text-red-600'
                       }
                     >
                       At least 8 characters
                     </li>
                     <li
                       className={
-                        hasUpperCase
-                          ? 'text-green-600 dark:text-green-400'
-                          : 'text-red-600'
+                        hasUpperCase ? 'text-green-600 dark:text-green-400' : 'text-red-600'
                       }
                     >
                       At least 1 uppercase letter
                     </li>
                     <li
                       className={
-                        hasNumber
-                          ? 'text-green-600 dark:text-green-400'
-                          : 'text-red-600'
+                        hasNumber ? 'text-green-600 dark:text-green-400' : 'text-red-600'
                       }
                     >
                       At least 1 number
                     </li>
                     <li
                       className={
-                        hasSymbol
-                          ? 'text-green-600 dark:text-green-400'
-                          : 'text-red-600'
+                        hasSymbol ? 'text-green-600 dark:text-green-400' : 'text-red-600'
                       }
                     >
                       At least 1 symbol
@@ -533,35 +673,26 @@ export default function AuthPage(): JSX.Element {
                       id="confirmPassword"
                       placeholder="Confirm Password"
                       type={showConfirmPassword ? 'text' : 'password'}
+                      autoComplete="new-password"
                       disabled={isLoading}
                       value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      onChange={(event) => setConfirmPassword(event.target.value)}
                     />
                     {confirmPasswordError && (
-                      <p className="text-sm text-red-500 mt-1">
-                        {confirmPasswordError}
-                      </p>
+                      <p className="mt-1 text-sm text-red-500">{confirmPasswordError}</p>
                     )}
                     <button
                       type="button"
                       onClick={handleToggleShowConfirmPassword}
-                      className="absolute right-2 top-[0.8rem] text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100"
+                      className="absolute right-2 top-[0.8rem] text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100"
                     >
                       {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
 
-                  {/* Terms */}
-                  <div className="flex items-center space-x-2 mt-2">
-                    <Checkbox
-                      id="terms"
-                      required
-                      className="w-[1.5rem] h-[1.5rem]"
-                    />
-                    <label
-                      htmlFor="terms"
-                      className="text-sm text-gray-500 dark:text-gray-400"
-                    >
+                  <div className="mt-2 flex items-center space-x-2">
+                    <Checkbox id="terms" required className="h-[1.5rem] w-[1.5rem]" />
+                    <label htmlFor="terms" className="text-sm text-gray-500 dark:text-gray-400">
                       I agree to the{' '}
                       <Link href="/terms" className="underline">
                         Terms of Service
@@ -573,11 +704,7 @@ export default function AuthPage(): JSX.Element {
                     </label>
                   </div>
 
-                  <Button
-                    className="w-full h-[2.8rem]"
-                    type="submit"
-                    disabled={isLoading}
-                  >
+                  <Button className="h-[2.8rem] w-full" type="submit" disabled={isLoading}>
                     {isLoading ? 'Please wait...' : 'Review & Create'}
                   </Button>
                 </div>
@@ -587,7 +714,6 @@ export default function AuthPage(): JSX.Element {
         </CardContent>
       </Card>
 
-      {/* Final Confirmation Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="dark:bg-gray-800">
           <DialogHeader>
@@ -597,30 +723,28 @@ export default function AuthPage(): JSX.Element {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-2 my-4 text-sm">
+          <div className="my-4 space-y-2 text-sm">
             <p>
-              <strong>First Name:</strong> {firstName}
+              <strong>First Name:</strong> {firstName.trim()}
             </p>
             <p>
-              <strong>Last Name:</strong> {lastName}
+              <strong>Last Name:</strong> {lastName.trim()}
             </p>
             <p>
-              <strong>Phone:</strong> {phoneNumber}
+              <strong>Phone:</strong> {normalizePhoneNumber(phoneNumber)}
             </p>
             <p>
-              <strong>Email:</strong> {signUpEmail}
+              <strong>Email:</strong> {normalizeEmail(signUpEmail)}
             </p>
           </div>
 
-          <div className="flex items-center space-x-2 mt-2">
+          <div className="mt-2 flex items-center space-x-2">
             <Checkbox
               id="confirmCheck"
-              onChange={(e) => setConfirmCheck(e.target.checked)}
+              checked={confirmCheck}
+              onChange={(event) => setConfirmCheck(event.target.checked)}
             />
-            <Label
-              htmlFor="confirmCheck"
-              className="text-sm text-gray-500 dark:text-gray-300"
-            >
+            <Label htmlFor="confirmCheck" className="text-sm text-gray-500 dark:text-gray-300">
               I confirm all the above details are correct
             </Label>
           </div>
@@ -637,6 +761,51 @@ export default function AuthPage(): JSX.Element {
               {isLoading ? 'Creating...' : 'Confirm & Create'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isVerificationDialogOpen} onOpenChange={setIsVerificationDialogOpen}>
+        <DialogContent className="dark:bg-gray-800">
+          <DialogHeader>
+            <DialogTitle>Verify Your Email</DialogTitle>
+            <DialogDescription className="dark:text-gray-300">
+              Enter the 6-digit code sent to {verificationEmail || 'your email address'}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleVerifyCode} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="verificationCode">Verification Code</Label>
+              <Input
+                id="verificationCode"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="123456"
+                value={verificationCode}
+                disabled={isLoading}
+                onChange={(event) =>
+                  setVerificationCode(normalizeVerificationCode(event.target.value))
+                }
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                The code expires in 10 minutes.
+              </p>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleResendVerificationCode}
+                disabled={isLoading}
+              >
+                Resend Code
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? 'Verifying...' : 'Verify Email'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

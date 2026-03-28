@@ -1,76 +1,88 @@
-// lib/depositCronJob.ts
-/* eslint-disable */
+import { FieldValue, Timestamp } from "firebase-admin/firestore"
 
-import { db } from "@/lib/firebaseConfig";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { callCryptomusDepositApi } from "@/lib/cryptomusDeposit"; // Use the dedicated deposit function
+import { adminDb } from "@/lib/firebaseAdmin"
+import { callCryptomusDepositApi } from "@/lib/cryptomusDeposit"
 
-/**
- * Checks the deposit status using the Cryptomus API and updates the database.
- */
+const FINAL_DEPOSIT_STATUSES = ["paid", "paid_over", "failed", "canceled"]
+
 const checkDepositStatus = async (depositId: string, uid: string, amount: number) => {
   try {
-    // 1. Fetch the deposit document from Firestore
-    const depositRef = doc(db, "deposits", depositId);
-    const depositSnapshot = await getDoc(depositRef);
+    const depositRef = adminDb.collection("deposits").doc(depositId)
+    const depositSnapshot = await depositRef.get()
 
-    if (!depositSnapshot.exists()) {
-      console.error("Deposit not found:", depositId);
-      return;
+    if (!depositSnapshot.exists) {
+      return
     }
 
-    const depositData = depositSnapshot.data();
-    const currentStatus = depositData.status;
+    const depositData = depositSnapshot.data() ?? {}
+    const currentStatus = depositData.status
 
-    // 2. If the deposit is already finalized, stop the cron job
-    if (["paid", "paid_over", "failed", "canceled"].includes(currentStatus)) {
-      console.log("Deposit already finalized with status:", currentStatus);
-      return;
+    if (FINAL_DEPOSIT_STATUSES.includes(currentStatus)) {
+      return
     }
 
-    // 3. Call Cryptomus API to get the latest payment status
     const cryptomusResponse = await callCryptomusDepositApi("payment/info", {
-      uuid: depositData.cryptomusInvoice.uuid, // Use the UUID from the Cryptomus invoice
-    });
+      uuid: depositData.cryptomusInvoice?.uuid,
+    })
 
     if (cryptomusResponse.state !== 0) {
-      console.error("Failed to fetch deposit status:", cryptomusResponse.message);
-      return;
+      return
     }
 
-    const newStatus = cryptomusResponse.result.status;
+    const newStatus = cryptomusResponse.result.status
 
-    // 4. Update the deposit status in Firestore
-    await updateDoc(depositRef, { status: newStatus });
+    if ((newStatus === "paid" || newStatus === "paid_over") && !depositData.balanceCredited) {
+      await adminDb.runTransaction(async (transaction) => {
+        const latestDepositSnapshot = await transaction.get(depositRef)
+        const latestDepositData = latestDepositSnapshot.data() ?? {}
 
-    // 5. If the deposit is paid, update the user's balance
-    if (newStatus === "paid" || newStatus === "paid_over") {
-      const userRef = doc(db, "users", uid);
-      const userSnapshot = await getDoc(userRef);
+        if (latestDepositData.balanceCredited) {
+          return
+        }
 
-      if (userSnapshot.exists()) {
-        const userData = userSnapshot.data();
-        const newBalance = (userData.userUsdBalance || 0) + amount;
-        await updateDoc(userRef, { userUsdBalance: newBalance });
-      }
+        const userRef = adminDb.collection("users").doc(uid)
+        const userSnapshot = await transaction.get(userRef)
+
+        if (!userSnapshot.exists) {
+          transaction.set(
+            userRef,
+            {
+              userKesBalance: 0,
+              userUsdBalance: amount,
+              frozenUserKesBalance: 0,
+              frozenUserUsdBalance: 0,
+              updatedAt: Timestamp.now(),
+            },
+            { merge: true }
+          )
+        } else {
+          transaction.update(userRef, {
+            userUsdBalance: FieldValue.increment(amount),
+            updatedAt: Timestamp.now(),
+          })
+        }
+
+        transaction.update(depositRef, {
+          status: newStatus,
+          balanceCredited: true,
+          updatedAt: Timestamp.now(),
+        })
+      })
+    } else {
+      await depositRef.update({
+        status: newStatus,
+        updatedAt: Timestamp.now(),
+      })
     }
 
-    // 6. If the deposit is finalized, stop the cron job
-    if (["paid", "paid_over", "failed", "canceled"].includes(newStatus)) {
-      console.log("Deposit finalized with status:", newStatus);
-      return;
+    if (!FINAL_DEPOSIT_STATUSES.includes(newStatus)) {
+      setTimeout(() => checkDepositStatus(depositId, uid, amount), 4000)
     }
-
-    // 7. If not finalized, schedule the next check
-    setTimeout(() => checkDepositStatus(depositId, uid, amount), 4000);
-  } catch (error: any) {
-    console.error("Error in deposit cron job:", error.message);
+  } catch {
+    // Ignore background polling errors and allow the next cycle to retry if needed.
   }
-};
+}
 
-/**
- * Starts the cron job to monitor the deposit status.
- */
 export const startDepositCronJob = (depositId: string, uid: string, amount: number) => {
-  setTimeout(() => checkDepositStatus(depositId, uid, amount), 2000);
-};
+  setTimeout(() => checkDepositStatus(depositId, uid, amount), 2000)
+}

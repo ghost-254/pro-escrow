@@ -23,7 +23,7 @@ interface Group {
   name: string
   type: "Buy" | "Sell"
   amount: string
-  status: "active" | "complete"
+  status: "active" | "complete" | "cancelled"
   participants: number
   createdAt: Date
   itemDescription: string
@@ -79,8 +79,12 @@ export default function GroupChatLayout({
             name: `Xcrow_${grp.id.slice(0, 4)}`,
             type: (data.type as "Buy" | "Sell") || "Buy",
             amount,
-            // Map any status not equal to "complete" to "active"
-            status: data.status === "complete" ? "complete" : "active",
+            status:
+              data.status === "complete"
+                ? "complete"
+                : data.status === "cancelled"
+                  ? "cancelled"
+                  : "active",
             participants: (data.participants || []).length,
             createdAt,
             itemDescription: description,
@@ -91,7 +95,8 @@ export default function GroupChatLayout({
         groupData.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
 
         // If a group is selected (pathname includes its id), move it to the top.
-        const selectedGroupId = pathname.split("/dashboard")[2] // expecting /group-chat/{groupId}
+        const pathSegments = pathname.split("/").filter(Boolean)
+        const selectedGroupId = pathSegments[2]
         if (selectedGroupId) {
           const selectedIndex = groupData.findIndex((grp) => grp.id === selectedGroupId)
           if (selectedIndex > -1) {
@@ -121,6 +126,8 @@ export default function GroupChatLayout({
   const getStatusColor = (status: string) => {
     if (status === "active") {
       return "bg-orange-500 text-white"
+    } else if (status === "cancelled") {
+      return "bg-red-600 text-white"
     } else {
       return "bg-yellow-500 text-white"
     }

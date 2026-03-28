@@ -22,7 +22,7 @@ interface ChatGroup {
   type: "Buy" | "Sell"
   price: number
   currency: string
-  status: "active" | "complete"
+  status: "active" | "complete" | "cancelled"
   participants: number
   createdAt: Date
   itemDescription: string
@@ -64,8 +64,12 @@ export default function GroupChatIndexPage() {
             type: data.type || "Buy",
             price: data.price || 0,
             currency: data.currency || "USD",
-            // Map any status not equal to "complete" to "active"
-            status: data.status === "complete" ? "complete" : "active",
+            status:
+              data.status === "complete"
+                ? "complete"
+                : data.status === "cancelled"
+                  ? "cancelled"
+                  : "active",
             participants: (data.participants || []).length,
             createdAt,
             itemDescription: description,
@@ -95,6 +99,8 @@ export default function GroupChatIndexPage() {
   const getStatusColor = (status: string) => {
     if (status === "active") {
       return "bg-orange-500 text-white"
+    } else if (status === "cancelled") {
+      return "bg-red-600 text-white"
     } else {
       return "bg-yellow-500 text-white"
     }

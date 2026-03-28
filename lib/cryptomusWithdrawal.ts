@@ -4,11 +4,15 @@
 import axios from "axios";
 import crypto from "crypto";
 
-const MERCHANT_ID = process.env.NEXT_SERVER_CRYPTOMUS_MERCHANT_ID;
-const API_KEY = process.env.NEXT_SERVER_CRYPTOMUS_PAYOUT_API_KEY;
+const getCryptomusPayoutConfig = () => {
+  const merchantId = process.env.NEXT_SERVER_CRYPTOMUS_MERCHANT_ID
+  const apiKey = process.env.NEXT_SERVER_CRYPTOMUS_PAYOUT_API_KEY
 
-if (!MERCHANT_ID || !API_KEY) {
-  throw new Error("Cryptomus payout configuration missing");
+  if (!merchantId || !apiKey) {
+    throw new Error("Cryptomus payout configuration missing")
+  }
+
+  return { merchantId, apiKey }
 }
 
 /**
@@ -18,6 +22,7 @@ if (!MERCHANT_ID || !API_KEY) {
  * $sign = md5(base64_encode($data) . $API_KEY);
  */
 const generateSignature = (data: any) => {
+  const { apiKey } = getCryptomusPayoutConfig()
   // 1. JSON-encode without sorting
   const jsonData = JSON.stringify(data);
 
@@ -25,17 +30,18 @@ const generateSignature = (data: any) => {
   const base64Data = Buffer.from(jsonData).toString("base64");
 
   // 3. md5(base64Data + API_KEY)
-  return crypto.createHash("md5").update(base64Data + API_KEY).digest("hex");
+  return crypto.createHash("md5").update(base64Data + apiKey).digest("hex");
 };
 
 /**
  * Calls the Cryptomus payout API endpoint, e.g. "payout" or "someOtherEndpoint"
  */
 export const callCryptomusPayoutApi = async (endpoint: string, payload: any) => {
+  const { merchantId } = getCryptomusPayoutConfig()
   const sign = generateSignature(payload);
 
   const headers = {
-    merchant: MERCHANT_ID,
+    merchant: merchantId,
     sign,
     "Content-Type": "application/json",
   };

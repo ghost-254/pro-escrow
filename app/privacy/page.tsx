@@ -266,7 +266,7 @@ export default function PrivacyPolicy() {
               If you have any questions or concerns about this Privacy Policy, please contact us at:
             </p>
             <div className="space-y-2">
-              <p className="text-muted-foreground">Email: privacy@xcrow.co</p>
+              <p className="text-muted-foreground">Email: privacy@xcrowtrust.com</p>
             </div>
           </section>
 

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { useToast } from "../hooks/use-toast"
+import { clearServerSession } from "@/lib/clientAuthSession"
 import { db } from "@/lib/firebaseConfig"
 import { useSelector } from "react-redux"
 import { RootState } from "@/lib/stores/store"
@@ -59,6 +60,7 @@ export function UserMenu() {
     setIsLoading(true)
     try {
       await signOut(auth)
+      await clearServerSession().catch(() => null)
       toast.toast({
         title: "Success",
         description: "You have successfully signed out.",

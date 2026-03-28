@@ -1,55 +1,70 @@
-// lib/cronJob.ts
-/* eslint-disable */
+import { FieldValue, Timestamp } from "firebase-admin/firestore"
 
-import { db } from "@/lib/firebaseConfig";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { callCryptomusPayoutApi } from "@/lib/cryptomusWithdrawal";
+import { adminDb } from "@/lib/firebaseAdmin"
+import { callCryptomusPayoutApi } from "@/lib/cryptomusWithdrawal"
+
+const FINAL_PAYOUT_STATUSES = ["paid", "fail", "cancel", "system_fail"]
 
 const checkPayoutStatus = async (orderId: string) => {
   try {
-    const withdrawalRef = doc(db, "withdrawals", orderId);
-    const withdrawalSnapshot = await getDoc(withdrawalRef);
+    const withdrawalRef = adminDb.collection("withdrawals").doc(orderId)
+    const withdrawalSnapshot = await withdrawalRef.get()
 
-    if (!withdrawalSnapshot.exists()) {
-      console.log("Withdrawal not found");
-      return;
+    if (!withdrawalSnapshot.exists) {
+      return
     }
 
-    const withdrawalData = withdrawalSnapshot.data();
-    const status = withdrawalData.status;
+    const withdrawalData = withdrawalSnapshot.data() ?? {}
+    const status = withdrawalData.status
 
-    if (["paid", "fail", "cancel", "system_fail"].includes(status)) {
-      console.log("Payout reached final status:", status);
-      return;
+    if (FINAL_PAYOUT_STATUSES.includes(status)) {
+      return
     }
 
-    // Call Cryptomus API to get the latest status
     const cryptomusResponse = await callCryptomusPayoutApi("payout/info", {
       order_id: orderId,
-    });
+    })
 
     if (cryptomusResponse.state !== 0) {
-      console.log("Failed to fetch payout status:", cryptomusResponse.message);
-      return;
+      return
     }
 
-    const newStatus = cryptomusResponse.result.status;
+    const newStatus = cryptomusResponse.result.status
 
-    // Update the status in the database
-    await updateDoc(withdrawalRef, { status: newStatus });
+    if (
+      ["fail", "cancel", "system_fail"].includes(newStatus) &&
+      withdrawalData.balanceDeducted &&
+      !withdrawalData.balanceRefunded
+    ) {
+      await adminDb.runTransaction(async (transaction) => {
+        const userRef = adminDb.collection("users").doc(withdrawalData.uid)
 
-    if (["paid", "fail", "cancel", "system_fail"].includes(newStatus)) {
-      console.log("Payout reached final status:", newStatus);
-      return;
+        transaction.update(userRef, {
+          userUsdBalance: FieldValue.increment(Number(withdrawalData.amount || 0)),
+          updatedAt: Timestamp.now(),
+        })
+
+        transaction.update(withdrawalRef, {
+          status: newStatus,
+          balanceRefunded: true,
+          updatedAt: Timestamp.now(),
+        })
+      })
+    } else {
+      await withdrawalRef.update({
+        status: newStatus,
+        updatedAt: Timestamp.now(),
+      })
     }
 
-    // If not final, schedule the next check
-    setTimeout(() => checkPayoutStatus(orderId), 2000);
-  } catch (error: any) {
-    console.log("Error in cron job:", error.message);
+    if (!FINAL_PAYOUT_STATUSES.includes(newStatus)) {
+      setTimeout(() => checkPayoutStatus(orderId), 2000)
+    }
+  } catch {
+    // Ignore background polling errors and allow the next cycle to retry if needed.
   }
-};
+}
 
 export const startCronJob = (orderId: string) => {
-  setTimeout(() => checkPayoutStatus(orderId), 2000);
-};
+  setTimeout(() => checkPayoutStatus(orderId), 2000)
+}

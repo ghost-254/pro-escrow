@@ -306,7 +306,7 @@ export default function TermsOfService() {
               contact us at:
             </p>
             <div className="space-y-2">
-              <p className="text-muted-foreground">Email: legal@xcrow.co</p>
+              <p className="text-muted-foreground">Email: legal@xcrowtrust.com</p>
             </div>
           </section>
 

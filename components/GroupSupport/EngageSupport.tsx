@@ -1,4 +1,3 @@
-/* eslint-disable */
 "use client"
 
 import React, { useState } from "react"
@@ -14,7 +13,6 @@ import { Button } from "@/components/ui/button"
 import { toast } from "react-toastify"
 import { Headphones } from "lucide-react"
 import { ModalButtonProps } from "@/lib/types"
-import emailjs from "@emailjs/browser"
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip"
 
@@ -25,6 +23,7 @@ const EngageSupport: React.FC<ModalButtonProps> = ({
   const [isOpen, setIsOpen] = useState(false)
   const [reason, setReason] = useState("")
   const [comments, setComments] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Called on "Engage" to send email
   const handleEngage = async () => {
@@ -36,34 +35,36 @@ const EngageSupport: React.FC<ModalButtonProps> = ({
     const groupUrl =
       typeof window !== "undefined" ? window.location.href : "Unavailable"
 
-    // Prepare template parameters for EmailJS
-    const templateParams = {
-      reason,
-      comments,
-      groupUrl,
-    }
-
     try {
-      const serviceId = "YOUR_SERVICE_ID"
-      const templateId = "YOUR_TEMPLATE_ID"
-      const publicKey = "YOUR_PUBLIC_KEY"
+      setIsSubmitting(true)
 
-      // Send email via EmailJS
-      const result = await emailjs.send(serviceId, templateId, templateParams, publicKey)
+      const response = await fetch("/api/support/engage", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reason,
+          comments,
+          groupUrl,
+        }),
+      })
+      const data = await response.json().catch(() => null)
 
-      if (result.status === 200) {
-        toast.success("Support request sent. Please wait for assistance.")
-      } else {
-        toast.error("Failed to send support request. Please try again.")
+      if (!response.ok || !data?.success) {
+        toast.error(data?.error || "Failed to send support request. Please try again.")
+        return
       }
-    } catch (error) {
-      toast.error("Failed to send support request. Please try again.")
-    }
 
-    // Close dialog & reset fields
-    setIsOpen(false)
-    setReason("")
-    setComments("")
+      toast.success(data.message || "Support request sent. Please wait for assistance.")
+      setIsOpen(false)
+      setReason("")
+      setComments("")
+    } catch {
+      toast.error("Failed to send support request. Please try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -119,10 +120,12 @@ const EngageSupport: React.FC<ModalButtonProps> = ({
               />
 
               <div className="flex justify-end space-x-2 mt-4">
-                <Button variant="outline" onClick={() => setIsOpen(false)}>
+                <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>
                   Cancel
                 </Button>
-                <Button onClick={handleEngage}>Engage</Button>
+                <Button onClick={handleEngage} disabled={isSubmitting}>
+                  {isSubmitting ? "Sending..." : "Engage"}
+                </Button>
               </div>
             </div>
           </DialogContent>

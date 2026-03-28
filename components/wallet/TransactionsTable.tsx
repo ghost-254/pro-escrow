@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
-import type { Transaction } from "@/../types/wallet";
+import type { Transaction } from "@/types/wallet";
 import { getAuth } from "firebase/auth";
 import { toast } from "react-toastify";
 
@@ -23,7 +23,7 @@ export function TransactionsTable({ searchTerm, filter }: { searchTerm: string; 
     const currentUser = auth.currentUser;
     if (currentUser) {
       try {
-        const res = await fetch(`/api/transactions?uid=${currentUser.uid}`);
+        const res = await fetch("/api/transactions");
         const data = await res.json();
         if (data.success) {
           setTransactions(data.transactions);

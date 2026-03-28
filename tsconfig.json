@@ -1,6 +1,9 @@
 {
   "compilerOptions": {
-    "typeRoots": ["./node_modules/@types", "./types"],
+    "typeRoots": [
+      "./node_modules/@types",
+      "./types"
+    ],
     "target": "ES2017",
     "lib": [
       "dom",
@@ -16,10 +19,13 @@
     "moduleResolution": "node", // Changed from "bundler" to "node"
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "baseUrl": ".", // Added to better handle paths
     "paths": {
+      "@/*": [
+        "*"
+      ],
       "@/components/*": [
         "components/*"
       ], // Example for components
@@ -43,8 +49,11 @@
     "**/*.ts",
     "**/*.tsx",
     "next-env.d.ts",
-    ".next/types/**/*.ts"
-, "components/TokenService.tsx", "components/StkService.tsx"  ],
+    ".next/types/**/*.ts",
+    "components/TokenService.tsx",
+    "components/StkService.tsx",
+    ".next/dev/types/**/*.ts"
+  ],
   "exclude": [
     "node_modules"
   ]

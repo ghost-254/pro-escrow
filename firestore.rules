@@ -1,0 +1,150 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isParticipant(groupId) {
+      return isSignedIn()
+        && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.participants;
+    }
+
+    function allowedUserCreateKeys() {
+      return [
+        'firstName',
+        'lastName',
+        'phoneNumber',
+        'email',
+        'createdAt',
+        'fullName',
+        'countryCode',
+        'photoURL',
+        'cryptoBEP20',
+        'binanceId',
+        'paypal',
+        'mpesa',
+        'userUsdBalance',
+        'userKesBalance',
+        'frozenUserUsdBalance',
+        'frozenUserKesBalance'
+      ];
+    }
+
+    function allowedUserUpdateKeys() {
+      return [
+        'firstName',
+        'lastName',
+        'fullName',
+        'countryCode',
+        'phoneNumber',
+        'photoURL',
+        'cryptoBEP20',
+        'binanceId',
+        'paypal',
+        'mpesa',
+        'email'
+      ];
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId)
+        && request.resource.data.keys().hasOnly(allowedUserCreateKeys())
+        && request.resource.data.email == request.auth.token.email;
+      allow update: if isOwner(userId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowedUserUpdateKeys())
+        && request.resource.data.email == resource.data.email;
+      allow delete: if false;
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if false;
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'updatedAt']);
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    match /authEmailVerifications/{documentId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /supportRequests/{documentId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /groups/{groupId} {
+      allow read: if isSignedIn() && request.auth.uid in resource.data.participants;
+      allow create, update, delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isParticipant(groupId);
+        allow create: if isParticipant(groupId)
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.keys().hasOnly([
+            'senderId',
+            'senderName',
+            'content',
+            'imageURL',
+            'timestamp'
+          ]);
+        allow update, delete: if false;
+      }
+
+      match /typing/{typingId} {
+        allow read: if isParticipant(groupId);
+        allow create, update: if isParticipant(groupId)
+          && typingId == request.auth.uid
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.keys().hasOnly(['userId', 'displayName', 'isTyping']);
+        allow delete: if false;
+      }
+    }
+
+    match /deposits/{depositId} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    match /withdrawals/{withdrawalId} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    match /sellerSummaries/{documentId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /wallet/{documentId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /wallets/{documentId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /transactions/{documentId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /userWithdrawals/{documentId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /kopokopo_events/{documentId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

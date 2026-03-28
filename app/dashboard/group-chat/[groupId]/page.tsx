@@ -7,13 +7,11 @@ import { useRouter, useParams } from "next/navigation"
 import {
   onSnapshot,
   doc,
-  getDoc,
   collection,
   query,
   orderBy,
   addDoc,
   setDoc,
-  updateDoc,
   serverTimestamp,
   type Timestamp,
 } from "firebase/firestore"
@@ -135,82 +133,22 @@ export default function GroupChatPage() {
   const [buyerUid, setBuyerUid] = useState<string>("")
   const [sellerUid, setSellerUid] = useState<string>("")
 
-  // -- Utility to get user profile
-  async function getUserProfile(uid: string) {
-    const snap = await getDoc(doc(db, "users", uid))
-    if (!snap.exists()) return null
-    const data = snap.data()
-    return {
-      firstName: data.firstName || "",
-      lastName: data.lastName || "",
-      email: data.email || "",
-      userKesBalance: data.userKesBalance || 0,
-      userUsdBalance: data.userUsdBalance || 0,
-      frozenUserKesBalance: data.frozenUserKesBalance || 0,
-      frozenUserUsdBalance: data.frozenUserUsdBalance || 0,
-    }
-  }
-
-  // -- Finalize payout logic (unchanged)
-  const finalizePayout = async (groupRef: any, groupData: any) => {
-    const frozenKes = groupData.frozenKesBalance || 0
-    const frozenUsd = groupData.frozenUsdBalance || 0
-    const fee = groupData.escrowFee || 0
-
-    const totalFrozen = groupData.currency === "KES" ? frozenKes : frozenUsd
-    const sellerAmount = totalFrozen - fee
-    if (sellerAmount < 0) {
-      throw new Error("Escrow fee is larger than the total frozen. Check logic.")
-    }
-
-    const buyerProfile = await getUserProfile(groupData.buyerUid)
-    if (!buyerProfile) throw new Error("Buyer profile not found.")
-    let newBuyerFrozenKes = buyerProfile.frozenUserKesBalance
-    let newBuyerFrozenUsd = buyerProfile.frozenUserUsdBalance
-    if (groupData.currency === "KES") {
-      newBuyerFrozenKes -= totalFrozen
-      if (newBuyerFrozenKes < 0) newBuyerFrozenKes = 0
-    } else {
-      newBuyerFrozenUsd -= totalFrozen
-      if (newBuyerFrozenUsd < 0) newBuyerFrozenUsd = 0
-    }
-    await updateDoc(doc(db, "users", groupData.buyerUid), {
-      frozenUserKesBalance: newBuyerFrozenKes,
-      frozenUserUsdBalance: newBuyerFrozenUsd,
+  const submitGroupAction = async (payload: Record<string, unknown>) => {
+    const response = await fetch(`/api/groups/${groupId}/actions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
     })
 
-    const sellerProfile = await getUserProfile(groupData.sellerUid)
-    if (!sellerProfile) throw new Error("Seller profile not found.")
+    const result = await response.json()
 
-    let newSellerKes = sellerProfile.userKesBalance
-    let newSellerUsd = sellerProfile.userUsdBalance
-    if (groupData.currency === "KES") {
-      newSellerKes += sellerAmount
-    } else {
-      newSellerUsd += sellerAmount
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || "Failed to update the secure group action.")
     }
-    await updateDoc(doc(db, "users", groupData.sellerUid), {
-      userKesBalance: newSellerKes,
-      userUsdBalance: newSellerUsd,
-    })
 
-    await addDoc(collection(db, "notifications"), {
-      userId: groupData.buyerUid,
-      message: `Transaction in group [${groupRef.id}] is complete. We deducted ${totalFrozen} ${groupData.currency} from your frozen funds, from which ${fee} is the escrow fee, and ${sellerAmount} is credited to the seller.`,
-      link: `/dashboard/group-chat/${groupRef.id}`,
-      read: false,
-      createdAt: new Date(),
-    })
-
-    await addDoc(collection(db, "notifications"), {
-      userId: groupData.sellerUid,
-      message: `Transaction in group [${groupRef.id}] is complete. You have been credited with ${sellerAmount} ${groupData.currency}, while the escrow fee of ${fee} is deducted from the buyer's total freeze.`,
-      link: `/dashboard/group-chat/${groupRef.id}`,
-      read: false,
-      createdAt: new Date(),
-    })
-
-    toast.success(`Seller credited with ${sellerAmount} ${groupData.currency}, fee ${fee}.`)
+    return result
   }
 
   // Listen to group doc
@@ -220,7 +158,7 @@ export default function GroupChatPage() {
       return
     }
     const groupRef = doc(db, "groups", groupId)
-    const unsubGroup = onSnapshot(groupRef, async (snap) => {
+    const unsubGroup = onSnapshot(groupRef, (snap) => {
       if (!snap.exists()) {
         toast.error("Group not found.")
         router.push("/dashboard")
@@ -245,22 +183,17 @@ export default function GroupChatPage() {
             seller = participants[1].uid
           }
         }
-        setBuyerUid(buyer)
-        setSellerUid(seller)
-        if (buyer) {
-          const creatorSnap = await getDoc(doc(db, "users", buyer))
-          if (creatorSnap.exists()) {
-            const cData = creatorSnap.data()
-            const firstName = cData.firstName || "Unknown"
-            const lastName = cData.lastName || ""
-            setCreatorName(`${firstName} ${lastName}`.trim())
-          } else {
-            setCreatorName(buyer)
-          }
-        }
-        // Set group name using naming convention.
-        setGroupName(`Xcrow_${groupId.slice(0, 4)}`)
       }
+
+      const resolvedBuyerUid =
+        typeof data.buyerUid === "string" && data.buyerUid ? data.buyerUid : buyer
+      const resolvedSellerUid =
+        typeof data.sellerUid === "string" && data.sellerUid ? data.sellerUid : seller
+
+      setBuyerUid(resolvedBuyerUid)
+      setSellerUid(resolvedSellerUid)
+      setCreatorName(data.creatorName || resolvedBuyerUid || "Unknown")
+      setGroupName(`Xcrow_${groupId.slice(0, 4)}`)
 
       setItemDescription(data.itemDescription || "")
       setPrice(data.price || 0)
@@ -361,30 +294,12 @@ export default function GroupChatPage() {
 
   const handleAgree = async () => {
     try {
-      const groupRef = doc(db, "groups", groupId)
-      const snap = await getDoc(groupRef)
-      if (!snap.exists()) return
-      const data = snap.data() || {}
-      const ts = data.transactionStatus || {}
-
-      ts.buyerComplete = true
-      ts.sellerComplete = true
-      ts.initiator = null
-      ts.rejection = null
-
-      // Finalize payout to seller and send notifications.
-      await finalizePayout(groupRef, {
-        ...data,
-        buyerUid,
-        sellerUid,
+      const result = await submitGroupAction({
+        action: "respond-complete",
+        agree: true,
       })
 
-      await updateDoc(groupRef, {
-        transactionStatus: ts,
-        status: "complete",
-      })
-
-      toast.success("Transaction is now COMPLETE.")
+      toast.success(result.message || "Transaction completed securely.")
       setShowPopup(false)
     } catch (error: any) {
       toast.error("Failed to set transaction as complete. " + error.message)
@@ -393,23 +308,12 @@ export default function GroupChatPage() {
 
   const handleDisagree = async () => {
     try {
-      if (!user?.uid) return
-      const groupRef = doc(db, "groups", groupId)
-      const snap = await getDoc(groupRef)
-      if (!snap.exists()) return
-      const data = snap.data() || {}
-      const ts = data.transactionStatus || {}
+      const result = await submitGroupAction({
+        action: "respond-complete",
+        agree: false,
+      })
 
-      ts.buyerComplete = false
-      ts.sellerComplete = false
-
-      if (isBuyer) {
-        ts.rejection = { by: "buyer", time: new Date().toISOString() }
-      } else if (isSeller) {
-        ts.rejection = { by: "seller", time: new Date().toISOString() }
-      }
-      await updateDoc(groupRef, { transactionStatus: ts })
-      toast.info("You have disagreed. The request is removed.")
+      toast.info(result.message || "You have rejected the completion request.")
       setShowPopup(false)
     } catch (error: any) {
       toast.error("Failed to disagree. " + error.message)
@@ -418,13 +322,9 @@ export default function GroupChatPage() {
 
   const handleCloseRejectionPopup = async () => {
     try {
-      const groupRef = doc(db, "groups", groupId)
-      const snap = await getDoc(groupRef)
-      if (!snap.exists()) return
-      const data = snap.data() || {}
-      const ts = data.transactionStatus || {}
-      ts.rejection = null
-      await updateDoc(groupRef, { transactionStatus: ts })
+      await submitGroupAction({
+        action: "clear-complete-rejection",
+      })
     } catch (err: any) {
       toast.error("Error clearing rejection: " + err.message)
     } finally {
@@ -463,22 +363,12 @@ export default function GroupChatPage() {
 
   const handleAgreeCancel = async () => {
     try {
-      const groupRef = doc(db, "groups", groupId)
-      const snap = await getDoc(groupRef)
-      if (!snap.exists()) return
-      const data = snap.data() || {}
-      const ts = data.transactionStatus || {}
-
-      ts.buyerCancel = true
-      ts.sellerCancel = true
-      ts.cancelInitiator = null
-      ts.cancelRejection = null
-
-      await updateDoc(groupRef, {
-        transactionStatus: ts,
-        status: "cancelled",
+      const result = await submitGroupAction({
+        action: "respond-cancel",
+        agree: true,
       })
-      toast.success("Transaction is now CANCELLED.")
+
+      toast.success(result.message || "Transaction cancelled securely.")
       setShowCancelPopup(false)
     } catch (err: any) {
       toast.error("Failed to set transaction to cancelled. " + err.message)
@@ -487,23 +377,12 @@ export default function GroupChatPage() {
 
   const handleDisagreeCancel = async () => {
     try {
-      const groupRef = doc(db, "groups", groupId)
-      const snap = await getDoc(groupRef)
-      if (!snap.exists()) return
-      const data = snap.data() || {}
-      const ts = data.transactionStatus || {}
+      const result = await submitGroupAction({
+        action: "respond-cancel",
+        agree: false,
+      })
 
-      ts.buyerCancel = false
-      ts.sellerCancel = false
-
-      if (isBuyer) {
-        ts.cancelRejection = { by: "buyer", time: new Date().toISOString() }
-      } else if (isSeller) {
-        ts.cancelRejection = { by: "seller", time: new Date().toISOString() }
-      }
-
-      await updateDoc(groupRef, { transactionStatus: ts })
-      toast.info("You have disagreed. Cancel request is removed.")
+      toast.info(result.message || "You have rejected the cancellation request.")
       setShowCancelPopup(false)
     } catch (err: any) {
       toast.error("Failed to disagree with cancellation. " + err.message)
@@ -512,13 +391,9 @@ export default function GroupChatPage() {
 
   const handleCloseCancelRejectionPopup = async () => {
     try {
-      const groupRef = doc(db, "groups", groupId)
-      const snap = await getDoc(groupRef)
-      if (!snap.exists()) return
-      const data = snap.data() || {}
-      const ts = data.transactionStatus || {}
-      ts.cancelRejection = null
-      await updateDoc(groupRef, { transactionStatus: ts })
+      await submitGroupAction({
+        action: "clear-cancel-rejection",
+      })
     } catch (err: any) {
       toast.error("Error clearing cancelRejection: " + err.message)
     } finally {

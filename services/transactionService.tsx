@@ -63,14 +63,14 @@ export const getUserTransactions = async (
   const transactionsCollection = collection(db, 'transactions')
 
   // Create a query to fetch transactions where userId matches
-  const q = query(
+  const transactionQuery = query(
     transactionsCollection,
     where('userId', '==', userId),
     orderBy('createdAt', 'desc')
   )
 
   // Get the documents that match the query
-  const snapshot = await getDocs(q)
+  const snapshot = await getDocs(transactionQuery)
 
   // Map the documents to an array of transactions
   return snapshot.docs.map((doc) => {
@@ -106,14 +106,14 @@ export const getUserTransactionsByFilter = async (filters: {
   }
 
   // Create the query with the dynamically added conditions and sort by timestamp
-  const q = query(
+  const transactionQuery = query(
     transactionsCollection,
     ...conditions,
     orderBy('createdAt', 'desc') // Sort by createdAt in descending order (newest first)
   )
 
   // Get the matching documents
-  const snapshot = await getDocs(q)
+  const snapshot = await getDocs(transactionQuery)
 
   return snapshot.docs.map((doc) => {
     const data = doc.data() as Transaction

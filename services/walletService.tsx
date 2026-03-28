@@ -62,6 +62,7 @@ export const getUserWalletById = async (
   )
 
   const withdrawalSnapshot = await getDocs(withdrawalQuery)
+  /* eslint-disable-next-line no-console */
   console.log(withdrawalSnapshot.docs)
 
   const totalWithdrawals = withdrawalSnapshot.docs.reduce(
@@ -96,6 +97,7 @@ export const initializeWallet = async (
   currency: string = 'USD'
 ): Promise<void> => {
   if (!userId) {
+    /* eslint-disable-next-line no-console */
     console.error('User ID is required to create a wallet!')
     return
   }
@@ -109,6 +111,7 @@ export const initializeWallet = async (
       (doc) => doc.data().userId === userId
     )
     if (existingWallet) {
+      /* eslint-disable-next-line no-console */
       console.warn(`Wallet already exists for userId: ${userId}`)
       return
     }
@@ -128,8 +131,10 @@ export const initializeWallet = async (
 
     // Add new wallet to Firestore
     await addDoc(walletsCollection, newWallet)
+    /* eslint-disable-next-line no-console */
     console.log(`New wallet created for userId: ${userId}`)
   } catch (error) {
+    /* eslint-disable-next-line no-console */
     console.error('Error creating wallet:', error)
   }
 }
@@ -140,6 +145,7 @@ export const processWalletDeposit = async (
   incomingAmount: number
 ): Promise<void> => {
   if (!userId) {
+    /* eslint-disable-next-line no-console */
     console.error('User ID is missing!')
     return
   }
@@ -149,6 +155,7 @@ export const processWalletDeposit = async (
     const snapshot = await getDocs(walletCollection)
 
     if (snapshot.empty) {
+      /* eslint-disable-next-line no-console */
       console.error('No wallets found in the database.')
       return
     }
@@ -156,12 +163,14 @@ export const processWalletDeposit = async (
     const walletDoc = snapshot.docs.find((doc) => doc.data().userId === userId)
 
     if (!walletDoc) {
+      /* eslint-disable-next-line no-console */
       console.error(`No wallet found for userId: ${userId}`)
       return
     }
 
     const walletDocRef = doc(db, 'wallet', walletDoc.id)
     const walletData = walletDoc.data()
+    /* eslint-disable-next-line no-console */
     console.log('Wallet Data:', walletData)
 
     const currentBalance = walletData.walletBalance ?? 0
@@ -174,6 +183,7 @@ export const processWalletDeposit = async (
       totalDeposits: newTotalDeposits,
     })
   } catch (error) {
+    /* eslint-disable-next-line no-console */
     console.error('Error updating wallet:', error)
   }
 }
@@ -216,6 +226,7 @@ export const processWalletWithdrawal = async (
       totalWithdrawal: newTotalWithdrawals,
     })
   } catch (error) {
+    /* eslint-disable-next-line no-console */
     console.error('Error updating wallet:', error)
   }
 }

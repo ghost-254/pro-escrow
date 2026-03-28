@@ -23,8 +23,6 @@ import {
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getAuth } from "firebase/auth"
-import { db } from "@/lib/firebaseConfig"
-import { doc, getDoc, addDoc, collection } from "firebase/firestore"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface ActionCardProps {
@@ -135,28 +133,12 @@ export function ActionCard({ type }: ActionCardProps) {
           firstName,
           lastName,
           phoneNumber,
-          email: currentUser.email,
-          uid: currentUser.uid,
           amount,
         }),
       })
       const result = await response.json()
       if (response.ok && result.success) {
         toast.success("Deposit successful!")
-        // Update user's KES balance.
-        const updateResponse = await fetch("/api/user/updateBalance", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            uid: currentUser.uid,
-            amount: Number(amount),
-            currency: "KES",
-          }),
-        })
-        const updateResult = await updateResponse.json()
-        if (!updateResponse.ok) {
-          toast.error(updateResult.error || "Failed to update balance")
-        }
       } else {
         toast.error(result.error || "Deposit failed or canceled")
       }
@@ -173,7 +155,7 @@ export function ActionCard({ type }: ActionCardProps) {
       const response = await fetch("/api/depositCrypto", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid: currentUser.uid, amount }),
+        body: JSON.stringify({ amount }),
       })
       const result = await response.json()
 
@@ -213,7 +195,7 @@ export function ActionCard({ type }: ActionCardProps) {
 
     try {
       // Check user's USD balance
-      const balanceRes = await fetch(`/api/user/getWalletBalance?uid=${currentUser.uid}`)
+      const balanceRes = await fetch("/api/user/getWalletBalance")
       const balanceData = await balanceRes.json()
       if (!balanceData.success) {
         toast.error("Failed to retrieve wallet balance")
@@ -228,30 +210,14 @@ export function ActionCard({ type }: ActionCardProps) {
         return
       }
 
-      // Create a withdrawal document in Firestore
-      const withdrawalDocRef = await addDoc(collection(db, "withdrawals"), {
-        uid: currentUser.uid,
-        amount: Number(amount),
-        currency: "USD",
-        method: "Crypto",
-        walletAddress,
-        cryptoNetwork,
-        status: "pending",
-        createdAt: new Date(),
-      })
-      const orderId = withdrawalDocRef.id
-
-      // Initiate crypto withdrawal with the generated order ID
+      // Initiate crypto withdrawal
       const response = await fetch("/api/payout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          uid: currentUser.uid,
           amount,
-          currency: "USD",
           network: cryptoNetwork,
           address: walletAddress,
-          orderId: orderId,
         }),
       })
       const result = await response.json()
@@ -290,26 +256,15 @@ export function ActionCard({ type }: ActionCardProps) {
     }
 
     try {
-      // Fetch user data from Firestore
-      const userRef = doc(db, "users", currentUser.uid)
-      const userSnap = await getDoc(userRef)
-
-      if (!userSnap.exists()) {
-        toast.error("User not found in database")
+      const balanceRes = await fetch("/api/user/getWalletBalance")
+      const balanceData = await balanceRes.json()
+      if (!balanceData.success) {
+        toast.error("Failed to retrieve wallet balance")
         setIsProcessing(false)
         return
       }
 
-      const userData = userSnap.data()
-      const userEmail = userData.email
-      if (!userEmail) {
-        toast.error("User email is missing in the database")
-        setIsProcessing(false)
-        return
-      }
-
-      // Check user's KES balance
-      const availableKES = Number(userData.userKesBalance || 0)
+      const availableKES = Number(balanceData.userKesBalance || 0)
       if (availableKES < Number(amount)) {
         toast.error("Withdrawal amount exceeds your available KES balance")
         setIsProcessing(false)
@@ -325,8 +280,6 @@ export function ActionCard({ type }: ActionCardProps) {
           lastName,
           phoneNumber,
           amount,
-          uid: currentUser.uid,
-          email: userEmail,
         }),
       })
 

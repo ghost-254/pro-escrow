@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { clearServerSession } from '@/lib/clientAuthSession'
 import { cn } from '@/lib/utils'
 import { toggleTransactModal } from '@/lib/slices/transact.reducer'
 import { Button } from '@/components/ui/button'
@@ -54,10 +55,9 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
 
   const [unreadCount, setUnreadCount] = useState<number>(0)
 
-  // Real-time unread notifications for the user
   useEffect(() => {
     if (!user?.uid) {
-      return undefined;
+      return undefined
     }
 
     const notifsRef = collection(db, 'notifications')
@@ -77,7 +77,6 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
     }
   }, [user?.uid])
 
-  // Fetch user document from Firestore
   useEffect(() => {
     const fetchUserDoc = async () => {
       if (!user?.uid) return
@@ -97,13 +96,11 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
     fetchUserDoc()
   }, [user?.uid])
 
-  // Generate fallback initials if no photo is provided
   const initials = (firstName[0] || '') + (lastName[0] || '')
   const userInitials = initials.toUpperCase()
 
   if (!isOpen) return null
 
-  // Prevent overlay close when clicking inside the sidebar
   const stopPropagation = (e: MouseEvent) => {
     e.stopPropagation()
   }
@@ -116,6 +113,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
   const handleLogout = async () => {
     try {
       await signOut(auth)
+      await clearServerSession().catch(() => null)
       onClose()
       router.push('/')
     } catch {
@@ -123,7 +121,6 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
     }
   }
 
-  // Reusable MenuItem component with support for notifications and NEW badges
   const MenuItem = ({
     href,
     icon: Icon,
@@ -143,46 +140,19 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
       <Link href={href} onClick={onClose}>
         <Button
           variant="ghost"
-          className={cn(
-            'w-full justify-start relative',
-            isActive && 'bg-[#dddddd] dark:bg-gray-600 font-semibold'
-          )}
+          className={cn('w-full justify-start relative', isActive && 'bg-[#dddddd] dark:bg-gray-600 font-semibold')}
         >
           <Icon className="mr-2 h-4 w-4" />
           <span className="flex items-center">
             {label}
             {isNotifications && unreadCount > 0 && (
-              <span
-                className="
-                  ml-2
-                  flex
-                  items-center
-                  justify-center
-                  h-5
-                  w-5
-                  text-[0.7rem]
-                  rounded-full
-                  font-bold
-                  bg-red-600
-                  text-white
-                "
-              >
+              <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[0.7rem] font-bold text-white">
                 {unreadCount}
               </span>
             )}
           </span>
           {showNewBadge && (
-            <span
-              className="
-                ml-2
-                text-[0.6rem]
-                px-1
-                rounded
-                font-bold
-                bg-green-600
-                text-white
-              "
-            >
+            <span className="ml-2 rounded bg-green-600 px-1 text-[0.6rem] font-bold text-white">
               NEW
             </span>
           )}
@@ -192,27 +162,21 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[15] flex bg-black/50"
-      onClick={onClose}
-    >
-      {/* Sidebar Panel */}
+    <div className="fixed inset-0 z-[15] flex bg-black/50" onClick={onClose}>
       <div
-        className="relative w-[70%] md:w-[50%] h-screen bg-muted flex flex-col"
+        className="relative h-screen w-[70%] flex-col bg-muted md:w-[50%]"
         onClick={stopPropagation}
       >
-        {/* Sticky Top Section */}
-        <div className="sticky top-0 z-10 bg-muted border-b md:p-4 p-2">
-          <div className="flex items-center justify-between mb-4">
+        <div className="sticky top-0 z-10 border-b bg-muted p-2 md:p-4">
+          <div className="mb-4 flex items-center justify-between">
             <span className="font-semibold">Menu</span>
             <Button variant="ghost" size="icon" onClick={onClose}>
               <X className="h-4 w-4" />
             </Button>
           </div>
 
-          {/* User Info */}
           {user ? (
-            <div className="flex items-center justify-between mb-3 px-2">
+            <div className="mb-3 flex items-center justify-between px-2">
               <div className="flex items-center space-x-2">
                 {photoURL ? (
                   <Image
@@ -220,16 +184,14 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                     alt="Profile Avatar"
                     width={120}
                     height={120}
-                    className="w-8 h-8 rounded-full object-cover"
+                    className="h-8 w-8 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center text-sm font-bold text-gray-700 dark:text-gray-100">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-300 text-sm font-bold text-gray-700 dark:bg-gray-600 dark:text-gray-100">
                     {userInitials || 'U'}
                   </div>
                 )}
-                <Typography variant="span">
-                  {truncate(firstName, 15)}
-                </Typography>
+                <Typography variant="span">{truncate(firstName, 15)}</Typography>
               </div>
               <Button
                 variant="ghost"
@@ -242,7 +204,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
               </Button>
             </div>
           ) : (
-            <div className="flex items-center justify-between mb-3 px-2">
+            <div className="mb-3 flex items-center justify-between px-2">
               <Link href="/auth">
                 <Button variant="outline" size="sm" onClick={onClose}>
                   Sign In
@@ -251,7 +213,6 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
             </div>
           )}
 
-          {/* Create Xcrow Group */}
           <Link href="/dashboard/create-group">
             <Button
               onClick={handleShowTransactModal}
@@ -263,22 +224,13 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
           </Link>
         </div>
 
-        {/* Scrollable Content */}
         <ScrollArea className="flex-1">
-          <div className="p-4 space-y-4">
-            {/* MAIN MENU */}
+          <div className="space-y-4 p-4">
             <div>
-              <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">
-                MAIN MENU
-              </h4>
-              <nav className="space-y-1 flex flex-col gap-[0.3rem]">
+              <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">MAIN MENU</h4>
+              <nav className="flex flex-col gap-[0.3rem] space-y-1">
                 <MenuItem href="/dashboard" icon={Home} label="Dashboard" />
-                <MenuItem
-                  href="/dashboard/group-chat"
-                  icon={Users}
-                  label="Group Chats"
-                  showNewBadge
-                />
+                <MenuItem href="/dashboard/group-chat" icon={Users} label="Group Chats" showNewBadge />
                 <MenuItem
                   href="/dashboard/notifications"
                   icon={Bell}
@@ -301,11 +253,8 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
             </div>
             */}
 
-            {/* ACCOUNT */}
             <div>
-              <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">
-                ACCOUNT
-              </h4>
+              <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">ACCOUNT</h4>
               <nav className="space-y-1">
                 <MenuItem href="/dashboard/profile" icon={User} label="Profile" />
                 <MenuItem href="/dashboard/wallet" icon={Wallet} label="My Wallet" />
@@ -313,24 +262,26 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
               </nav>
             </div>
 
-            {/* ESSENTIALS */}
-          <div>
-            <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">ESSENTIALS</h4>
-            <nav className="space-y-1">
-              <MenuItem href="/terms" icon={FileText} label="Terms of Service" />
-              <MenuItem href="/privacy" icon={Shield} label="Privacy Policy" />
-              <MenuItem href="/refund" icon={RefreshCcw} label="Refund Policy" />
-            </nav>
-          </div>
+            <div>
+              <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">ESSENTIALS</h4>
+              <nav className="space-y-1">
+                <MenuItem href="/terms" icon={FileText} label="Terms of Service" />
+                <MenuItem href="/privacy" icon={Shield} label="Privacy Policy" />
+                <MenuItem href="/refund" icon={RefreshCcw} label="Refund Policy" />
+              </nav>
+            </div>
           </div>
         </ScrollArea>
 
-        {/* Footer */}
-        <div className="sticky bottom-0 mb-0 z-50 bg-muted border-t p-4 space-y-1 overflow-hidden">
-          <MenuItem href="mailto:support@xcrow.co" icon={Mails} label="support@xcrow.co" />
-          <div className="mt-2 text-xs text-center text-muted-foreground">
-          <p>© {new Date().getFullYear()} Xcrow.co</p>
-        </div>
+        <div className="sticky bottom-0 z-50 mb-0 overflow-hidden border-t bg-muted p-4 space-y-1">
+          <MenuItem
+            href="mailto:support@xcrowtrust.com"
+            icon={Mails}
+            label="support@xcrowtrust.com"
+          />
+          <div className="mt-2 text-center text-xs text-muted-foreground">
+            <p>&copy; {new Date().getFullYear()} XcrowTrust.com</p>
+          </div>
         </div>
       </div>
     </div>

@@ -6,6 +6,7 @@
  * @returns {string} The color hex code corresponding to the letter, defaulting to gray if not found.
  */
 export const getColorForLetter = (letter: string): string => {
+  /* eslint-disable id-length */
   const colors: Record<string, string> = {
     A: '#FF1493',
     B: '#FF6347',
@@ -34,6 +35,7 @@ export const getColorForLetter = (letter: string): string => {
     Y: '#800080',
     Z: '#800080',
   }
+  /* eslint-enable id-length */
 
   const upperCaseLetter = letter?.toUpperCase()
   return colors[upperCaseLetter] || '#808080' // Default to gray if letter not found

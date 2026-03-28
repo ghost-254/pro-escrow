@@ -18,8 +18,6 @@ import { ModalButtonProps } from "@/lib/types"
 
 import { useSelector } from "react-redux"
 import type { RootState } from "@/lib/stores/store"
-import { db } from "@/lib/firebaseConfig"
-import { doc, getDoc, updateDoc } from "firebase/firestore"
 
 import {
   Tooltip,
@@ -62,80 +60,24 @@ const CancelTransaction: React.FC<CancelTransactionProps> = ({
     }
 
     try {
-      const groupRef = doc(db, "groups", groupId)
-      const snap = await getDoc(groupRef)
-      if (!snap.exists()) {
-        toast.error("Group not found.")
-        return
-      }
-
-      const data = snap.data() || {}
-      const participants = data.participants || []
-      if (participants.length < 2) {
-        toast.error("Not enough participants to cancel.")
-        return
-      }
-
-      // Identify buyer vs seller
-      let buyerUid = ""
-      let sellerUid = ""
-
-      if (typeof participants[0] === "string") {
-        buyerUid = participants[0]
-      } else if (participants[0] && typeof participants[0] === "object") {
-        buyerUid = participants[0].uid
-      }
-      if (typeof participants[1] === "string") {
-        sellerUid = participants[1]
-      } else if (participants[1] && typeof participants[1] === "object") {
-        sellerUid = participants[1].uid
-      }
-
-      const isBuyer = user.uid === buyerUid
-      const isSeller = user.uid === sellerUid
-      if (!isBuyer && !isSeller) {
-        toast.error("You are not a participant in this group.")
-        return
-      }
-
-      // transactionStatus
-      const ts = data.transactionStatus || {
-        buyerCancel: false,
-        sellerCancel: false,
-        cancelInitiator: null,
-        cancelRejection: null,
-      }
-
-      // If it's the first time (both false), set cancelInitiator, set that side's "cancel" to true
-      if (!ts.buyerCancel && !ts.sellerCancel) {
-        ts.cancelInitiator = isBuyer ? "buyer" : "seller"
-        ts.cancelRejection = null
-      }
-
-      if (isBuyer) {
-        ts.buyerCancel = true
-      } else if (isSeller) {
-        ts.sellerCancel = true
-      }
-
-      // If both are now true => we finalize as "cancelled"
-      let newStatus = data.status || "active"
-      if (ts.buyerCancel && ts.sellerCancel) {
-        newStatus = "cancelled"
-        ts.cancelInitiator = null
-        ts.cancelRejection = null
-      }
-
-      await updateDoc(groupRef, {
-        transactionStatus: ts,
-        status: newStatus,
+      const response = await fetch(`/api/groups/${groupId}/actions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "request-cancel",
+          reason: selectedReason,
+        }),
       })
 
-      if (newStatus === "cancelled") {
-        toast.success("Both parties have agreed. Transaction is now CANCELLED.")
-      } else {
-        toast.success("Your cancellation request is recorded. Waiting for the other party.")
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to submit the cancellation request.")
       }
+
+      toast.success(result.message || "Your cancellation request has been recorded.")
     } catch (err: any) {
       toast.error("Failed to request cancellation. " + err.message)
     }

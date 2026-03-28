@@ -6,14 +6,14 @@ export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(false)
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     const media = window.matchMedia(query)
-    if (media.matches !== matches) {
-      setMatches(media.matches)
-    }
+    setMatches(media.matches)
+    /* eslint-enable react-hooks/set-state-in-effect */
     const listener = () => setMatches(media.matches)
     media.addListener(listener)
     return () => media.removeListener(listener)
-  }, [matches, query])
+  }, [query])
 
   return matches
 }

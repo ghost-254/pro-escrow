@@ -1,6 +1,9 @@
 import type React from "react"
 import { Inter } from "next/font/google"
+import { cookies } from "next/headers"
 import { ThemeProvider } from "@/components/theme-provider"
+import { CookieConsentBanner } from "@/components/cookie-consent-banner"
+import { COOKIE_CONSENT_NAME } from "@/lib/serverAuth"
 import "./globals.css"
 import type { Metadata } from "next"
 import { ToastContainer } from 'react-toastify'
@@ -13,17 +16,21 @@ export const metadata: Metadata = {
   description: "Xcrow brings buyers and sellers together in a safe, monitored environment for confident deals.",
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const cookieStore = await cookies()
+  const cookieConsent = cookieStore.get(COOKIE_CONSENT_NAME)?.value ?? null
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="escrow-theme">
           {children}
-        <ToastContainer />
+          <CookieConsentBanner initialConsent={cookieConsent} />
+          <ToastContainer />
         </ThemeProvider>
       </body>
     </html>

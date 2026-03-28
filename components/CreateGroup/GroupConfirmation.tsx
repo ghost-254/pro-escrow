@@ -7,14 +7,6 @@ import { RootState } from "@/lib/stores/store"
 import { Button } from "@/components/ui/button"
 import Typography from "@/components/ui/typography"
 import { toast } from "react-toastify"
-import { db } from "@/lib/firebaseConfig"
-import {
-  doc,
-  updateDoc,
-  collection,
-  addDoc,
-  Timestamp,
-} from "firebase/firestore"
 import { useRouter } from "next/navigation"
 import { previousStep, resetGroupCreation } from "@/lib/slices/groupCreationSlice"
 
@@ -77,106 +69,29 @@ const GroupConfirmation = () => {
     setIsProcessing(true)
 
     try {
-      // 1) FETCH current balances from your /api/user/getWalletBalance route
-      const balanceRes = await fetch(`/api/user/getWalletBalance?uid=${user.uid}`)
-      if (!balanceRes.ok) {
-        throw new Error(`Failed to fetch user balances: ${balanceRes.statusText}`)
-      }
-      const balanceData = await balanceRes.json()
-      if (!balanceData.success) {
-        throw new Error(balanceData.error || "Could not fetch wallet balances.")
-      }
-
-      // Extract up-to-date wallet balances
-      const {
-        userKesBalance,
-        userUsdBalance,
-        frozenUserKesBalance,
-        frozenUserUsdBalance,
-      } = balanceData
-
-      // 2) If the user is the buyer => freeze buyerAmount
-      let frozenKesForThisGroup = 0
-      let frozenUsdForThisGroup = 0
-
-      if (transactionType === "buying") {
-        const userRef = doc(db, "users", user.uid)
-
-        if (currency === "USD") {
-          const newUsdBalance = userUsdBalance - buyerAmount
-          if (newUsdBalance < 0) {
-            toast.error("You do not have enough USD balance to create this group.")
-            setIsProcessing(false)
-            return
-          }
-          const newFrozenUsd = frozenUserUsdBalance + buyerAmount
-
-          // Update user doc
-          await updateDoc(userRef, {
-            userUsdBalance: newUsdBalance,
-            frozenUserUsdBalance: newFrozenUsd,
-          })
-
-          // We'll also store in the group doc that we have "frozenUsdBalance" = buyerAmount
-          frozenUsdForThisGroup = buyerAmount
-        } else {
-          // KES
-          const newKesBalance = userKesBalance - buyerAmount
-          if (newKesBalance < 0) {
-            toast.error("You do not have enough KES balance to create this group.")
-            setIsProcessing(false)
-            return
-          }
-          const newFrozenKes = frozenUserKesBalance + buyerAmount
-
-          // Update user doc
-          await updateDoc(userRef, {
-            userKesBalance: newKesBalance,
-            frozenUserKesBalance: newFrozenKes,
-          })
-
-          // We'll store in the group doc that we have "frozenKesBalance" = buyerAmount
-          frozenKesForThisGroup = buyerAmount
-        }
-      }
-
-      // 3) Now create the group document
-      const groupData = {
-        transactionType,
-        price,
-        escrowFee,
-        currency,
-        itemDescription,
-        escrowFeeResponsibility,
-        participants: [user.uid],
-        status: "active",
-        createdAt: Timestamp.now(),
-
-        // 4) Additional fields for record-keeping
-        frozenKesBalance: frozenKesForThisGroup,
-        frozenUsdBalance: frozenUsdForThisGroup,
-      }
-
-      const groupRef = await addDoc(collection(db, "groups"), groupData)
-      const createdGroupId = groupRef.id
-      setGroupId(createdGroupId)
-
-      // Generate group URL
-      const fullGroupUrl = `${window.location.origin}/group-chat/${createdGroupId}`
-      setGeneratedGroupLink(fullGroupUrl)
-
-      // 5) Create an optional notification
-      const shortGroupName = `Xcrow_${createdGroupId.slice(0, 4)}`
-      await addDoc(collection(db, "notifications"), {
-        userId: user.uid,
-        message: `New ${shortGroupName} group created for ${itemDescription}. 
-                  Share this link with the other party: ${fullGroupUrl}`,
-        link: fullGroupUrl,
-        read: false,
-        createdAt: Timestamp.now(),
+      const response = await fetch("/api/groups", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          transactionType,
+          price,
+          escrowFee,
+          currency,
+          itemDescription,
+          escrowFeeResponsibility,
+        }),
       })
 
-      // 6) Show success modal
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to create the secure group.")
+      }
+
+      setGroupId(result.groupId)
+      setGeneratedGroupLink(result.groupUrl)
       setDialogOpen(true)
     } catch (error: any) {
       toast.error("Failed to create group. " + error?.message || "")
@@ -199,7 +114,7 @@ const GroupConfirmation = () => {
     dispatch(resetGroupCreation())
     // Navigate to the newly created group
     if (groupId) {
-      router.push(`/group-chat/${groupId}`)
+      router.push(`/dashboard/group-chat/${groupId}`)
     } else {
       toast.error("No group ID found.")
     }

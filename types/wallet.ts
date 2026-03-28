@@ -15,5 +15,3 @@ export interface Transaction {
     withdrawals: number
     currency: "KES" | "USD";
   }
-  
-  

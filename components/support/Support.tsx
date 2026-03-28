@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MessageCircle, Headphones, Mail, Phone, Loader2, Send } from "lucide-react"
 import { FaWhatsapp } from "react-icons/fa"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import emailjs from "@emailjs/browser"
 import { toast } from "react-toastify"
 
 const Support: React.FC = () => {
@@ -45,8 +44,21 @@ const Support: React.FC = () => {
     setIsSubmitting(true)
 
     try {
-      await emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", { name, email, message }, "YOUR_USER_ID")
-      toast.success("Message sent successfully!")
+      const response = await fetch("/api/support/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, message }),
+      })
+      const data = await response.json().catch(() => null)
+
+      if (!response.ok || !data?.success) {
+        toast.error(data?.error || "Failed to send message. Please try again.")
+        return
+      }
+
+      toast.success(data.message || "Message sent successfully!")
       setName("")
       setEmail("")
       setMessage("")
@@ -227,7 +239,7 @@ const Support: React.FC = () => {
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <Mail className="w-5 h-5" />
-                    <span>support@xcrow.co</span>
+                    <span>support@xcrowtrust.com</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Phone className="w-5 h-5" />
