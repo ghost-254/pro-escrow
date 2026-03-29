@@ -184,6 +184,13 @@ function inferGenericTransactionStatus(
   return "pending"
 }
 
+function inferKopoKopoDepositStatus(options: {
+  status: unknown
+  resourceStatus: unknown
+}) {
+  return inferGenericTransactionStatus(options.resourceStatus, options.status)
+}
+
 function getKopoKopoBaseUrl() {
   const baseUrl = process.env.NEXT_SERVER_KOPOKOPO_BASE_URL?.trim()
 
@@ -695,7 +702,10 @@ export async function applyKopoKopoDepositUpdate(options: {
   const { depositId, payload } = options
   const depositRef = adminDb.collection("deposits").doc(depositId)
   const result = extractKopoKopoDepositResult(payload)
-  const normalizedStatus = inferGenericTransactionStatus(result.status, result.resourceStatus)
+  const normalizedStatus = inferKopoKopoDepositStatus({
+    status: result.status,
+    resourceStatus: result.resourceStatus,
+  })
   const providerStatusValue = result.status || result.resourceStatus || "pending"
   const providerResourceStatusValue = result.resourceStatus || null
 

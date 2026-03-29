@@ -139,6 +139,10 @@ function inferGenericTransactionStatus(primaryStatus, ...secondaryStatuses) {
   return "pending";
 }
 
+function inferKopoKopoDepositStatus({ status, resourceStatus }) {
+  return inferGenericTransactionStatus(resourceStatus, status);
+}
+
 function isMpesaPaymentRecord(data) {
   const method = String(data.method || "").toLowerCase();
   const provider = String(data.provider || "").toLowerCase();
@@ -468,7 +472,10 @@ function setInitialUserBalances(currency, amount) {
 async function applyKopoKopoDepositUpdate(depositId, payload) {
   const depositRef = db.collection("deposits").doc(depositId);
   const result = extractKopoKopoDepositResult(payload);
-  const normalizedStatus = inferGenericTransactionStatus(result.status, result.resourceStatus);
+  const normalizedStatus = inferKopoKopoDepositStatus({
+    status: result.status,
+    resourceStatus: result.resourceStatus,
+  });
   const providerStatusValue = result.status || result.resourceStatus || "pending";
   const providerResourceStatusValue = result.resourceStatus || null;
 

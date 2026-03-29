@@ -36,12 +36,15 @@ export async function GET(
       )
     }
 
-    const exactStatus = [
-      typeof depositData.providerStatus === "string" ? depositData.providerStatus : "",
-      typeof depositData.providerResourceStatus === "string" ? depositData.providerResourceStatus : "",
-    ]
-      .filter(Boolean)
-      .join(" / ") || depositData.status || "pending"
+    const exactStatus =
+      (typeof depositData.providerResourceStatus === "string" &&
+      depositData.providerResourceStatus.trim()
+        ? depositData.providerResourceStatus
+        : typeof depositData.providerStatus === "string" && depositData.providerStatus.trim()
+          ? depositData.providerStatus
+          : "") ||
+      depositData.status ||
+      "pending"
     const status = formatTransactionStatus(
       depositData.status,
       depositData.providerStatus,
