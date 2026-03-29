@@ -97,13 +97,21 @@ export async function POST(request: Request) {
       message: "STK push sent. Approve the payment on your phone to complete the deposit.",
     })
   } catch (error: unknown) {
+    /* eslint-disable-next-line no-console */
+    console.error("Failed to initiate M-Pesa deposit", error)
+
     if (depositRef) {
-      await depositRef.update({
-        status: "failed",
-        providerStatus: "failed",
-        failureReason: error instanceof Error ? error.message : "Deposit request failed.",
-        updatedAt: Timestamp.now(),
-      })
+      try {
+        await depositRef.update({
+          status: "failed",
+          providerStatus: "failed",
+          failureReason: error instanceof Error ? error.message : "Deposit request failed.",
+          updatedAt: Timestamp.now(),
+        })
+      } catch (updateError) {
+        /* eslint-disable-next-line no-console */
+        console.error("Failed to update deposit after M-Pesa initiation error", updateError)
+      }
     }
 
     const sessionStatus = error instanceof SessionAuthError ? error.status : undefined

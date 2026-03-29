@@ -5,6 +5,7 @@
 
 import type React from "react"
 
+import Image from "next/image"
 import { useState, useEffect, useRef } from "react"
 import { toast } from "react-toastify"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -52,6 +53,7 @@ export function ActionCard({ type }: ActionCardProps) {
   const [showPreviewDialog, setShowPreviewDialog] = useState(false)
   const [mpesaDepositTracker, setMpesaDepositTracker] = useState<MpesaDepositTracker | null>(null)
   const announcedDepositIdsRef = useRef<Set<string>>(new Set())
+  const isMpesaDepositPending = mpesaDepositTracker?.status === "Pending"
 
   const resetForm = () => {
     setAmount("")
@@ -233,7 +235,22 @@ export function ActionCard({ type }: ActionCardProps) {
           amount,
         }),
       })
-      const result = await response.json()
+      const responseText = await response.text()
+      const result = responseText
+        ? (() => {
+            try {
+              return JSON.parse(responseText) as Record<string, any>
+            } catch {
+              return {
+                success: false,
+                error: responseText.trim().startsWith("<")
+                  ? "We could not start your M-Pesa payment right now. Please try again."
+                  : responseText.trim() || "We could not start your M-Pesa payment right now.",
+              }
+            }
+          })()
+        : { success: false, error: "We could not start your M-Pesa payment right now." }
+
       if (response.ok && result.success) {
         if (result.depositId) {
           setMpesaDepositTracker({
@@ -253,7 +270,7 @@ export function ActionCard({ type }: ActionCardProps) {
         )
         return true
       } else {
-        toast.error(result.error || "Deposit failed or canceled")
+        toast.error(result.error || "We could not start your M-Pesa payment.")
       }
     } catch (err: any) {
       toast.error(err.message || "An error occurred during deposit")
@@ -646,6 +663,10 @@ export function ActionCard({ type }: ActionCardProps) {
       <Dialog
         open={Boolean(mpesaDepositTracker?.dialogOpen)}
         onOpenChange={(nextOpen) => {
+          if (!nextOpen && isMpesaDepositPending) {
+            return
+          }
+
           setMpesaDepositTracker((currentTracker) =>
             currentTracker
               ? {
@@ -656,71 +677,93 @@ export function ActionCard({ type }: ActionCardProps) {
           )
         }}
       >
-        <DialogContent className="sm:max-w-md text-center">
+        <DialogContent
+          className="sm:max-w-md overflow-hidden border-0 bg-white p-0 text-center shadow-2xl"
+          showClose={!isMpesaDepositPending}
+          onEscapeKeyDown={(event) => {
+            if (isMpesaDepositPending) {
+              event.preventDefault()
+            }
+          }}
+          onPointerDownOutside={(event) => {
+            if (isMpesaDepositPending) {
+              event.preventDefault()
+            }
+          }}
+          onInteractOutside={(event) => {
+            if (isMpesaDepositPending) {
+              event.preventDefault()
+            }
+          }}
+        >
+          <div className="bg-gradient-to-br from-[#00A651] via-[#06B85A] to-[#0D6B3A] px-6 py-6 text-white">
+            <div className="mx-auto flex w-full max-w-xs items-center justify-center gap-3 rounded-full bg-white/14 px-4 py-3 backdrop-blur-sm">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm">
+                <Image src="/mpesa-logo.png" alt="M-Pesa" width={32} height={32} className="h-8 w-8 object-contain" />
+              </div>
+              <div className="text-left">
+                <p className="text-xs uppercase tracking-[0.22em] text-white/75">Mobile Money</p>
+                <p className="text-base font-semibold">M-Pesa Payment Status</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="px-6 pb-6 pt-5">
           <DialogHeader>
-            <DialogTitle>M-Pesa Deposit Status</DialogTitle>
+            <DialogTitle>M-Pesa Payment Status</DialogTitle>
             <DialogDescription>
-              We are checking KopoKopo for the latest payment result and will update your wallet automatically.
+              We are confirming your payment. Your wallet will update automatically once the payment is completed.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-col items-center gap-4 py-4">
+          <div className="flex flex-col items-center gap-4 py-5">
             {mpesaDepositTracker?.status === "Pending" ? (
-              <RefreshCw className="h-12 w-12 animate-spin text-purple-600" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
+                <RefreshCw className="h-8 w-8 animate-spin text-emerald-600" />
+              </div>
             ) : mpesaDepositTracker?.status === "Completed" ? (
-              <CircleCheckBig className="h-12 w-12 text-emerald-600" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
+                <CircleCheckBig className="h-8 w-8 text-emerald-600" />
+              </div>
             ) : (
-              <CircleX className="h-12 w-12 text-red-600" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
+                <CircleX className="h-8 w-8 text-red-600" />
+              </div>
             )}
 
-            <div className="space-y-1">
-              <p className="text-lg font-semibold">{mpesaDepositTracker?.status || "Pending"}</p>
-              <p className="text-sm text-muted-foreground">
+            <div className="space-y-2">
+              <p className="text-lg font-semibold text-slate-900">{mpesaDepositTracker?.status || "Pending"}</p>
+              <p className="text-sm leading-6 text-slate-600">
                 {mpesaDepositTracker?.status === "Pending"
-                  ? "We are still polling KopoKopo for a final deposit result."
+                  ? "Please complete the prompt on your phone if you have not done so already. Confirmation usually takes a few seconds."
                   : mpesaDepositTracker?.status === "Completed"
-                    ? "Your deposit was confirmed and your wallet balance has been refreshed."
-                    : mpesaDepositTracker?.failureReason || "KopoKopo reported that this deposit failed."}
+                    ? "Your payment has been confirmed and your wallet balance has been updated."
+                    : mpesaDepositTracker?.failureReason || "We could not confirm this payment. If funds were deducted, please contact support with your payment details."}
               </p>
               {mpesaDepositTracker?.exactStatus && (
-                <p className="text-sm font-medium text-foreground/80">
-                  KopoKopo status: {mpesaDepositTracker.exactStatus}
+                <p className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700">
+                  M-Pesa status: {mpesaDepositTracker.exactStatus}
                 </p>
               )}
               {mpesaDepositTracker?.depositId && (
-                <p className="text-xs text-muted-foreground">
-                  Ref: {mpesaDepositTracker.depositId.slice(0, 8).toUpperCase()}
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                  Reference {mpesaDepositTracker.depositId.slice(0, 8).toUpperCase()}
                 </p>
               )}
             </div>
           </div>
 
           <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-            {mpesaDepositTracker?.status === "Pending" ? (
+            {mpesaDepositTracker?.status !== "Pending" ? (
               <Button
-                variant="outline"
-                onClick={() =>
-                  setMpesaDepositTracker((currentTracker) =>
-                    currentTracker
-                      ? {
-                          ...currentTracker,
-                          dialogOpen: false,
-                        }
-                      : currentTracker
-                  )
-                }
-              >
-                Hide, Keep Checking
-              </Button>
-            ) : (
-              <Button
-                className="bg-purple-600 hover:bg-orange-500 text-white"
+                className="bg-emerald-600 text-white hover:bg-emerald-700"
                 onClick={() => setMpesaDepositTracker(null)}
               >
                 Close
               </Button>
-            )}
+            ) : null}
           </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </Card>

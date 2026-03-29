@@ -210,10 +210,20 @@ function getKopoKopoRequestHeaders(accessToken, includeContentType = false) {
 }
 
 function getKopoKopoErrorMessage(payload, fallbackMessage) {
+  if (typeof payload === "string" && payload.trim()) {
+    return payload.trim();
+  }
+
   const data = asRecord(payload);
-  return typeof data.error_message === "string" && data.error_message.trim()
-    ? data.error_message
-    : fallbackMessage;
+  if (typeof data.error_message === "string" && data.error_message.trim()) {
+    return data.error_message;
+  }
+
+  if (typeof data.message === "string" && data.message.trim()) {
+    return data.message;
+  }
+
+  return fallbackMessage;
 }
 
 async function getKopoKopoIncomingPaymentStatus({ accessToken, location, paymentRequestId }) {
