@@ -8,8 +8,13 @@ export const MPESA_WITHDRAWAL_FEE_KES = 50
 export const MPESA_WITHDRAWAL_MIN_KES = 200
 export const CRYPTO_WITHDRAWAL_MIN_USD = 10
 const MPESA_DEPOSIT_PENDING_TIMEOUT_MS = 60 * 1000
+const MPESA_DEPOSIT_RECONCILIATION_TIMEOUT_MS = 2 * 60 * 1000
+const MPESA_DEPOSIT_POLLING_LOOKBACK_MS = 5 * 60 * 1000
+const MPESA_DEPOSIT_POLLING_LOOKAHEAD_MS = 2 * 60 * 1000
+const MPESA_DEPOSIT_TRANSACTION_MATCH_WINDOW_MS = 15 * 60 * 1000
 const MPESA_DEPOSIT_TIMEOUT_REASON =
   "This M-Pesa payment request expired. Please try again."
+const MPESA_DEPOSIT_POLLING_FALLBACK_ERROR = "initiator information is invalid"
 
 const SUPPORTED_CRYPTO_NETWORKS = new Set(["TRON", "ETH", "BSC", "MATIC", "ARBITRUM"])
 const CRYPTOMUS_SUCCESS_STATUSES = new Set(["paid", "paid_over"])
@@ -184,11 +189,54 @@ function inferGenericTransactionStatus(
   return "pending"
 }
 
-function inferKopoKopoDepositStatus(options: {
+function inferDocumentedIncomingPaymentStatus(options: {
   status: unknown
   resourceStatus: unknown
+  paymentReference: unknown
 }) {
-  return inferGenericTransactionStatus(options.resourceStatus, options.status)
+  const requestStatus = normalizeProviderStatusValue(options.status)
+  const resourceStatus = normalizeProviderStatusValue(options.resourceStatus)
+  const hasPaymentReference =
+    typeof options.paymentReference === "string" && options.paymentReference.trim().length > 0
+
+  if (requestStatus === "pending") {
+    return "pending"
+  }
+
+  if (requestStatus === "failed") {
+    return "failed"
+  }
+
+  if (requestStatus === "success") {
+    return resourceStatus === "received" && hasPaymentReference ? "completed" : "pending"
+  }
+
+  return inferGenericTransactionStatus(requestStatus, resourceStatus)
+}
+
+function normalizePhoneComparisonValue(value: unknown) {
+  return typeof value === "string" ? value.replace(/\D/g, "") : ""
+}
+
+function parseIsoDateMillis(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) {
+    return 0
+  }
+
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function getConfiguredAppBaseUrlFromEnv() {
+  const configuredBaseUrl =
+    process.env.NEXT_SERVER_BASE_URL?.trim() ||
+    process.env.NEXT_PUBLIC_BASE_URL?.trim()
+
+  if (!configuredBaseUrl) {
+    throw createStatusError("Application base URL configuration missing.", 500)
+  }
+
+  return configuredBaseUrl.replace(/\/$/, "")
 }
 
 function getKopoKopoBaseUrl() {
@@ -336,16 +384,95 @@ export async function getKopoKopoIncomingPaymentStatus(options: {
   }
 }
 
-function getKopoKopoIncomingPaymentLocation(data: Record<string, unknown>) {
-  if (typeof data.providerLocation === "string" && data.providerLocation.trim()) {
-    return data.providerLocation
+function getKopoKopoPollingCallbackUrl() {
+  const explicitUrl = process.env.NEXT_SERVER_KOPOKOPO_POLLING_CALLBACK_URL?.trim()
+
+  if (explicitUrl) {
+    return explicitUrl
   }
 
-  if (typeof data.paymentRequestId === "string" && data.paymentRequestId.trim()) {
-    return `${getKopoKopoBaseUrl()}/api/v1/incoming_payments/${data.paymentRequestId}`
+  return `${getConfiguredAppBaseUrlFromEnv()}/api/deposit/polling-webhook`
+}
+
+export async function initiateKopoKopoPollingRequest(options: {
+  accessToken: string
+  scope: "company" | "till"
+  scopeReference?: string | null
+  fromTime: string
+  toTime: string
+  callbackUrl?: string
+}) {
+  const response = await axios.post(
+    `${getKopoKopoBaseUrl()}/api/v1/polling`,
+    {
+      scope: options.scope,
+      scope_reference: options.scopeReference ?? "",
+      from_time: options.fromTime,
+      to_time: options.toTime,
+      _links: {
+        callback_url: options.callbackUrl || getKopoKopoPollingCallbackUrl(),
+      },
+    },
+    {
+      headers: getKopoKopoRequestHeaders(options.accessToken, true),
+      validateStatus: () => true,
+    }
+  )
+
+  if (response.status < 200 || response.status >= 300) {
+    throw createStatusError(
+      getKopoKopoErrorMessage(response.data, "Failed to create KopoKopo polling request."),
+      response.status || 400
+    )
   }
 
-  return ""
+  const responseLocation =
+    typeof response.headers.location === "string" ? response.headers.location : ""
+  const pollingRequestId = responseLocation.split("/").pop() ?? ""
+
+  if (!pollingRequestId) {
+    throw new Error("Unable to extract pollingRequestId from response")
+  }
+
+  return {
+    pollingRequestId,
+    responseLocation,
+    payload: asRecord(response.data),
+  }
+}
+
+export async function getKopoKopoPollingStatus(options: {
+  accessToken: string
+  location?: string
+  pollingRequestId?: string
+}) {
+  const resolvedLocation =
+    typeof options.location === "string" && options.location.trim()
+      ? options.location.trim()
+      : typeof options.pollingRequestId === "string" && options.pollingRequestId.trim()
+        ? `${getKopoKopoBaseUrl()}/api/v1/polling/${options.pollingRequestId.trim()}`
+        : ""
+
+  if (!resolvedLocation) {
+    throw new Error("Missing KopoKopo polling reference")
+  }
+
+  const response = await axios.get(resolvedLocation, {
+    headers: getKopoKopoRequestHeaders(options.accessToken),
+    validateStatus: () => true,
+  })
+
+  if (response.status < 200 || response.status >= 300) {
+    throw createStatusError(
+      getKopoKopoErrorMessage(response.data, "Failed to fetch KopoKopo polling status."),
+      response.status || 400
+    )
+  }
+
+  return {
+    location: resolvedLocation,
+    payload: asRecord(response.data),
+  }
 }
 
 function getKopoKopoPaymentLocation(data: Record<string, unknown>) {
@@ -418,6 +545,95 @@ function extractKopoKopoWithdrawalResult(payload: Record<string, unknown>) {
         ? firstDisbursement.transaction_reference
         : null,
   }
+}
+
+function extractKopoKopoPollingResult(payload: Record<string, unknown>) {
+  const data = asRecord(payload.data)
+  const attributes = asRecord(data.attributes)
+  const links = asRecord(attributes._links)
+  const transactions = Array.isArray(attributes.transactions) ? attributes.transactions : []
+
+  return {
+    requestId: typeof data.id === "string" ? data.id : "",
+    status: typeof attributes.status === "string" ? attributes.status.toLowerCase() : "",
+    transactions: transactions.filter(
+      (transaction): transaction is Record<string, unknown> =>
+        typeof transaction === "object" && transaction !== null
+    ),
+    providerLocation: typeof links.self === "string" ? links.self : "",
+  }
+}
+
+function findMatchingKopoKopoPollingTransaction(
+  depositData: Record<string, unknown>,
+  payload: Record<string, unknown>
+) {
+  const pollingResult = extractKopoKopoPollingResult(payload)
+  const depositPhone = normalizePhoneComparisonValue(depositData.phoneNumber)
+  const depositAmount = Number(depositData.amount || 0)
+  const depositCurrency = String(depositData.currency || "KES").toUpperCase()
+  const depositCreatedAtMillis = getTimestampMillis(depositData.createdAt)
+
+  const candidates = pollingResult.transactions
+    .map((transaction) => {
+      const resource = asRecord(transaction.resource)
+      const transactionStatus = normalizeProviderStatusValue(resource.status)
+      const transactionPhone = normalizePhoneComparisonValue(resource.sender_phone_number)
+      const transactionAmount =
+        typeof resource.amount === "number" || typeof resource.amount === "string"
+          ? Number(resource.amount)
+          : 0
+      const transactionCurrency =
+        typeof resource.currency === "string" ? resource.currency.toUpperCase() : ""
+      const transactionTimeMillis = parseIsoDateMillis(resource.origination_time)
+
+      return {
+        resource,
+        transactionStatus,
+        transactionPhone,
+        transactionAmount,
+        transactionCurrency,
+        transactionTimeMillis,
+      }
+    })
+    .filter((candidate) => {
+      if (normalizeProviderStatusValue(candidate.transactionStatus) !== "received") {
+        return false
+      }
+
+      if (!depositPhone || candidate.transactionPhone !== depositPhone) {
+        return false
+      }
+
+      if (Math.abs(candidate.transactionAmount - depositAmount) > 0.01) {
+        return false
+      }
+
+      if (candidate.transactionCurrency && candidate.transactionCurrency !== depositCurrency) {
+        return false
+      }
+
+      if (!depositCreatedAtMillis || !candidate.transactionTimeMillis) {
+        return true
+      }
+
+      return (
+        Math.abs(candidate.transactionTimeMillis - depositCreatedAtMillis) <=
+        MPESA_DEPOSIT_TRANSACTION_MATCH_WINDOW_MS
+      )
+    })
+    .sort((left, right) => {
+      const leftDistance = depositCreatedAtMillis
+        ? Math.abs(left.transactionTimeMillis - depositCreatedAtMillis)
+        : 0
+      const rightDistance = depositCreatedAtMillis
+        ? Math.abs(right.transactionTimeMillis - depositCreatedAtMillis)
+        : 0
+
+      return leftDistance - rightDistance
+    })
+
+  return candidates[0]?.resource ?? null
 }
 
 export function parseMoneyAmount(
@@ -577,12 +793,30 @@ export function verifyKopoKopoWebhookSignature(rawBody: string, signature: strin
     throw createStatusError("Missing webhook signature.", 401)
   }
 
-  const expectedSignature = crypto
-    .createHmac("sha256", apiKey)
-    .update(rawBody)
-    .digest("hex")
+  const normalizedSignature = signature.trim().toLowerCase()
+  const candidateBodies = [rawBody]
 
-  if (!safeCompareStrings(expectedSignature, signature)) {
+  try {
+    const parsedPayload = JSON.parse(rawBody)
+    const normalizedBody = JSON.stringify(parsedPayload)
+
+    if (normalizedBody && normalizedBody !== rawBody) {
+      candidateBodies.push(normalizedBody)
+    }
+  } catch {
+    // Ignore JSON parsing errors here and fall back to the raw payload.
+  }
+
+  const isValid = candidateBodies.some((candidateBody) => {
+    const expectedSignature = crypto
+      .createHmac("sha256", apiKey)
+      .update(candidateBody)
+      .digest("hex")
+
+    return safeCompareStrings(expectedSignature, normalizedSignature)
+  })
+
+  if (!isValid) {
     throw createStatusError("Invalid signature", 401)
   }
 }
@@ -702,9 +936,10 @@ export async function applyKopoKopoDepositUpdate(options: {
   const { depositId, payload } = options
   const depositRef = adminDb.collection("deposits").doc(depositId)
   const result = extractKopoKopoDepositResult(payload)
-  const normalizedStatus = inferKopoKopoDepositStatus({
+  const normalizedStatus = inferDocumentedIncomingPaymentStatus({
     status: result.status,
     resourceStatus: result.resourceStatus,
+    paymentReference: result.paymentReference,
   })
   const providerStatusValue = result.status || result.resourceStatus || "pending"
   const providerResourceStatusValue = result.resourceStatus || null
@@ -765,6 +1000,7 @@ export async function applyKopoKopoDepositUpdate(options: {
         paymentReference: result.paymentReference || depositData.paymentReference || null,
         providerLocation: result.providerLocation || depositData.providerLocation || null,
         providerPayload: payload,
+        pendingFailureReason: null,
         updatedAt: Timestamp.now(),
         completedAt: Timestamp.now(),
       })
@@ -780,6 +1016,7 @@ export async function applyKopoKopoDepositUpdate(options: {
         paymentReference: result.paymentReference || depositData.paymentReference || null,
         providerLocation: result.providerLocation || depositData.providerLocation || null,
         providerPayload: payload,
+        pendingFailureReason: null,
         failureReason:
           result.errorMessage ||
           result.status ||
@@ -799,9 +1036,244 @@ export async function applyKopoKopoDepositUpdate(options: {
       paymentReference: result.paymentReference || depositData.paymentReference || null,
       providerLocation: result.providerLocation || depositData.providerLocation || null,
       providerPayload: payload,
+      pendingFailureReason: null,
       updatedAt: Timestamp.now(),
     })
   })
+}
+
+function shouldUseMpesaPollingFallback(errorMessage: unknown) {
+  return normalizeProviderStatusValue(errorMessage).includes(MPESA_DEPOSIT_POLLING_FALLBACK_ERROR)
+}
+
+function hasTimedOutMpesaDepositReconciliation(data: Record<string, unknown>) {
+  const startedAtMillis =
+    getTimestampMillis(data.reconciliationStartedAt) || getTimestampMillis(data.createdAt)
+
+  if (!startedAtMillis) {
+    return false
+  }
+
+  return Date.now() - startedAtMillis >= MPESA_DEPOSIT_RECONCILIATION_TIMEOUT_MS
+}
+
+async function markMpesaDepositFailedAfterReconciliation(options: {
+  depositId: string
+  failureReason: string
+}) {
+  await adminDb.collection("deposits").doc(options.depositId).set(
+    {
+      status: "failed",
+      providerStatus: "failed",
+      providerResourceStatus: null,
+      failureReason: options.failureReason,
+      pendingFailureReason: null,
+      updatedAt: Timestamp.now(),
+    },
+    { merge: true }
+  )
+}
+
+async function applyKopoKopoPollingTransactionToDeposit(options: {
+  depositId: string
+  payload: Record<string, unknown>
+  transactionResource: Record<string, unknown>
+}) {
+  const { depositId, payload, transactionResource } = options
+  const depositRef = adminDb.collection("deposits").doc(depositId)
+  const transactionAmount =
+    typeof transactionResource.amount === "number" || typeof transactionResource.amount === "string"
+      ? Number(transactionResource.amount)
+      : 0
+  const transactionCurrency =
+    typeof transactionResource.currency === "string"
+      ? transactionResource.currency.toUpperCase()
+      : "KES"
+  const paymentReference =
+    typeof transactionResource.reference === "string" ? transactionResource.reference : null
+  const resourceStatus =
+    typeof transactionResource.status === "string" ? transactionResource.status.toLowerCase() : "received"
+
+  await adminDb.runTransaction(async (transaction) => {
+    const depositSnapshot = await transaction.get(depositRef)
+
+    if (!depositSnapshot.exists) {
+      throw new Error("Deposit not found")
+    }
+
+    const depositData = depositSnapshot.data() ?? {}
+    const creditedAmount = Number(depositData.amount || 0)
+    const currentStatus = String(depositData.status || "")
+
+    if (currentStatus === "completed" && depositData.balanceCredited) {
+      transaction.update(depositRef, {
+        providerStatus: "success",
+        providerResourceStatus: resourceStatus,
+        paymentReference: paymentReference || depositData.paymentReference || null,
+        providerPayload: payload,
+        pendingFailureReason: null,
+        updatedAt: Timestamp.now(),
+      })
+      return
+    }
+
+    if (transactionCurrency && transactionCurrency !== "KES") {
+      throw new Error("Unexpected currency received for M-Pesa deposit")
+    }
+
+    if (transactionAmount > 0 && Math.abs(transactionAmount - creditedAmount) > 0.01) {
+      throw new Error("Deposit amount mismatch detected")
+    }
+
+    if (!depositData.balanceCredited) {
+      const userRef = adminDb.collection("users").doc(String(depositData.uid || ""))
+      const userSnapshot = await transaction.get(userRef)
+
+      if (!userSnapshot.exists) {
+        transaction.set(userRef, setInitialUserBalances("KES", creditedAmount), { merge: true })
+      } else {
+        transaction.update(userRef, {
+          userKesBalance: FieldValue.increment(creditedAmount),
+          updatedAt: Timestamp.now(),
+        })
+      }
+    }
+
+    transaction.update(depositRef, {
+      status: "completed",
+      providerStatus: "success",
+      providerResourceStatus: resourceStatus,
+      balanceCredited: true,
+      paymentReference: paymentReference || depositData.paymentReference || null,
+      providerPayload: payload,
+      pendingFailureReason: null,
+      failureReason: null,
+      updatedAt: Timestamp.now(),
+      completedAt: Timestamp.now(),
+    })
+  })
+}
+
+async function ensureMpesaDepositPollingRequest(options: {
+  depositId: string
+  depositData: Record<string, unknown>
+  accessToken: string
+}) {
+  const existingLocation =
+    typeof options.depositData.pollingRequestLocation === "string"
+      ? options.depositData.pollingRequestLocation.trim()
+      : ""
+
+  if (existingLocation) {
+    return {
+      pollingRequestId:
+        typeof options.depositData.pollingRequestId === "string"
+          ? options.depositData.pollingRequestId
+          : "",
+      responseLocation: existingLocation,
+    }
+  }
+
+  const tillNumber = process.env.NEXT_SERVER_KOPOKOPO_TILL_NUMBER?.trim()
+
+  if (!tillNumber) {
+    throw createStatusError("KopoKopo till number is not configured.", 500)
+  }
+
+  const createdAtMillis = getTimestampMillis(options.depositData.createdAt) || Date.now()
+  const fromTime = new Date(createdAtMillis - MPESA_DEPOSIT_POLLING_LOOKBACK_MS).toISOString()
+  const toTime = new Date(Date.now() + MPESA_DEPOSIT_POLLING_LOOKAHEAD_MS).toISOString()
+  const pollingRequest = await initiateKopoKopoPollingRequest({
+    accessToken: options.accessToken,
+    scope: "till",
+    scopeReference: tillNumber,
+    fromTime,
+    toTime,
+  })
+
+  await adminDb.collection("deposits").doc(options.depositId).set(
+    {
+      pollingRequestId: pollingRequest.pollingRequestId,
+      pollingRequestLocation: pollingRequest.responseLocation,
+      reconciliationStartedAt:
+        options.depositData.reconciliationStartedAt || Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    },
+    { merge: true }
+  )
+
+  return pollingRequest
+}
+
+async function reconcileMpesaDepositPollingStatus(options: {
+  depositId: string
+  depositData: Record<string, unknown>
+  accessToken: string
+}) {
+  const pollingLocation =
+    typeof options.depositData.pollingRequestLocation === "string"
+      ? options.depositData.pollingRequestLocation.trim()
+      : ""
+  const pollingRequestId =
+    typeof options.depositData.pollingRequestId === "string"
+      ? options.depositData.pollingRequestId
+      : ""
+
+  if (!pollingLocation && !pollingRequestId) {
+    return false
+  }
+
+  const { payload } = await getKopoKopoPollingStatus({
+    accessToken: options.accessToken,
+    location: pollingLocation,
+    pollingRequestId,
+  })
+  const pollingResult = extractKopoKopoPollingResult(payload)
+  const matchedTransaction = findMatchingKopoKopoPollingTransaction(options.depositData, payload)
+
+  await adminDb.collection("deposits").doc(options.depositId).set(
+    {
+      pollingRequestId: pollingResult.requestId || pollingRequestId || null,
+      pollingRequestLocation: pollingResult.providerLocation || pollingLocation || null,
+      pollingStatus: pollingResult.status || null,
+      updatedAt: Timestamp.now(),
+    },
+    { merge: true }
+  )
+
+  if (matchedTransaction) {
+    await applyKopoKopoPollingTransactionToDeposit({
+      depositId: options.depositId,
+      payload,
+      transactionResource: matchedTransaction,
+    })
+    return true
+  }
+
+  const pollingStatus = normalizeProviderStatusValue(pollingResult.status)
+  const fallbackFailureReason =
+    typeof options.depositData.pendingFailureReason === "string" &&
+    options.depositData.pendingFailureReason.trim()
+      ? options.depositData.pendingFailureReason
+      : "We could not confirm this M-Pesa payment."
+
+  if (pollingStatus === "success" || pollingStatus === "failed") {
+    await markMpesaDepositFailedAfterReconciliation({
+      depositId: options.depositId,
+      failureReason: fallbackFailureReason,
+    })
+    return true
+  }
+
+  if (hasTimedOutMpesaDepositReconciliation(options.depositData)) {
+    await markMpesaDepositFailedAfterReconciliation({
+      depositId: options.depositId,
+      failureReason: fallbackFailureReason,
+    })
+    return true
+  }
+
+  return false
 }
 
 async function expireTimedOutMpesaDeposit(depositId: string) {
@@ -1036,7 +1508,7 @@ export async function applyKopoKopoWithdrawalUpdate(options: {
   })
 }
 
-async function findKopoKopoDepositLocationFromEvent(depositId: string) {
+async function findLatestKopoKopoDepositEvent(depositId: string) {
   let eventSnapshot = await adminDb
     .collection("kopokopo_events")
     .where("payload.data.attributes.metadata.reference", "==", depositId)
@@ -1050,7 +1522,12 @@ async function findKopoKopoDepositLocationFromEvent(depositId: string) {
   }
 
   if (eventSnapshot.empty) {
-    return { paymentRequestId: "", paymentReference: "", providerLocation: "" }
+    return {
+      payload: null as Record<string, unknown> | null,
+      paymentRequestId: "",
+      paymentReference: "",
+      providerLocation: "",
+    }
   }
 
   const latestEvent = eventSnapshot.docs
@@ -1068,6 +1545,7 @@ async function findKopoKopoDepositLocationFromEvent(depositId: string) {
         : ""
 
   return {
+    payload,
     paymentRequestId,
     paymentReference: result.paymentReference || "",
     providerLocation,
@@ -1125,51 +1603,102 @@ export async function syncMpesaDepositStatusForUser(uid: string, depositId: stri
     return { id: depositSnapshot.id, ...depositData }
   }
 
-  let providerLocation = getKopoKopoIncomingPaymentLocation(depositData)
-  let paymentRequestId = typeof depositData.paymentRequestId === "string" ? depositData.paymentRequestId : ""
-  let paymentReference = typeof depositData.paymentReference === "string" ? depositData.paymentReference : ""
+  const latestEvent = await findLatestKopoKopoDepositEvent(depositId)
 
-  if (!providerLocation) {
-    const recoveredReference = await findKopoKopoDepositLocationFromEvent(depositId)
-    providerLocation = recoveredReference.providerLocation
-    paymentRequestId = recoveredReference.paymentRequestId
-    paymentReference = recoveredReference.paymentReference
+  if (latestEvent.payload) {
+    await applyKopoKopoDepositUpdate({
+      depositId,
+      payload: latestEvent.payload,
+    })
+  }
 
-    if (providerLocation || paymentRequestId || paymentReference) {
+  let refreshedSnapshot = await depositRef.get()
+  let refreshedData = refreshedSnapshot.data() ?? {}
+
+  if (!isPendingStatus(refreshedData.status)) {
+    return {
+      id: refreshedSnapshot.id,
+      ...refreshedData,
+    }
+  }
+
+  const accessToken = await getKopoKopoAccessToken()
+
+  if (refreshedData.pollingRequestLocation || refreshedData.pollingRequestId) {
+    await reconcileMpesaDepositPollingStatus({
+      depositId,
+      depositData: refreshedData,
+      accessToken,
+    })
+
+    refreshedSnapshot = await depositRef.get()
+    refreshedData = refreshedSnapshot.data() ?? {}
+
+    if (!isPendingStatus(refreshedData.status)) {
+      return {
+        id: refreshedSnapshot.id,
+        ...refreshedData,
+      }
+    }
+  }
+
+  const providerLocation =
+    typeof refreshedData.providerLocation === "string" && refreshedData.providerLocation.trim()
+      ? refreshedData.providerLocation.trim()
+      : typeof refreshedData.paymentRequestId === "string" && refreshedData.paymentRequestId.trim()
+        ? `${getKopoKopoBaseUrl()}/api/v1/incoming_payments/${refreshedData.paymentRequestId.trim()}`
+        : ""
+
+  if (providerLocation) {
+    const { payload } = await getKopoKopoIncomingPaymentStatus({
+      accessToken,
+      location: providerLocation,
+      paymentRequestId:
+        typeof refreshedData.paymentRequestId === "string" ? refreshedData.paymentRequestId : "",
+    })
+    const incomingPaymentResult = extractKopoKopoDepositResult(payload)
+    const incomingPaymentStatus = inferDocumentedIncomingPaymentStatus({
+      status: incomingPaymentResult.status,
+      resourceStatus: incomingPaymentResult.resourceStatus,
+      paymentReference: incomingPaymentResult.paymentReference,
+    })
+
+    if (incomingPaymentStatus === "completed") {
+      await applyKopoKopoDepositUpdate({
+        depositId,
+        payload,
+      })
+    } else if (
+      incomingPaymentStatus === "failed" &&
+      shouldUseMpesaPollingFallback(incomingPaymentResult.errorMessage)
+    ) {
+      await ensureMpesaDepositPollingRequest({
+        depositId,
+        depositData: refreshedData,
+        accessToken,
+      })
+
       await depositRef.set(
         {
-          providerLocation: providerLocation || null,
-          paymentRequestId: paymentRequestId || null,
-          paymentReference: paymentReference || null,
+          providerStatus: "reconciling",
+          providerResourceStatus: null,
+          pendingFailureReason:
+            incomingPaymentResult.errorMessage ||
+            incomingPaymentResult.status ||
+            "We could not confirm this M-Pesa payment.",
+          reconciliationStartedAt:
+            refreshedData.reconciliationStartedAt || Timestamp.now(),
           updatedAt: Timestamp.now(),
         },
         { merge: true }
       )
+    } else if (incomingPaymentStatus === "failed") {
+      await applyKopoKopoDepositUpdate({
+        depositId,
+        payload,
+      })
     }
   }
-
-  if (!providerLocation) {
-    if (await expireTimedOutMpesaDeposit(depositId)) {
-      const expiredSnapshot = await depositRef.get()
-      return {
-        id: expiredSnapshot.id,
-        ...(expiredSnapshot.data() ?? {}),
-      }
-    }
-
-    return { id: depositSnapshot.id, ...depositData }
-  }
-
-  const accessToken = await getKopoKopoAccessToken()
-  const { payload } = await getKopoKopoIncomingPaymentStatus({
-    accessToken,
-    location: providerLocation,
-    paymentRequestId,
-  })
-  await applyKopoKopoDepositUpdate({
-    depositId,
-    payload,
-  })
 
   if (await expireTimedOutMpesaDeposit(depositId)) {
     const expiredSnapshot = await depositRef.get()
@@ -1179,7 +1708,7 @@ export async function syncMpesaDepositStatusForUser(uid: string, depositId: stri
     }
   }
 
-  const refreshedSnapshot = await depositRef.get()
+  refreshedSnapshot = await depositRef.get()
   return {
     id: refreshedSnapshot.id,
     ...(refreshedSnapshot.data() ?? {}),

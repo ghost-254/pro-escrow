@@ -15,7 +15,12 @@ const db = admin.firestore();
 const { FieldValue, Timestamp } = admin.firestore;
 const REGION = "us-central1";
 const MPESA_DEPOSIT_PENDING_TIMEOUT_MS = 60 * 1000;
+const MPESA_DEPOSIT_RECONCILIATION_TIMEOUT_MS = 2 * 60 * 1000;
+const MPESA_DEPOSIT_POLLING_LOOKBACK_MS = 5 * 60 * 1000;
+const MPESA_DEPOSIT_POLLING_LOOKAHEAD_MS = 2 * 60 * 1000;
+const MPESA_DEPOSIT_TRANSACTION_MATCH_WINDOW_MS = 15 * 60 * 1000;
 const MPESA_DEPOSIT_TIMEOUT_REASON = "This M-Pesa payment request expired. Please try again.";
+const MPESA_DEPOSIT_POLLING_FALLBACK_ERROR = "initiator information is invalid";
 const PENDING_STATUSES = [
   "pending",
   "processing",
@@ -139,8 +144,50 @@ function inferGenericTransactionStatus(primaryStatus, ...secondaryStatuses) {
   return "pending";
 }
 
-function inferKopoKopoDepositStatus({ status, resourceStatus }) {
-  return inferGenericTransactionStatus(resourceStatus, status);
+function inferDocumentedIncomingPaymentStatus({ status, resourceStatus, paymentReference }) {
+  const requestStatus = normalizeProviderStatusValue(status);
+  const normalizedResourceStatus = normalizeProviderStatusValue(resourceStatus);
+  const hasPaymentReference =
+    typeof paymentReference === "string" && paymentReference.trim().length > 0;
+
+  if (requestStatus === "pending") {
+    return "pending";
+  }
+
+  if (requestStatus === "failed") {
+    return "failed";
+  }
+
+  if (requestStatus === "success") {
+    return normalizedResourceStatus === "received" && hasPaymentReference ? "completed" : "pending";
+  }
+
+  return inferGenericTransactionStatus(requestStatus, normalizedResourceStatus);
+}
+
+function normalizePhoneComparisonValue(value) {
+  return typeof value === "string" ? value.replace(/\D/g, "") : "";
+}
+
+function parseIsoDateMillis(value) {
+  if (typeof value !== "string" || !value.trim()) {
+    return 0;
+  }
+
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getConfiguredAppBaseUrlFromEnv() {
+  const configuredBaseUrl =
+    (process.env.NEXT_SERVER_BASE_URL || "").trim() ||
+    (process.env.NEXT_PUBLIC_BASE_URL || "").trim();
+
+  if (!configuredBaseUrl) {
+    throw new Error("Application base URL configuration missing.");
+  }
+
+  return configuredBaseUrl.replace(/\/$/, "");
 }
 
 function isMpesaPaymentRecord(data) {
@@ -273,6 +320,95 @@ async function getKopoKopoIncomingPaymentStatus({ accessToken, location, payment
   };
 }
 
+function getKopoKopoPollingCallbackUrl() {
+  const explicitUrl = (process.env.NEXT_SERVER_KOPOKOPO_POLLING_CALLBACK_URL || "").trim();
+
+  if (explicitUrl) {
+    return explicitUrl;
+  }
+
+  return `${getConfiguredAppBaseUrlFromEnv()}/api/deposit/polling-webhook`;
+}
+
+async function initiateKopoKopoPollingRequest({
+  accessToken,
+  scope,
+  scopeReference,
+  fromTime,
+  toTime,
+  callbackUrl,
+}) {
+  const response = await axios.post(
+    `${getKopoKopoBaseUrl()}/api/v1/polling`,
+    {
+      scope,
+      scope_reference: scopeReference || "",
+      from_time: fromTime,
+      to_time: toTime,
+      _links: {
+        callback_url: callbackUrl || getKopoKopoPollingCallbackUrl(),
+      },
+    },
+    {
+      headers: getKopoKopoRequestHeaders(accessToken, true),
+      validateStatus: () => true,
+    }
+  );
+
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(
+      getKopoKopoErrorMessage(
+        response.data,
+        `Failed to create KopoKopo polling request (${response.status || "unknown"})`
+      )
+    );
+  }
+
+  const responseLocation = typeof response.headers.location === "string" ? response.headers.location : "";
+  const pollingRequestId = responseLocation.split("/").pop() || "";
+
+  if (!pollingRequestId) {
+    throw new Error("Unable to extract pollingRequestId from response");
+  }
+
+  return {
+    pollingRequestId,
+    responseLocation,
+    payload: asRecord(response.data),
+  };
+}
+
+async function getKopoKopoPollingStatus({ accessToken, location, pollingRequestId }) {
+  const resolvedLocation = hasNonEmptyString(location)
+    ? location.trim()
+    : hasNonEmptyString(pollingRequestId)
+      ? `${getKopoKopoBaseUrl()}/api/v1/polling/${pollingRequestId.trim()}`
+      : "";
+
+  if (!resolvedLocation) {
+    throw new Error("Missing KopoKopo polling reference");
+  }
+
+  const response = await axios.get(resolvedLocation, {
+    headers: getKopoKopoRequestHeaders(accessToken),
+    validateStatus: () => true,
+  });
+
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(
+      getKopoKopoErrorMessage(
+        response.data,
+        `Failed to fetch KopoKopo polling status (${response.status || "unknown"})`
+      )
+    );
+  }
+
+  return {
+    location: resolvedLocation,
+    payload: asRecord(response.data),
+  };
+}
+
 function getIncomingPaymentLocation(data) {
   if (typeof data.providerLocation === "string" && data.providerLocation) {
     return data.providerLocation;
@@ -391,7 +527,90 @@ function extractKopoKopoWithdrawalResult(payload) {
   };
 }
 
-async function findKopoKopoDepositReference(depositId) {
+function extractKopoKopoPollingResult(payload) {
+  const data = asRecord(payload.data);
+  const attributes = asRecord(data.attributes);
+  const links = asRecord(attributes._links);
+  const transactions = Array.isArray(attributes.transactions) ? attributes.transactions : [];
+
+  return {
+    requestId: typeof data.id === "string" ? data.id : "",
+    status: typeof attributes.status === "string" ? attributes.status.toLowerCase() : "",
+    transactions: transactions.filter((transaction) => transaction && typeof transaction === "object"),
+    providerLocation: typeof links.self === "string" ? links.self : "",
+  };
+}
+
+function findMatchingKopoKopoPollingTransaction(depositData, payload) {
+  const pollingResult = extractKopoKopoPollingResult(payload);
+  const depositPhone = normalizePhoneComparisonValue(depositData.phoneNumber);
+  const depositAmount = Number(depositData.amount || 0);
+  const depositCurrency = String(depositData.currency || "KES").toUpperCase();
+  const depositCreatedAtMillis = getTimestampMillis(depositData.createdAt);
+
+  const candidates = pollingResult.transactions
+    .map((transaction) => {
+      const resource = asRecord(transaction.resource);
+      const transactionStatus = normalizeProviderStatusValue(resource.status);
+      const transactionPhone = normalizePhoneComparisonValue(resource.sender_phone_number);
+      const transactionAmount =
+        typeof resource.amount === "number" || typeof resource.amount === "string"
+          ? Number(resource.amount)
+          : 0;
+      const transactionCurrency =
+        typeof resource.currency === "string" ? resource.currency.toUpperCase() : "";
+      const transactionTimeMillis = parseIsoDateMillis(resource.origination_time);
+
+      return {
+        resource,
+        transactionStatus,
+        transactionPhone,
+        transactionAmount,
+        transactionCurrency,
+        transactionTimeMillis,
+      };
+    })
+    .filter((candidate) => {
+      if (candidate.transactionStatus !== "received") {
+        return false;
+      }
+
+      if (!depositPhone || candidate.transactionPhone !== depositPhone) {
+        return false;
+      }
+
+      if (Math.abs(candidate.transactionAmount - depositAmount) > 0.01) {
+        return false;
+      }
+
+      if (candidate.transactionCurrency && candidate.transactionCurrency !== depositCurrency) {
+        return false;
+      }
+
+      if (!depositCreatedAtMillis || !candidate.transactionTimeMillis) {
+        return true;
+      }
+
+      return (
+        Math.abs(candidate.transactionTimeMillis - depositCreatedAtMillis) <=
+        MPESA_DEPOSIT_TRANSACTION_MATCH_WINDOW_MS
+      );
+    })
+    .sort((left, right) => {
+      const leftDistance = depositCreatedAtMillis
+        ? Math.abs(left.transactionTimeMillis - depositCreatedAtMillis)
+        : 0;
+      const rightDistance = depositCreatedAtMillis
+        ? Math.abs(right.transactionTimeMillis - depositCreatedAtMillis)
+        : 0;
+
+      return leftDistance - rightDistance;
+    });
+
+  return candidates[0] ? candidates[0].resource : null;
+}
+
+async function findLatestKopoKopoDepositEvent(depositId) {
   let snapshot = await db
     .collection("kopokopo_events")
     .where("payload.data.attributes.metadata.reference", "==", depositId)
@@ -405,7 +624,12 @@ async function findKopoKopoDepositReference(depositId) {
   }
 
   if (snapshot.empty) {
-    return { paymentRequestId: "", paymentReference: "", providerLocation: "" };
+    return {
+      payload: null,
+      paymentRequestId: "",
+      paymentReference: "",
+      providerLocation: "",
+    };
   }
 
   const latest = snapshot.docs
@@ -417,6 +641,7 @@ async function findKopoKopoDepositReference(depositId) {
   const paymentRequestId = typeof data.id === "string" ? data.id : "";
 
   return {
+    payload,
     paymentRequestId,
     paymentReference: result.paymentReference || "",
     providerLocation:
@@ -472,9 +697,10 @@ function setInitialUserBalances(currency, amount) {
 async function applyKopoKopoDepositUpdate(depositId, payload) {
   const depositRef = db.collection("deposits").doc(depositId);
   const result = extractKopoKopoDepositResult(payload);
-  const normalizedStatus = inferKopoKopoDepositStatus({
+  const normalizedStatus = inferDocumentedIncomingPaymentStatus({
     status: result.status,
     resourceStatus: result.resourceStatus,
+    paymentReference: result.paymentReference,
   });
   const providerStatusValue = result.status || result.resourceStatus || "pending";
   const providerResourceStatusValue = result.resourceStatus || null;
@@ -534,6 +760,7 @@ async function applyKopoKopoDepositUpdate(depositId, payload) {
         paymentReference: result.paymentReference || depositData.paymentReference || null,
         providerLocation: result.providerLocation || depositData.providerLocation || null,
         providerPayload: payload,
+        pendingFailureReason: null,
         updatedAt: Timestamp.now(),
         completedAt: Timestamp.now(),
       });
@@ -549,6 +776,7 @@ async function applyKopoKopoDepositUpdate(depositId, payload) {
         paymentReference: result.paymentReference || depositData.paymentReference || null,
         providerLocation: result.providerLocation || depositData.providerLocation || null,
         providerPayload: payload,
+        pendingFailureReason: null,
         failureReason:
           result.errorMessage ||
           result.status ||
@@ -568,9 +796,215 @@ async function applyKopoKopoDepositUpdate(depositId, payload) {
       paymentReference: result.paymentReference || depositData.paymentReference || null,
       providerLocation: result.providerLocation || depositData.providerLocation || null,
       providerPayload: payload,
+      pendingFailureReason: null,
       updatedAt: Timestamp.now(),
     });
   });
+}
+
+function shouldUseMpesaPollingFallback(errorMessage) {
+  return normalizeProviderStatusValue(errorMessage).includes(MPESA_DEPOSIT_POLLING_FALLBACK_ERROR);
+}
+
+function hasTimedOutMpesaDepositReconciliation(data) {
+  const startedAtMillis =
+    getTimestampMillis(data.reconciliationStartedAt) || getTimestampMillis(data.createdAt);
+
+  if (!startedAtMillis) {
+    return false;
+  }
+
+  return Date.now() - startedAtMillis >= MPESA_DEPOSIT_RECONCILIATION_TIMEOUT_MS;
+}
+
+async function markMpesaDepositFailedAfterReconciliation({ depositId, failureReason }) {
+  await db.collection("deposits").doc(depositId).set(
+    {
+      status: "failed",
+      providerStatus: "failed",
+      providerResourceStatus: null,
+      failureReason,
+      pendingFailureReason: null,
+      updatedAt: Timestamp.now(),
+    },
+    { merge: true }
+  );
+}
+
+async function applyKopoKopoPollingTransactionToDeposit({ depositId, payload, transactionResource }) {
+  const depositRef = db.collection("deposits").doc(depositId);
+  const transactionAmount =
+    typeof transactionResource.amount === "number" || typeof transactionResource.amount === "string"
+      ? Number(transactionResource.amount)
+      : 0;
+  const transactionCurrency =
+    typeof transactionResource.currency === "string"
+      ? transactionResource.currency.toUpperCase()
+      : "KES";
+  const paymentReference =
+    typeof transactionResource.reference === "string" ? transactionResource.reference : null;
+  const resourceStatus =
+    typeof transactionResource.status === "string" ? transactionResource.status.toLowerCase() : "received";
+
+  await db.runTransaction(async (transaction) => {
+    const depositSnapshot = await transaction.get(depositRef);
+    if (!depositSnapshot.exists) {
+      return;
+    }
+
+    const depositData = depositSnapshot.data() || {};
+    const creditedAmount = Number(depositData.amount || 0);
+    const currentStatus = String(depositData.status || "");
+
+    if (currentStatus === "completed" && depositData.balanceCredited) {
+      transaction.update(depositRef, {
+        providerStatus: "success",
+        providerResourceStatus: resourceStatus,
+        paymentReference: paymentReference || depositData.paymentReference || null,
+        providerPayload: payload,
+        pendingFailureReason: null,
+        updatedAt: Timestamp.now(),
+      });
+      return;
+    }
+
+    if (transactionCurrency && transactionCurrency !== "KES") {
+      throw new Error(`Unexpected currency for deposit ${depositId}`);
+    }
+
+    if (transactionAmount > 0 && Math.abs(transactionAmount - creditedAmount) > 0.01) {
+      throw new Error(`Amount mismatch for deposit ${depositId}`);
+    }
+
+    if (!depositData.balanceCredited) {
+      const userRef = db.collection("users").doc(String(depositData.uid || ""));
+      const userSnapshot = await transaction.get(userRef);
+
+      if (!userSnapshot.exists) {
+        transaction.set(userRef, setInitialUserBalances("KES", creditedAmount), { merge: true });
+      } else {
+        transaction.update(userRef, {
+          userKesBalance: FieldValue.increment(creditedAmount),
+          updatedAt: Timestamp.now(),
+        });
+      }
+    }
+
+    transaction.update(depositRef, {
+      status: "completed",
+      providerStatus: "success",
+      providerResourceStatus: resourceStatus,
+      balanceCredited: true,
+      paymentReference: paymentReference || depositData.paymentReference || null,
+      providerPayload: payload,
+      pendingFailureReason: null,
+      failureReason: null,
+      updatedAt: Timestamp.now(),
+      completedAt: Timestamp.now(),
+    });
+  });
+}
+
+async function ensureMpesaDepositPollingRequest({ depositId, depositData, accessToken }) {
+  const existingLocation =
+    typeof depositData.pollingRequestLocation === "string" ? depositData.pollingRequestLocation.trim() : "";
+
+  if (existingLocation) {
+    return {
+      pollingRequestId: typeof depositData.pollingRequestId === "string" ? depositData.pollingRequestId : "",
+      responseLocation: existingLocation,
+    };
+  }
+
+  const tillNumber = (process.env.NEXT_SERVER_KOPOKOPO_TILL_NUMBER || "").trim();
+  if (!tillNumber) {
+    throw new Error("KopoKopo till number is not configured.");
+  }
+
+  const createdAtMillis = getTimestampMillis(depositData.createdAt) || Date.now();
+  const fromTime = new Date(createdAtMillis - MPESA_DEPOSIT_POLLING_LOOKBACK_MS).toISOString();
+  const toTime = new Date(Date.now() + MPESA_DEPOSIT_POLLING_LOOKAHEAD_MS).toISOString();
+  const pollingRequest = await initiateKopoKopoPollingRequest({
+    accessToken,
+    scope: "till",
+    scopeReference: tillNumber,
+    fromTime,
+    toTime,
+  });
+
+  await db.collection("deposits").doc(depositId).set(
+    {
+      pollingRequestId: pollingRequest.pollingRequestId,
+      pollingRequestLocation: pollingRequest.responseLocation,
+      reconciliationStartedAt: depositData.reconciliationStartedAt || Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    },
+    { merge: true }
+  );
+
+  return pollingRequest;
+}
+
+async function reconcileMpesaDepositPollingStatus({ depositId, depositData, accessToken }) {
+  const pollingLocation =
+    typeof depositData.pollingRequestLocation === "string" ? depositData.pollingRequestLocation.trim() : "";
+  const pollingRequestId =
+    typeof depositData.pollingRequestId === "string" ? depositData.pollingRequestId : "";
+
+  if (!pollingLocation && !pollingRequestId) {
+    return false;
+  }
+
+  const { payload } = await getKopoKopoPollingStatus({
+    accessToken,
+    location: pollingLocation,
+    pollingRequestId,
+  });
+  const pollingResult = extractKopoKopoPollingResult(payload);
+  const matchedTransaction = findMatchingKopoKopoPollingTransaction(depositData, payload);
+
+  await db.collection("deposits").doc(depositId).set(
+    {
+      pollingRequestId: pollingResult.requestId || pollingRequestId || null,
+      pollingRequestLocation: pollingResult.providerLocation || pollingLocation || null,
+      pollingStatus: pollingResult.status || null,
+      updatedAt: Timestamp.now(),
+    },
+    { merge: true }
+  );
+
+  if (matchedTransaction) {
+    await applyKopoKopoPollingTransactionToDeposit({
+      depositId,
+      payload,
+      transactionResource: matchedTransaction,
+    });
+    return true;
+  }
+
+  const pollingStatus = normalizeProviderStatusValue(pollingResult.status);
+  const fallbackFailureReason =
+    typeof depositData.pendingFailureReason === "string" && depositData.pendingFailureReason.trim()
+      ? depositData.pendingFailureReason
+      : "We could not confirm this M-Pesa payment.";
+
+  if (pollingStatus === "success" || pollingStatus === "failed") {
+    await markMpesaDepositFailedAfterReconciliation({
+      depositId,
+      failureReason: fallbackFailureReason,
+    });
+    return true;
+  }
+
+  if (hasTimedOutMpesaDepositReconciliation(depositData)) {
+    await markMpesaDepositFailedAfterReconciliation({
+      depositId,
+      failureReason: fallbackFailureReason,
+    });
+    return true;
+  }
+
+  return false;
 }
 
 async function expireTimedOutMpesaDeposit(depositId) {
@@ -908,49 +1342,96 @@ async function applyCryptomusPayoutUpdate(withdrawalId, payload, providerStatus)
 }
 
 async function reconcileMpesaDepositDocument(docSnap, cache) {
-  const data = docSnap.data() || {};
+  let data = docSnap.data() || {};
 
   if (!isMpesaPaymentRecord(data) || !isPendingPaymentStatus(data.status)) {
     return false;
   }
 
-  let providerLocation = getIncomingPaymentLocation(data);
+  const latestEvent = await findLatestKopoKopoDepositEvent(docSnap.id);
 
-  if (!providerLocation) {
-    const recovered = await findKopoKopoDepositReference(docSnap.id);
-    providerLocation = recovered.providerLocation;
+  if (latestEvent.payload) {
+    await applyKopoKopoDepositUpdate(docSnap.id, latestEvent.payload);
+    const refreshedSnapshot = await docSnap.ref.get();
+    data = refreshedSnapshot.data() || {};
 
-    if (providerLocation || recovered.paymentRequestId || recovered.paymentReference) {
-      await docSnap.ref.set(
-        {
-          providerLocation: providerLocation || null,
-          paymentRequestId: recovered.paymentRequestId || null,
-          paymentReference: recovered.paymentReference || null,
-          updatedAt: Timestamp.now(),
-        },
-        { merge: true }
-      );
-      data.providerLocation = providerLocation;
-      data.paymentRequestId = recovered.paymentRequestId;
-      data.paymentReference = recovered.paymentReference;
+    if (!isPendingPaymentStatus(data.status)) {
+      return true;
     }
   }
 
-  if (!providerLocation) {
-    await expireTimedOutMpesaDeposit(docSnap.id);
-    return false;
+  const accessToken = await getKopoKopoAccessToken(cache);
+
+  if (data.pollingRequestLocation || data.pollingRequestId) {
+    const handledByPolling = await reconcileMpesaDepositPollingStatus({
+      depositId: docSnap.id,
+      depositData: data,
+      accessToken,
+    });
+
+    if (handledByPolling) {
+      return true;
+    }
+
+    const refreshedSnapshot = await docSnap.ref.get();
+    data = refreshedSnapshot.data() || {};
   }
 
-  const accessToken = await getKopoKopoAccessToken(cache);
-  const { payload } = await getKopoKopoIncomingPaymentStatus({
-    accessToken,
-    location: providerLocation,
-    paymentRequestId: data.paymentRequestId,
-  });
-  await applyKopoKopoDepositUpdate(docSnap.id, payload);
-  await expireTimedOutMpesaDeposit(docSnap.id);
+  const providerLocation =
+    typeof data.providerLocation === "string" && data.providerLocation.trim()
+      ? data.providerLocation.trim()
+      : typeof data.paymentRequestId === "string" && data.paymentRequestId.trim()
+        ? `${getKopoKopoBaseUrl()}/api/v1/incoming_payments/${data.paymentRequestId.trim()}`
+        : "";
 
-  return true;
+  if (providerLocation) {
+    const { payload } = await getKopoKopoIncomingPaymentStatus({
+      accessToken,
+      location: providerLocation,
+      paymentRequestId: data.paymentRequestId,
+    });
+    const incomingPaymentResult = extractKopoKopoDepositResult(payload);
+    const incomingPaymentStatus = inferDocumentedIncomingPaymentStatus({
+      status: incomingPaymentResult.status,
+      resourceStatus: incomingPaymentResult.resourceStatus,
+      paymentReference: incomingPaymentResult.paymentReference,
+    });
+
+    if (incomingPaymentStatus === "completed") {
+      await applyKopoKopoDepositUpdate(docSnap.id, payload);
+      return true;
+    }
+
+    if (incomingPaymentStatus === "failed") {
+      if (shouldUseMpesaPollingFallback(incomingPaymentResult.errorMessage)) {
+        await ensureMpesaDepositPollingRequest({
+          depositId: docSnap.id,
+          depositData: data,
+          accessToken,
+        });
+
+        await docSnap.ref.set(
+          {
+            providerStatus: "reconciling",
+            providerResourceStatus: null,
+            pendingFailureReason:
+              incomingPaymentResult.errorMessage ||
+              incomingPaymentResult.status ||
+              "We could not confirm this M-Pesa payment.",
+            reconciliationStartedAt: data.reconciliationStartedAt || Timestamp.now(),
+            updatedAt: Timestamp.now(),
+          },
+          { merge: true }
+        );
+        return false;
+      }
+
+      await applyKopoKopoDepositUpdate(docSnap.id, payload);
+      return true;
+    }
+  }
+
+  return expireTimedOutMpesaDeposit(docSnap.id);
 }
 
 async function reconcileMpesaWithdrawalDocument(docSnap, cache) {
