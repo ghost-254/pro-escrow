@@ -6,7 +6,7 @@ export interface Transaction {
     currency: "KES" | "USD";
     amount: number
     date: string
-    status: "Failed" | "Success" | "Pending"
+    status: "Failed" | "Completed" | "Pending"
   }
   
   export interface AnalyticsData {

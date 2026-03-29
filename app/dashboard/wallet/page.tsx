@@ -52,6 +52,18 @@ export default function WalletPage() {
     fetchBalances();
   }, []);
 
+  useEffect(() => {
+    const handleWalletRefresh = () => {
+      void fetchBalances();
+    };
+
+    window.addEventListener("wallet:refresh", handleWalletRefresh);
+
+    return () => {
+      window.removeEventListener("wallet:refresh", handleWalletRefresh);
+    };
+  }, []);
+
   const handleCurrencyChange = (value: "KES" | "USD") => {
     setBalanceCurrency(value);
     // Optionally, refetch analytics/transactions for the selected currency.

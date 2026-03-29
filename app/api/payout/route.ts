@@ -5,6 +5,14 @@ import { adminDb } from "@/lib/firebaseAdmin"
 import { callCryptomusPayoutApi } from "@/lib/cryptomusWithdrawal"
 import { startCronJob } from "@/lib/cronJob"
 import { assertSameOrigin, requireSessionUser, SessionAuthError } from "@/lib/serverAuth"
+import { getErrorDetails } from "@/lib/serverErrors"
+import {
+  CRYPTO_WITHDRAWAL_MIN_USD,
+  normalizeCryptoNetwork,
+  parseMoneyAmount,
+  resolveCallbackUrl,
+  sanitizeWalletAddress,
+} from "@/lib/serverPayments"
 
 export async function POST(request: Request) {
   try {
@@ -19,13 +27,11 @@ export async function POST(request: Request) {
       )
     }
 
-    const numericAmount = Number(amount)
-    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-      return NextResponse.json(
-        { success: false, error: "Amount must be a positive number." },
-        { status: 400 }
-      )
-    }
+    const numericAmount = parseMoneyAmount(amount, "Withdrawal amount", {
+      min: CRYPTO_WITHDRAWAL_MIN_USD,
+    })
+    const sanitizedNetwork = normalizeCryptoNetwork(network)
+    const walletAddress = sanitizeWalletAddress(address)
 
     const userRef = adminDb.collection("users").doc(sessionUser.uid)
     const withdrawalRef = adminDb.collection("withdrawals").doc()
@@ -53,9 +59,11 @@ export async function POST(request: Request) {
         amount: numericAmount,
         currency: "USD",
         method: "Crypto",
-        walletAddress: address,
-        cryptoNetwork: network,
-        status: "initiated",
+        provider: "cryptomus",
+        walletAddress,
+        cryptoNetwork: sanitizedNetwork,
+        status: "pending",
+        providerStatus: "pending",
         transactionType: "Withdraw",
         balanceDeducted: true,
         balanceRefunded: false,
@@ -69,10 +77,10 @@ export async function POST(request: Request) {
         amount: numericAmount.toString(),
         currency: "USD",
         to_currency: "USDT",
-        network,
+        network: sanitizedNetwork,
         order_id: orderId,
-        address,
-        url_callback: `${process.env.NEXT_PUBLIC_BASE_URL}/api/payout/webhook`,
+        address: walletAddress,
+        url_callback: resolveCallbackUrl(request, "/api/payout/webhook"),
         is_subtract: false,
       }
 
@@ -86,6 +94,7 @@ export async function POST(request: Request) {
         status: "processing",
         payoutPayload: payload,
         payoutResult: cryptomusResponse.result,
+        providerStatus: String(cryptomusResponse.result?.status || "processing"),
         updatedAt: Timestamp.now(),
       })
 
@@ -93,6 +102,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         success: true,
+        status: "processing",
         payout: cryptomusResponse.result,
         withdrawalId: orderId,
       })
@@ -124,10 +134,15 @@ export async function POST(request: Request) {
       throw error
     }
   } catch (error: Error | unknown) {
-    const status = error instanceof SessionAuthError ? error.status : 500
+    const sessionStatus = error instanceof SessionAuthError ? error.status : undefined
+    const { message, status } = getErrorDetails(
+      error,
+      "Payout processing failed",
+      sessionStatus ?? 400
+    )
 
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Payout processing failed" },
+      { success: false, error: message },
       { status }
     )
   }

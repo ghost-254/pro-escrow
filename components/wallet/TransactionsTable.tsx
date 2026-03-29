@@ -42,6 +42,18 @@ export function TransactionsTable({ searchTerm, filter }: { searchTerm: string; 
     fetchTransactions();
   }, []);
 
+  useEffect(() => {
+    const handleWalletRefresh = () => {
+      void fetchTransactions();
+    };
+
+    window.addEventListener("wallet:refresh", handleWalletRefresh);
+
+    return () => {
+      window.removeEventListener("wallet:refresh", handleWalletRefresh);
+    };
+  }, []);
+
   const handleRefresh = () => {
     setIsRefreshing(true);
     fetchTransactions();
@@ -92,12 +104,10 @@ export function TransactionsTable({ searchTerm, filter }: { searchTerm: string; 
                 <TableCell>
                   <Badge
                     variant={
-                      transaction.status.toLowerCase() === "paid"
+                      transaction.status.toLowerCase() === "completed"
                         ? "success"
                         : transaction.status.toLowerCase() === "failed"
                         ? "destructive"
-                        : transaction.status.toLowerCase() === "completed"
-                        ? "secondary"
                         : "warning"
                     }
                   >

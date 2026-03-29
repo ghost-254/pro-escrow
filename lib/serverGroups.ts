@@ -254,7 +254,13 @@ async function settleCompletedGroup(
     const sellerAmount = totalFrozen - escrowFee
     const frozenField = currency === 'KES' ? 'frozenUserKesBalance' : 'frozenUserUsdBalance'
     const sellerBalanceField = currency === 'KES' ? 'userKesBalance' : 'userUsdBalance'
-    const currentBuyerFrozen = Math.max(Number(buyerData[frozenField] || 0) - totalFrozen, 0)
+    const buyerFrozenBalance = Number(buyerData[frozenField] || 0)
+
+    if (buyerFrozenBalance < totalFrozen) {
+      throw new GroupSecurityError('Frozen funds are inconsistent for this group.', 409)
+    }
+
+    const currentBuyerFrozen = buyerFrozenBalance - totalFrozen
     const currentSellerBalance = Number(sellerData[sellerBalanceField] || 0) + sellerAmount
 
     transaction.set(
@@ -324,8 +330,14 @@ async function settleCancelledGroup(
     const buyerData = buyerSnapshot.data() || {}
     const balanceField = currency === 'KES' ? 'userKesBalance' : 'userUsdBalance'
     const frozenField = currency === 'KES' ? 'frozenUserKesBalance' : 'frozenUserUsdBalance'
+    const buyerFrozenBalance = Number(buyerData[frozenField] || 0)
+
+    if (buyerFrozenBalance < totalFrozen) {
+      throw new GroupSecurityError('Frozen funds are inconsistent for this group.', 409)
+    }
+
     const updatedBalance = Number(buyerData[balanceField] || 0) + totalFrozen
-    const updatedFrozen = Math.max(Number(buyerData[frozenField] || 0) - totalFrozen, 0)
+    const updatedFrozen = buyerFrozenBalance - totalFrozen
 
     transaction.set(
       buyerRef,

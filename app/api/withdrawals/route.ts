@@ -3,6 +3,15 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore"
 
 import { adminDb } from "@/lib/firebaseAdmin"
 import { assertSameOrigin, requireSessionUser, SessionAuthError } from "@/lib/serverAuth"
+import { getErrorDetails } from "@/lib/serverErrors"
+import {
+  MPESA_WITHDRAWAL_FEE_KES,
+  MPESA_WITHDRAWAL_MIN_KES,
+  normalizeKenyanPhoneNumber,
+  parseMoneyAmount,
+  resolveCallbackUrl,
+  sanitizePersonName,
+} from "@/lib/serverPayments"
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const K2 = require("k2-connect-node")({
@@ -14,65 +23,17 @@ const K2 = require("k2-connect-node")({
 
 const { PayService, TokenService } = K2
 
-async function checkWithdrawalStatus(
-  accessToken: string,
-  paymentReference: string
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    // eslint-disable-next-line consistent-return
-    const interval = setInterval(async () => {
-      try {
-        const paymentUrl = `https://api.kopokopo.com/api/v1/payments/${paymentReference}`
-        const response = await PayService.getStatus({ accessToken, location: paymentUrl })
-
-        if (!response) {
-          clearInterval(interval)
-          return reject(new Error("No response from withdrawal status check"))
-        }
-
-        const status = response.data.attributes.status
-        if (status === "Processed" || status === "Transferred" || status === "Failed") {
-          clearInterval(interval)
-          resolve(status)
-        }
-      } catch (error) {
-        clearInterval(interval)
-        reject(error)
-      }
-    }, 2000)
-
-    setTimeout(() => {
-      clearInterval(interval)
-      reject(new Error("Withdrawal status check timed out"))
-    }, 60000)
-  })
-}
-
 export async function POST(request: Request) {
   try {
     assertSameOrigin(request)
     const sessionUser = await requireSessionUser()
-    const { firstName, lastName, phoneNumber, amount } = await request.json()
-
-    if (!firstName || !lastName || !phoneNumber || !amount) {
-      throw new Error("Missing required fields")
-    }
-
-    const numericAmount = Number(amount)
-    if (!Number.isFinite(numericAmount) || numericAmount < 200) {
-      return NextResponse.json(
-        { success: false, error: "Minimum MPESA withdrawal is 200 KES" },
-        { status: 400 }
-      )
-    }
-
-    const safaricomRegex = /^\+254\d{9}$/
-    if (!safaricomRegex.test(phoneNumber)) {
-      return NextResponse.json(
-        { success: false, error: "Only Safaricom numbers are accepted for Mpesa withdrawals" },
-        { status: 400 }
-      )
-    }
+    const payload = await request.json()
+    const firstName = sanitizePersonName(payload.firstName, "First name")
+    const lastName = sanitizePersonName(payload.lastName, "Last name")
+    const phoneNumber = normalizeKenyanPhoneNumber(payload.phoneNumber)
+    const numericAmount = parseMoneyAmount(payload.amount, "Withdrawal amount", {
+      min: MPESA_WITHDRAWAL_MIN_KES,
+    })
 
     const userRef = adminDb.collection("users").doc(sessionUser.uid)
     const userSnapshot = await userRef.get()
@@ -128,6 +89,7 @@ export async function POST(request: Request) {
         (recipientDetails?.data?.attributes && recipientDetails.data.attributes.id)
 
       await adminDb.collection("userWithdrawals").add({
+        uid: sessionUser.uid,
         phoneNumber,
         email: sessionUser.email,
         firstName,
@@ -135,6 +97,7 @@ export async function POST(request: Request) {
         recipientId,
         paymentReference: "",
         createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
       })
 
       return NextResponse.json(
@@ -168,7 +131,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const fee = 50
+    const fee = MPESA_WITHDRAWAL_FEE_KES
     const netAmount = numericAmount - fee
     const withdrawalRef = adminDb.collection("withdrawals").doc()
     const withdrawalId = withdrawalRef.id
@@ -188,6 +151,8 @@ export async function POST(request: Request) {
 
       transaction.set(withdrawalRef, {
         uid: sessionUser.uid,
+        currency: "KES",
+        provider: "kopokopo",
         method: "M-Pesa",
         firstName,
         lastName,
@@ -195,7 +160,8 @@ export async function POST(request: Request) {
         amount: numericAmount,
         fee,
         netAmount,
-        status: "initiated",
+        status: "pending",
+        providerStatus: "pending",
         transactionType: "Withdraw",
         balanceDeducted: true,
         balanceRefunded: false,
@@ -213,8 +179,16 @@ export async function POST(request: Request) {
         description: "General",
         category: "general",
         tags: "withdrawal",
-        metadata: { customerId: sessionUser.uid, notes: "Xcrow withdrawal services" },
-        callbackUrl: process.env.NEXT_SERVER_KOPOKOPO_WITHDRAWAL_CALLBACK_URL,
+        metadata: {
+          customerId: sessionUser.uid,
+          withdrawalId,
+          notes: "Xcrow withdrawal services",
+        },
+        callbackUrl: resolveCallbackUrl(
+          request,
+          "/api/withdrawals/webhook",
+          process.env.NEXT_SERVER_KOPOKOPO_WITHDRAWAL_CALLBACK_URL
+        ),
         accessToken,
       }
 
@@ -229,45 +203,20 @@ export async function POST(request: Request) {
         throw new Error("Unable to extract payment reference")
       }
 
-      const withdrawalStatus = await checkWithdrawalStatus(accessToken, extractedPaymentReference)
-
-      if (withdrawalStatus === "Processed" || withdrawalStatus === "Transferred") {
-        await withdrawalRef.update({
-          status: "completed",
-          paymentReference: extractedPaymentReference,
-          updatedAt: Timestamp.now(),
-        })
-
-        return NextResponse.json({
-          success: true,
-          newBalance: currentBalance - numericAmount,
-          withdrawalStatus,
-          withdrawalId,
-        })
-      }
-
-      await adminDb.runTransaction(async (transaction) => {
-        const latestWithdrawalSnapshot = await transaction.get(withdrawalRef)
-        const latestWithdrawalData = latestWithdrawalSnapshot.data() ?? {}
-
-        if (latestWithdrawalData.balanceDeducted && !latestWithdrawalData.balanceRefunded) {
-          transaction.update(userRef, {
-            userKesBalance: FieldValue.increment(numericAmount),
-            updatedAt: Timestamp.now(),
-          })
-        }
-
-        transaction.update(withdrawalRef, {
-          status: "failed",
-          balanceRefunded: true,
-          updatedAt: Timestamp.now(),
-        })
+      await withdrawalRef.update({
+        status: "processing",
+        providerStatus: "sent",
+        paymentReference: extractedPaymentReference,
+        providerLocation: paymentUrl || null,
+        updatedAt: Timestamp.now(),
       })
 
-      return NextResponse.json(
-        { success: false, error: "Withdrawal failed or canceled" },
-        { status: 400 }
-      )
+      return NextResponse.json({
+        success: true,
+        newBalance: currentBalance - numericAmount,
+        status: "processing",
+        withdrawalId,
+      })
     } catch (error: Error | unknown) {
       await adminDb.runTransaction(async (transaction) => {
         const latestWithdrawalSnapshot = await transaction.get(withdrawalRef)
@@ -282,6 +231,7 @@ export async function POST(request: Request) {
 
         transaction.update(withdrawalRef, {
           status: "failed",
+          providerStatus: "failed",
           balanceRefunded: true,
           failureReason: error instanceof Error ? error.message : "Withdrawal failed to initialize.",
           updatedAt: Timestamp.now(),
@@ -291,9 +241,14 @@ export async function POST(request: Request) {
       throw error
     }
   } catch (error: Error | unknown) {
-    const status = error instanceof SessionAuthError ? error.status : 500
+    const sessionStatus = error instanceof SessionAuthError ? error.status : undefined
+    const { message, status } = getErrorDetails(
+      error,
+      "Withdrawal failed.",
+      sessionStatus ?? 400
+    )
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Withdrawal failed." },
+      { success: false, error: message },
       { status }
     )
   }

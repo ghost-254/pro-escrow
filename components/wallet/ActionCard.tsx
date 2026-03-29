@@ -5,14 +5,14 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { toast } from "react-toastify"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { Smartphone, Bitcoin, AlertTriangle } from "lucide-react"
+import { Smartphone, Bitcoin, AlertTriangle, RefreshCw, CircleCheckBig, CircleX } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -29,6 +29,15 @@ interface ActionCardProps {
   type: "deposit" | "withdraw"
 }
 
+interface MpesaDepositTracker {
+  depositId: string
+  dialogOpen: boolean
+  status: "Pending" | "Completed" | "Failed"
+  rawStatus: string
+  exactStatus: string
+  failureReason: string | null
+}
+
 export function ActionCard({ type }: ActionCardProps) {
   const [amount, setAmount] = useState("")
   const [method, setMethod] = useState("mpesa")
@@ -41,6 +50,98 @@ export function ActionCard({ type }: ActionCardProps) {
   const [showDialog, setShowDialog] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [showPreviewDialog, setShowPreviewDialog] = useState(false)
+  const [mpesaDepositTracker, setMpesaDepositTracker] = useState<MpesaDepositTracker | null>(null)
+  const announcedDepositIdsRef = useRef<Set<string>>(new Set())
+
+  const resetForm = () => {
+    setAmount("")
+    setFirstName("")
+    setLastName("")
+    setPhoneNumber("")
+    setWalletAddress("")
+    setCryptoNetwork("TRON")
+  }
+
+  const refreshWalletUi = () => {
+    window.dispatchEvent(new Event("wallet:refresh"))
+  }
+
+  const handleTrackedMpesaDepositStatus = (
+    depositId: string,
+    nextStatus: "Pending" | "Completed" | "Failed",
+    failureReason: string | null
+  ) => {
+    if (announcedDepositIdsRef.current.has(depositId) || nextStatus === "Pending") {
+      return
+    }
+
+    announcedDepositIdsRef.current.add(depositId)
+    refreshWalletUi()
+
+    if (nextStatus === "Completed") {
+      toast.success("M-Pesa deposit completed and your wallet has been updated.")
+      return
+    }
+
+    toast.error(failureReason || "M-Pesa deposit failed.")
+  }
+
+  useEffect(() => {
+    if (!mpesaDepositTracker || mpesaDepositTracker.status !== "Pending") {
+      return
+    }
+
+    let isCancelled = false
+
+    const pollStatus = async () => {
+      try {
+        const response = await fetch(`/api/deposit/${mpesaDepositTracker.depositId}`, {
+          cache: "no-store",
+        })
+        const result = await response.json()
+
+        if (!response.ok || !result.success || !result.deposit) {
+          return
+        }
+
+        if (isCancelled) {
+          return
+        }
+
+        const nextTracker: MpesaDepositTracker = {
+          depositId: result.deposit.id,
+          dialogOpen: true,
+          status: result.deposit.status,
+          rawStatus: result.deposit.rawStatus,
+          exactStatus: result.deposit.exactStatus || result.deposit.rawStatus || result.deposit.status,
+          failureReason: result.deposit.failureReason || null,
+        }
+
+        setMpesaDepositTracker((currentTracker) => ({
+          ...nextTracker,
+          dialogOpen: currentTracker?.dialogOpen ?? true,
+        }))
+
+        handleTrackedMpesaDepositStatus(
+          result.deposit.id,
+          result.deposit.status,
+          result.deposit.failureReason || null
+        )
+      } catch {
+        // Keep polling in the background; transient network failures should not stop the tracker.
+      }
+    }
+
+    void pollStatus()
+    const intervalId = window.setInterval(() => {
+      void pollStatus()
+    }, 5000)
+
+    return () => {
+      isCancelled = true
+      window.clearInterval(intervalId)
+    }
+  }, [mpesaDepositTracker?.depositId, mpesaDepositTracker?.status])
 
   // Compute net amount for withdrawals (only for Mpesa)
   useEffect(() => {
@@ -71,8 +172,7 @@ export function ActionCard({ type }: ActionCardProps) {
     }
 
     const auth = getAuth()
-    const currentUser = auth.currentUser
-    if (!currentUser) {
+    if (!auth.currentUser) {
       toast.error("User not authenticated. Please sign in.")
       return
     }
@@ -84,47 +184,44 @@ export function ActionCard({ type }: ActionCardProps) {
     }
 
     // Continue with processing for other types
-    await processTransaction(currentUser)
+    await processTransaction()
   }
 
   /**
    * Process the actual transaction after validation and confirmation
    */
-  const processTransaction = async (currentUser: any) => {
+  const processTransaction = async () => {
     setIsProcessing(true)
+    let wasSuccessful = false
 
-    // --- Deposit Flow ---
-    if (type === "deposit") {
-      if (method === "mpesa") {
-        await handleMpesaDeposit(currentUser)
-      } else if (method === "crypto") {
-        await handleCryptoDeposit(currentUser)
+    try {
+      if (type === "deposit") {
+        if (method === "mpesa") {
+          wasSuccessful = await handleMpesaDeposit()
+        } else if (method === "crypto") {
+          wasSuccessful = await handleCryptoDeposit()
+        }
       }
-    }
 
-    // --- Withdrawal Flow ---
-    if (type === "withdraw") {
-      if (method === "crypto") {
-        await handleCryptoWithdrawal(currentUser)
-      } else if (method === "mpesa") {
-        await handleMpesaWithdrawal(currentUser)
+      if (type === "withdraw") {
+        if (method === "crypto") {
+          wasSuccessful = await handleCryptoWithdrawal()
+        } else if (method === "mpesa") {
+          wasSuccessful = await handleMpesaWithdrawal()
+        }
       }
+    } finally {
+      if (wasSuccessful) {
+        resetForm()
+      }
+      setIsProcessing(false)
     }
-
-    // Clear form fields.
-    setAmount("")
-    setFirstName("")
-    setLastName("")
-    setPhoneNumber("")
-    setWalletAddress("")
-    setCryptoNetwork("TRON") // Reset to default network
-    setIsProcessing(false)
   }
 
   /**
    * Handles Mpesa deposits.
    */
-  const handleMpesaDeposit = async (currentUser: any) => {
+  const handleMpesaDeposit = async () => {
     try {
       const response = await fetch("/api/deposit", {
         method: "POST",
@@ -138,19 +235,37 @@ export function ActionCard({ type }: ActionCardProps) {
       })
       const result = await response.json()
       if (response.ok && result.success) {
-        toast.success("Deposit successful!")
+        if (result.depositId) {
+          setMpesaDepositTracker({
+            depositId: result.depositId,
+            dialogOpen: true,
+            status: "Pending",
+            rawStatus: result.status || "pending",
+            exactStatus: result.status || "pending",
+            failureReason: null,
+          })
+        }
+
+        toast.success(
+          result.status === "pending"
+            ? result.message || "STK push sent. Approve the payment on your phone."
+            : "Deposit successful!"
+        )
+        return true
       } else {
         toast.error(result.error || "Deposit failed or canceled")
       }
     } catch (err: any) {
       toast.error(err.message || "An error occurred during deposit")
     }
+
+    return false
   }
 
   /**
    * Handles Crypto deposits.
    */
-  const handleCryptoDeposit = async (currentUser: any) => {
+  const handleCryptoDeposit = async () => {
     try {
       const response = await fetch("/api/depositCrypto", {
         method: "POST",
@@ -160,10 +275,11 @@ export function ActionCard({ type }: ActionCardProps) {
       const result = await response.json()
 
       if (response.ok && result.success) {
-        const { depositId, invoice } = result
+        const { invoice } = result
         if (invoice?.url) {
           toast.success("Invoice created, redirecting to Cryptomus payment page...")
           window.location.href = invoice.url
+          return true
         } else {
           toast.error("Failed to obtain Cryptomus invoice")
         }
@@ -173,24 +289,24 @@ export function ActionCard({ type }: ActionCardProps) {
     } catch (err: any) {
       toast.error(err.message || "An error occurred during crypto deposit")
     }
+
+    return false
   }
 
   /**
    * Handles Crypto withdrawals.
    */
-  const handleCryptoWithdrawal = async (currentUser: any) => {
+  const handleCryptoWithdrawal = async () => {
     // Validate minimum withdrawal amount
-    if (Number(amount) < 9) {
+    if (Number(amount) < 10) {
       toast.error("Minimum crypto withdrawal is 10 USD")
-      setIsProcessing(false)
-      return
+      return false
     }
 
     // Validate wallet address and network
     if (!walletAddress || !cryptoNetwork) {
       toast.error("Please provide a valid wallet address and network")
-      setIsProcessing(false)
-      return
+      return false
     }
 
     try {
@@ -199,15 +315,13 @@ export function ActionCard({ type }: ActionCardProps) {
       const balanceData = await balanceRes.json()
       if (!balanceData.success) {
         toast.error("Failed to retrieve wallet balance")
-        setIsProcessing(false)
-        return
+        return false
       }
 
       const availableUSD = Number(balanceData.userUsdBalance || 0)
       if (availableUSD < Number(amount)) {
         toast.error("Withdrawal amount exceeds your available USD balance")
-        setIsProcessing(false)
-        return
+        return false
       }
 
       // Initiate crypto withdrawal
@@ -223,36 +337,40 @@ export function ActionCard({ type }: ActionCardProps) {
       const result = await response.json()
 
       if (response.ok && result.success) {
-        toast.success("Withdrawal initiated successfully!")
+        toast.success(
+          result.status === "processing"
+            ? "Withdrawal initiated. We will update the status once the provider confirms it."
+            : "Withdrawal initiated successfully!"
+        )
         setShowDialog(true)
         setShowPreviewDialog(false)
+        return true
       } else {
         toast.error(result.error || "Withdrawal failed")
       }
     } catch (err: any) {
       toast.error(err.message || "An error occurred during withdrawal")
     }
+
+    return false
   }
 
   /**
    * Handles Mpesa withdrawals.
    */
-  const handleMpesaWithdrawal = async (currentUser: any) => {
+  const handleMpesaWithdrawal = async () => {
     if (Number(amount) < 200) {
       toast.error("Minimum MPESA withdrawal is 200 KES")
-      setIsProcessing(false)
-      return
+      return false
     }
     if (!firstName || !lastName || !phoneNumber) {
       toast.error("Please fill in all required Mpesa details")
-      setIsProcessing(false)
-      return
+      return false
     }
-    const safaricomRegex = /^\+254\d{9}$/
-    if (!safaricomRegex.test(phoneNumber)) {
-      toast.error("Only Safaricom numbers are accepted for Mpesa withdrawals")
-      setIsProcessing(false)
-      return
+    const kenyanPhoneRegex = /^(\+254|254|0)\d{9}$/
+    if (!kenyanPhoneRegex.test(phoneNumber.replace(/\s+/g, ""))) {
+      toast.error("Enter a valid Kenyan mobile number.")
+      return false
     }
 
     try {
@@ -260,15 +378,13 @@ export function ActionCard({ type }: ActionCardProps) {
       const balanceData = await balanceRes.json()
       if (!balanceData.success) {
         toast.error("Failed to retrieve wallet balance")
-        setIsProcessing(false)
-        return
+        return false
       }
 
       const availableKES = Number(balanceData.userKesBalance || 0)
       if (availableKES < Number(amount)) {
         toast.error("Withdrawal amount exceeds your available KES balance")
-        setIsProcessing(false)
-        return
+        return false
       }
 
       // Initiate Mpesa withdrawal
@@ -285,15 +401,20 @@ export function ActionCard({ type }: ActionCardProps) {
 
       const result = await response.json()
       if (response.ok && result.success) {
-        toast.success("Withdrawal initiated successfully!")
+        toast.success(
+          result.status === "processing"
+            ? "Withdrawal initiated. We will notify you once it is completed."
+            : "Withdrawal initiated successfully!"
+        )
+        return true
       } else {
         toast.error(result.error || "Withdrawal failed or canceled")
       }
     } catch (err: any) {
       toast.error(err.message || "An error occurred during withdrawal")
-    } finally {
-      setIsProcessing(false)
     }
+
+    return false
   }
 
   return (
@@ -324,7 +445,7 @@ export function ActionCard({ type }: ActionCardProps) {
             </RadioGroup>
           </div>
           {/* For Deposits */}
-          {type === "deposit" && (
+      {type === "deposit" && (
             <div className="space-y-2">
               <Label htmlFor="amount">Amount ({method === "mpesa" ? "KES" : "USD"})</Label>
               <Input
@@ -449,7 +570,11 @@ export function ActionCard({ type }: ActionCardProps) {
               </Alert>
             </>
           )}
-          <Button type="submit" className="w-full bg-purple-600 hover:bg-orange-500 text-white">
+          <Button
+            type="submit"
+            className="w-full bg-purple-600 hover:bg-orange-500 text-white"
+            disabled={isProcessing}
+          >
             {isProcessing ? "Processing your request..." : type === "deposit" ? "Deposit" : "Withdraw"}
           </Button>
         </form>
@@ -507,13 +632,94 @@ export function ActionCard({ type }: ActionCardProps) {
                 const auth = getAuth()
                 const currentUser = auth.currentUser
                 if (currentUser) {
-                  processTransaction(currentUser)
+                  processTransaction()
                 }
               }}
               disabled={isProcessing}
             >
               {isProcessing ? "Processing..." : "Confirm Withdrawal"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(mpesaDepositTracker?.dialogOpen)}
+        onOpenChange={(nextOpen) => {
+          setMpesaDepositTracker((currentTracker) =>
+            currentTracker
+              ? {
+                  ...currentTracker,
+                  dialogOpen: nextOpen,
+                }
+              : currentTracker
+          )
+        }}
+      >
+        <DialogContent className="sm:max-w-md text-center">
+          <DialogHeader>
+            <DialogTitle>M-Pesa Deposit Status</DialogTitle>
+            <DialogDescription>
+              We are checking KopoKopo for the latest payment result and will update your wallet automatically.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col items-center gap-4 py-4">
+            {mpesaDepositTracker?.status === "Pending" ? (
+              <RefreshCw className="h-12 w-12 animate-spin text-purple-600" />
+            ) : mpesaDepositTracker?.status === "Completed" ? (
+              <CircleCheckBig className="h-12 w-12 text-emerald-600" />
+            ) : (
+              <CircleX className="h-12 w-12 text-red-600" />
+            )}
+
+            <div className="space-y-1">
+              <p className="text-lg font-semibold">{mpesaDepositTracker?.status || "Pending"}</p>
+              <p className="text-sm text-muted-foreground">
+                {mpesaDepositTracker?.status === "Pending"
+                  ? "We are still polling KopoKopo for a final deposit result."
+                  : mpesaDepositTracker?.status === "Completed"
+                    ? "Your deposit was confirmed and your wallet balance has been refreshed."
+                    : mpesaDepositTracker?.failureReason || "KopoKopo reported that this deposit failed."}
+              </p>
+              {mpesaDepositTracker?.exactStatus && (
+                <p className="text-sm font-medium text-foreground/80">
+                  KopoKopo status: {mpesaDepositTracker.exactStatus}
+                </p>
+              )}
+              {mpesaDepositTracker?.depositId && (
+                <p className="text-xs text-muted-foreground">
+                  Ref: {mpesaDepositTracker.depositId.slice(0, 8).toUpperCase()}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+            {mpesaDepositTracker?.status === "Pending" ? (
+              <Button
+                variant="outline"
+                onClick={() =>
+                  setMpesaDepositTracker((currentTracker) =>
+                    currentTracker
+                      ? {
+                          ...currentTracker,
+                          dialogOpen: false,
+                        }
+                      : currentTracker
+                  )
+                }
+              >
+                Hide, Keep Checking
+              </Button>
+            ) : (
+              <Button
+                className="bg-purple-600 hover:bg-orange-500 text-white"
+                onClick={() => setMpesaDepositTracker(null)}
+              >
+                Close
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

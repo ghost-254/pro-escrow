@@ -1,9 +1,6 @@
-//lib/cryptomusDeposit.ts
+import axios from "axios"
 
-/* eslint-disable */
-
-import axios from "axios";
-import crypto from "crypto";
+import { createCryptomusSignature } from "@/lib/serverPayments"
 
 const getCryptomusDepositConfig = () => {
   const merchantId = process.env.NEXT_SERVER_CRYPTOMUS_MERCHANT_ID
@@ -16,29 +13,19 @@ const getCryptomusDepositConfig = () => {
   return { merchantId, apiKey }
 }
 
-/**
- * Generates a Cryptomus signature for deposits.
- */
-const generateDepositSignature = (data: any) => {
-  const { apiKey } = getCryptomusDepositConfig()
-  const jsonData = JSON.stringify(data, Object.keys(data).sort());
-  const base64Data = Buffer.from(jsonData).toString("base64");
-  return crypto.createHash("md5").update(base64Data + apiKey).digest("hex");
-};
-
-/**
- * Calls the Cryptomus API for deposits.
- */
-export const callCryptomusDepositApi = async (endpoint: string, payload: any) => {
+export const callCryptomusDepositApi = async (
+  endpoint: string,
+  payload: Record<string, unknown>
+) => {
   const { merchantId } = getCryptomusDepositConfig()
-  const sign = generateDepositSignature(payload);
+  const { apiKey } = getCryptomusDepositConfig()
+  const sign = createCryptomusSignature(payload, apiKey)
   const headers = {
     merchant: merchantId,
     sign,
     "Content-Type": "application/json",
-  };
+  }
 
-  const url = `https://api.cryptomus.com/v1/${endpoint}`;
-  const response = await axios.post(url, payload, { headers });
-  return response.data;
-};
+  const response = await axios.post(`https://api.cryptomus.com/v1/${endpoint}`, payload, { headers })
+  return response.data
+}

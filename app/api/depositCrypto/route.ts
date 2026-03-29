@@ -6,6 +6,7 @@ import { callCryptomusDepositApi } from "@/lib/cryptomusDeposit"
 import { startDepositCronJob } from "@/lib/depositCronJob"
 import { assertSameOrigin, requireSessionUser } from "@/lib/serverAuth"
 import { getErrorDetails } from "@/lib/serverErrors"
+import { parseMoneyAmount, resolveCallbackUrl } from "@/lib/serverPayments"
 
 export async function POST(request: Request) {
   try {
@@ -13,26 +14,16 @@ export async function POST(request: Request) {
     const sessionUser = await requireSessionUser()
     const { amount } = await request.json()
 
-    if (!amount) {
-      return NextResponse.json(
-        { success: false, error: "Missing deposit amount." },
-        { status: 400 }
-      )
-    }
-
-    const numericAmount = Number(amount)
-    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-      return NextResponse.json(
-        { success: false, error: "Amount must be a positive number." },
-        { status: 400 }
-      )
-    }
+    const numericAmount = parseMoneyAmount(amount, "Deposit amount")
 
     const depositRef = await adminDb.collection("deposits").add({
       uid: sessionUser.uid,
       method: "crypto",
+      currency: "USD",
+      provider: "cryptomus",
       amount: numericAmount,
       status: "pending",
+      providerStatus: "pending",
       transactionType: "Deposit",
       balanceCredited: false,
       createdAt: Timestamp.now(),
@@ -43,7 +34,7 @@ export async function POST(request: Request) {
       amount: numericAmount.toFixed(2),
       currency: "USD",
       order_id: depositId,
-      url_callback: `${process.env.NEXT_PUBLIC_BASE_URL}/api/depositCrypto/webhook` || "",
+      url_callback: resolveCallbackUrl(request, "/api/depositCrypto/webhook"),
       url_return: process.env.NEXT_SERVER_CRYPTOMUS_RETURN_URL || "",
       url_success: process.env.NEXT_SERVER_CRYPTOMUS_SUCCESS_URL || "",
     }
@@ -64,14 +55,16 @@ export async function POST(request: Request) {
 
     await depositRef.update({
       cryptomusInvoice: cryptomusData.result,
+      providerStatus: String(cryptomusData.result?.status || "pending"),
       updatedAt: Timestamp.now(),
     })
 
-    startDepositCronJob(depositId, sessionUser.uid, numericAmount)
+    startDepositCronJob(depositId)
 
     return NextResponse.json({
       success: true,
       depositId,
+      status: "pending",
       invoice: cryptomusData.result,
     })
   } catch (error: unknown) {

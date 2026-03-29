@@ -3,10 +3,18 @@ import { NextResponse } from "next/server"
 import { adminDb } from "@/lib/firebaseAdmin"
 import { requireSessionUser } from "@/lib/serverAuth"
 import { getErrorDetails } from "@/lib/serverErrors"
+import { syncPendingPaymentsForUser } from "@/lib/serverPayments"
 
 export async function GET() {
   try {
     const sessionUser = await requireSessionUser()
+
+    try {
+      await syncPendingPaymentsForUser(sessionUser.uid)
+    } catch {
+      // Keep the wallet readable even when reconciliation is temporarily unavailable.
+    }
+
     const userSnapshot = await adminDb.collection("users").doc(sessionUser.uid).get()
 
     if (!userSnapshot.exists) {

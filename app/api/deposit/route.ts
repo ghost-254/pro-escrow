@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server"
-import { FieldValue, Timestamp } from "firebase-admin/firestore"
+import { Timestamp, type DocumentReference } from "firebase-admin/firestore"
 
 import { adminDb } from "@/lib/firebaseAdmin"
 import { assertSameOrigin, requireSessionUser, SessionAuthError } from "@/lib/serverAuth"
+import { getErrorDetails } from "@/lib/serverErrors"
+import {
+  normalizeKenyanPhoneNumber,
+  initiateKopoKopoIncomingPayment,
+  parseMoneyAmount,
+  resolveCallbackUrl,
+  sanitizePersonName,
+} from "@/lib/serverPayments"
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const K2 = require("k2-connect-node")({
@@ -12,74 +20,34 @@ const K2 = require("k2-connect-node")({
   baseUrl: process.env.NEXT_SERVER_KOPOKOPO_BASE_URL,
 })
 
-const { StkService, TokenService } = K2
-
-async function checkPaymentStatus(
-  accessToken: string,
-  paymentRequestId: string
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    // eslint-disable-next-line consistent-return
-    const interval = setInterval(async () => {
-      try {
-        const locationUrl = `https://api.kopokopo.com/api/v1/incoming_payments/${paymentRequestId}`
-        const response = await StkService.getStatus({ accessToken, location: locationUrl })
-
-        if (!response) {
-          clearInterval(interval)
-          return reject(new Error("No response from payment status check"))
-        }
-
-        const status = response.data.attributes.status.toLowerCase()
-        if (status === "success" || status === "failed") {
-          clearInterval(interval)
-          resolve(status)
-        }
-      } catch (error) {
-        clearInterval(interval)
-        reject(error)
-      }
-    }, 2000)
-
-    setTimeout(() => {
-      clearInterval(interval)
-      reject(new Error("Payment status check timed out"))
-    }, 60000)
-  })
-}
+const { TokenService } = K2
 
 export async function POST(request: Request) {
+  let depositRef: DocumentReference | null = null
+
   try {
     assertSameOrigin(request)
     const sessionUser = await requireSessionUser()
+    const payload = await request.json()
+    const firstName = sanitizePersonName(payload.firstName, "First name")
+    const lastName = sanitizePersonName(payload.lastName, "Last name")
+    const phoneNumber = normalizeKenyanPhoneNumber(payload.phoneNumber)
+    const numericAmount = parseMoneyAmount(payload.amount, "Deposit amount")
 
-    const { firstName, lastName, phoneNumber, amount } = await request.json()
-
-    if (!firstName || !lastName || !phoneNumber || !amount) {
-      return NextResponse.json(
-        { success: false, error: "Missing required deposit fields." },
-        { status: 400 }
-      )
-    }
-
-    const numericAmount = Number(amount)
-    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-      return NextResponse.json(
-        { success: false, error: "Deposit amount must be a positive number." },
-        { status: 400 }
-      )
-    }
-
-    const depositRef = await adminDb.collection("deposits").add({
+    depositRef = await adminDb.collection("deposits").add({
       uid: sessionUser.uid,
       method: "M-Pesa",
+      currency: "KES",
+      provider: "kopokopo",
       firstName,
       lastName,
       phoneNumber,
       email: sessionUser.email ?? null,
       amount: numericAmount,
       status: "pending",
+      providerStatus: "pending",
       transactionType: "Deposit",
+      balanceCredited: false,
       createdAt: Timestamp.now(),
     })
 
@@ -87,81 +55,66 @@ export async function POST(request: Request) {
 
     const tokenResponse = await TokenService.getToken()
     const accessToken = tokenResponse.access_token
-    const stkOptions = {
-      paymentChannel: "M-PESA STK Push",
-      tillNumber: process.env.NEXT_SERVER_KOPOKOPO_TILL_NUMBER,
+    const tillNumber = process.env.NEXT_SERVER_KOPOKOPO_TILL_NUMBER?.trim()
+
+    if (!tillNumber) {
+      throw new Error("KopoKopo till number is not configured.")
+    }
+
+    const callbackUrl = resolveCallbackUrl(
+      request,
+      "/api/deposit/webhook",
+      process.env.NEXT_SERVER_KOPOKOPO_CALLBACK_URL
+    )
+    const { responseLocation, paymentRequestId } = await initiateKopoKopoIncomingPayment({
+      accessToken,
+      tillNumber,
       firstName,
       lastName,
       phoneNumber,
       email: sessionUser.email,
-      currency: "KES",
       amount: numericAmount,
-      callbackUrl: process.env.NEXT_SERVER_KOPOKOPO_CALLBACK_URL,
-      accessToken,
+      callbackUrl,
       metadata: {
+        customer_id: sessionUser.uid,
+        reference: depositId,
         depositId,
         uid: sessionUser.uid,
         notes: "Xcrow Payment Deposit",
       },
-    }
+    })
 
-    const responseStr = await StkService.initiateIncomingPayment(stkOptions)
-    const paymentRequestId = responseStr.split("/").pop()
+    await depositRef.update({
+      paymentRequestId,
+      providerLocation: responseLocation,
+      updatedAt: Timestamp.now(),
+    })
 
-    if (!paymentRequestId) {
-      throw new Error("Unable to extract paymentRequestId from response")
-    }
-
-    const paymentStatus = await checkPaymentStatus(accessToken, paymentRequestId)
-    const finalStatus = paymentStatus === "success" ? "paid" : "failed"
-
-    if (finalStatus === "paid") {
-      await adminDb.runTransaction(async (transaction) => {
-        const userRef = adminDb.collection("users").doc(sessionUser.uid)
-        const userSnapshot = await transaction.get(userRef)
-
-        if (!userSnapshot.exists) {
-          transaction.set(
-            userRef,
-            {
-              userKesBalance: numericAmount,
-              userUsdBalance: 0,
-              frozenUserKesBalance: 0,
-              frozenUserUsdBalance: 0,
-              updatedAt: Timestamp.now(),
-            },
-            { merge: true }
-          )
-        } else {
-          transaction.update(userRef, {
-            userKesBalance: FieldValue.increment(numericAmount),
-            updatedAt: Timestamp.now(),
-          })
-        }
-
-        transaction.update(depositRef, {
-          status: finalStatus,
-          updatedAt: Timestamp.now(),
-        })
-      })
-    } else {
+    return NextResponse.json({
+      success: true,
+      depositId,
+      status: "pending",
+      message: "STK push sent. Approve the payment on your phone to complete the deposit.",
+    })
+  } catch (error: unknown) {
+    if (depositRef) {
       await depositRef.update({
-        status: finalStatus,
+        status: "failed",
+        providerStatus: "failed",
+        failureReason: error instanceof Error ? error.message : "Deposit request failed.",
         updatedAt: Timestamp.now(),
       })
     }
 
-    return NextResponse.json({
-      success: finalStatus === "paid",
-      depositId,
-      status: finalStatus,
-    })
-  } catch (error: unknown) {
-    const status = error instanceof SessionAuthError ? error.status : 500
-    const errorMessage = error instanceof Error ? error.message : "Deposit request failed."
+    const sessionStatus = error instanceof SessionAuthError ? error.status : undefined
+    const { message, status } = getErrorDetails(
+      error,
+      "Deposit request failed.",
+      sessionStatus ?? 400
+    )
 
     return NextResponse.json(
-      { success: false, error: errorMessage },
+      { success: false, error: message },
       { status }
     )
   }
