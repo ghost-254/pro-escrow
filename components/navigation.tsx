@@ -10,6 +10,9 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import { UserMenu } from "@/components/user-menu"
 import { MobileSidebar } from "@/components/mobile-sidebar"
+import { triggerPageTransitionLoader } from "@/components/page-transition-loader"
+
+const AUTH_ENTRY_LOADING_DURATION_MS = 5000
 
 export function Navigation() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -76,7 +79,7 @@ export function Navigation() {
           {user ? (
             <UserMenu />
           ) : (
-            <Link href="/auth">
+            <Link href="/auth" onClick={() => triggerPageTransitionLoader(AUTH_ENTRY_LOADING_DURATION_MS)}>
               <Button className="bg-accent text-accent-foreground hover:bg-accent/90">Sign In</Button>
             </Link>
           )}

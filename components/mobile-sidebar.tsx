@@ -38,6 +38,9 @@ import { toast } from 'react-toastify'
 import Image from 'next/image'
 import truncate from '@/lib/truncate'
 import Typography from './ui/typography'
+import { triggerPageTransitionLoader } from '@/components/page-transition-loader'
+
+const AUTH_ENTRY_LOADING_DURATION_MS = 5000
 
 interface MobileSidebarProps {
   isOpen: boolean
@@ -127,17 +130,27 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
     label,
     showNewBadge = false,
     isNotifications = false,
+    showRouteLoader = false,
   }: {
     href: string
     icon: React.ElementType
     label: string
     showNewBadge?: boolean
     isNotifications?: boolean
+    showRouteLoader?: boolean
   }) => {
     const isActive = href === pathname
 
     return (
-      <Link href={href} onClick={onClose}>
+      <Link
+        href={href}
+        onClick={() => {
+          if (showRouteLoader && href.startsWith('/') && href !== pathname) {
+            triggerPageTransitionLoader()
+          }
+          onClose()
+        }}
+      >
         <Button
           variant="ghost"
           className={cn('w-full justify-start relative', isActive && 'bg-[#dddddd] dark:bg-gray-600 font-semibold')}
@@ -205,8 +218,14 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
             </div>
           ) : (
             <div className="mb-3 flex items-center justify-between px-2">
-              <Link href="/auth">
-                <Button variant="outline" size="sm" onClick={onClose}>
+              <Link
+                href="/auth"
+                onClick={() => {
+                  triggerPageTransitionLoader(AUTH_ENTRY_LOADING_DURATION_MS)
+                  onClose()
+                }}
+              >
+                <Button variant="outline" size="sm">
                   Sign In
                 </Button>
               </Link>
@@ -229,13 +248,14 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
             <div>
               <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">MAIN MENU</h4>
               <nav className="flex flex-col gap-[0.3rem] space-y-1">
-                <MenuItem href="/dashboard" icon={Home} label="Dashboard" />
-                <MenuItem href="/dashboard/group-chat" icon={Users} label="Group Chats" showNewBadge />
+                <MenuItem href="/dashboard" icon={Home} label="Dashboard" showRouteLoader />
+                <MenuItem href="/dashboard/group-chat" icon={Users} label="Group Chats" showNewBadge showRouteLoader />
                 <MenuItem
                   href="/dashboard/notifications"
                   icon={Bell}
                   label="Notifications"
                   isNotifications
+                  showRouteLoader
                 />
               </nav>
             </div>
@@ -256,9 +276,9 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
             <div>
               <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">ACCOUNT</h4>
               <nav className="space-y-1">
-                <MenuItem href="/dashboard/profile" icon={User} label="Profile" />
-                <MenuItem href="/dashboard/wallet" icon={Wallet} label="My Wallet" />
-                <MenuItem href="/dashboard/support" icon={HelpCircle} label="Support" />
+                <MenuItem href="/dashboard/profile" icon={User} label="Profile" showRouteLoader />
+                <MenuItem href="/dashboard/wallet" icon={Wallet} label="My Wallet" showRouteLoader />
+                <MenuItem href="/dashboard/support" icon={HelpCircle} label="Support" showRouteLoader />
               </nav>
             </div>
 

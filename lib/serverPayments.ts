@@ -98,8 +98,14 @@ function safeCompareStrings(left: string, right: string) {
   return crypto.timingSafeEqual(leftBuffer, rightBuffer)
 }
 
-function serializeCryptomusPayload(payload: unknown) {
-  return JSON.stringify(payload).replace(/\//g, "\\/")
+function serializeCryptomusPayload(payload: unknown, { escapeSlashes = false }: { escapeSlashes?: boolean } = {}) {
+  const serializedPayload = JSON.stringify(payload)
+
+  if (escapeSlashes) {
+    return serializedPayload.replace(/\//g, "\\/")
+  }
+
+  return serializedPayload
 }
 
 function getCryptomusApiKey(apiKey: string | undefined, label: string) {
@@ -747,8 +753,16 @@ export function resolveCallbackUrl(request: Request, callbackPath: string, expli
   return `${resolveAppBaseUrl(request)}${callbackPath}`
 }
 
-export function createCryptomusSignature(payload: unknown, apiKey: string) {
+export function createCryptomusRequestSignature(payload: unknown, apiKey: string) {
   const serializedPayload = serializeCryptomusPayload(payload)
+  return crypto
+    .createHash("md5")
+    .update(Buffer.from(serializedPayload).toString("base64") + apiKey)
+    .digest("hex")
+}
+
+export function createCryptomusWebhookSignature(payload: unknown, apiKey: string) {
+  const serializedPayload = serializeCryptomusPayload(payload, { escapeSlashes: true })
   return crypto
     .createHash("md5")
     .update(Buffer.from(serializedPayload).toString("base64") + apiKey)
@@ -770,7 +784,7 @@ export function verifyCryptomusWebhookSignature(
   const { sign, ...unsignedPayload } = payload
 
   void sign
-  const expectedSign = createCryptomusSignature(
+  const expectedSign = createCryptomusWebhookSignature(
     unsignedPayload,
     getCryptomusApiKey(apiKey, label)
   )

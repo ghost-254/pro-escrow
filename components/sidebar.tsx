@@ -26,6 +26,7 @@ import { toggleTransactModal } from "@/lib/slices/transact.reducer"
 import { db } from "@/lib/firebaseConfig"
 import { collection, onSnapshot, orderBy, query, where } from "firebase/firestore"
 import { BrandLogo } from "@/components/brand-logo"
+import { triggerPageTransitionLoader } from "@/components/page-transition-loader"
 
 interface SidebarProps {
   isMobile?: boolean
@@ -38,6 +39,7 @@ interface MenuItemProps {
   label: string
   showNewBadge?: boolean
   isNotifications?: boolean
+  showRouteLoader?: boolean
   onClick?: () => void
   pathname: string
   isMobile?: boolean
@@ -51,6 +53,7 @@ function MenuItem({
   label,
   showNewBadge = false,
   isNotifications = false,
+  showRouteLoader = false,
   onClick,
   pathname,
   isMobile = false,
@@ -63,6 +66,9 @@ function MenuItem({
     <Link
       href={href}
       onClick={() => {
+        if (showRouteLoader && href.startsWith("/") && href !== pathname) {
+          triggerPageTransitionLoader()
+        }
         if (onClick) onClick()
         if (isMobile && onClose) onClose()
       }}
@@ -156,13 +162,14 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
           <div>
             <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">MAIN MENU</h4>
             <nav className="flex flex-col gap-[0.3rem] space-y-1">
-              <MenuItem href="/dashboard" icon={Home} label="Dashboard" pathname={pathname} isMobile={isMobile} onClose={onClose} />
-              <MenuItem href="/dashboard/group-chat" icon={Users} label="Group Chats" showNewBadge pathname={pathname} isMobile={isMobile} onClose={onClose} />
+              <MenuItem href="/dashboard" icon={Home} label="Dashboard" showRouteLoader pathname={pathname} isMobile={isMobile} onClose={onClose} />
+              <MenuItem href="/dashboard/group-chat" icon={Users} label="Group Chats" showNewBadge showRouteLoader pathname={pathname} isMobile={isMobile} onClose={onClose} />
               <MenuItem
                 href="/dashboard/notifications"
                 icon={Bell}
                 label="Notifications"
                 isNotifications
+                showRouteLoader
                 pathname={pathname}
                 isMobile={isMobile}
                 onClose={onClose}
@@ -174,9 +181,9 @@ export function Sidebar({ isMobile = false, onClose }: SidebarProps) {
           <div>
             <h4 className="mb-2 px-2 text-sm font-semibold text-muted-foreground">ACCOUNT</h4>
             <nav className="space-y-1">
-              <MenuItem href="/dashboard/profile" icon={User} label="Profile" pathname={pathname} isMobile={isMobile} onClose={onClose} />
-              <MenuItem href="/dashboard/wallet" icon={Wallet} label="My Wallet" pathname={pathname} isMobile={isMobile} onClose={onClose} />
-              <MenuItem href="/dashboard/support" icon={HelpCircle} label="Support" pathname={pathname} isMobile={isMobile} onClose={onClose} />
+              <MenuItem href="/dashboard/profile" icon={User} label="Profile" showRouteLoader pathname={pathname} isMobile={isMobile} onClose={onClose} />
+              <MenuItem href="/dashboard/wallet" icon={Wallet} label="My Wallet" showRouteLoader pathname={pathname} isMobile={isMobile} onClose={onClose} />
+              <MenuItem href="/dashboard/support" icon={HelpCircle} label="Support" showRouteLoader pathname={pathname} isMobile={isMobile} onClose={onClose} />
             </nav>
           </div>
 

@@ -676,64 +676,65 @@ export function ActionCard({ type }: ActionCardProps) {
               : currentTracker
           )
         }}
-      >
-        <DialogContent
-          className="sm:max-w-md overflow-hidden border-0 bg-white p-0 text-center shadow-2xl"
-          showClose={!isMpesaDepositPending}
-          onEscapeKeyDown={(event) => {
-            if (isMpesaDepositPending) {
-              event.preventDefault()
-            }
-          }}
-          onPointerDownOutside={(event) => {
-            if (isMpesaDepositPending) {
-              event.preventDefault()
-            }
-          }}
-          onInteractOutside={(event) => {
-            if (isMpesaDepositPending) {
-              event.preventDefault()
-            }
-          }}
         >
-          <div className="bg-gradient-to-br from-[#00A651] via-[#06B85A] to-[#0D6B3A] px-6 py-6 text-white">
-            <div className="mx-auto flex w-full max-w-xs items-center justify-center gap-3 rounded-full bg-white/14 px-4 py-3 backdrop-blur-sm">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm">
-                <Image src="/mpesa-logo.png" alt="M-Pesa" width={32} height={32} className="h-8 w-8 object-contain" />
+          <DialogContent
+            className="w-[calc(100%-2rem)] max-w-[20.5rem] max-h-[calc(100svh-2.5rem)] overflow-hidden border-0 bg-white p-0 text-center shadow-2xl sm:w-[min(100%-5rem,21.5rem)] sm:max-w-[21.5rem] sm:max-h-[calc(100svh-5rem)] md:max-w-[22.5rem]"
+            showClose={!isMpesaDepositPending}
+            onEscapeKeyDown={(event) => {
+              if (isMpesaDepositPending) {
+                event.preventDefault()
+              }
+            }}
+            onPointerDownOutside={(event) => {
+              if (isMpesaDepositPending) {
+                event.preventDefault()
+              }
+            }}
+            onInteractOutside={(event) => {
+              if (isMpesaDepositPending) {
+                event.preventDefault()
+              }
+            }}
+          >
+          <div className="flex max-h-[calc(100svh-2.5rem)] flex-col sm:max-h-[calc(100svh-5rem)]">
+          <div className="bg-gradient-to-br from-[#00A651] via-[#06B85A] to-[#0D6B3A] px-4 py-4 text-white sm:px-5 sm:py-5">
+            <div className="mx-auto flex w-full max-w-[14.5rem] items-center justify-center gap-2.5 rounded-full bg-white/14 px-3 py-2.5 backdrop-blur-sm sm:max-w-[15.5rem] sm:gap-3 sm:px-4 sm:py-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-sm sm:h-11 sm:w-11">
+                <Image src="/mpesa-logo.png" alt="M-Pesa" width={30} height={30} className="h-7 w-7 object-contain sm:h-8 sm:w-8" />
               </div>
               <div className="text-left">
-                <p className="text-xs uppercase tracking-[0.22em] text-white/75">Mobile Money</p>
-                <p className="text-base font-semibold">M-Pesa Payment Status</p>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-white/75 sm:text-xs">Mobile Money</p>
+                <p className="text-sm font-semibold sm:text-base">M-Pesa Payment Status</p>
               </div>
             </div>
           </div>
 
-          <div className="px-6 pb-6 pt-5">
-          <DialogHeader>
+          <div className="overflow-y-auto px-4 pb-5 pt-4 sm:px-5 sm:pb-6 sm:pt-5">
+          <DialogHeader className="space-y-1">
             <DialogTitle>M-Pesa Payment Status</DialogTitle>
             <DialogDescription>
               We are confirming your payment. Your wallet will update automatically once the payment is completed.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-col items-center gap-4 py-5">
+          <div className="flex flex-col items-center gap-3 py-4 sm:gap-4 sm:py-5">
             {mpesaDepositTracker?.status === "Pending" ? (
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
-                <RefreshCw className="h-8 w-8 animate-spin text-emerald-600" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 sm:h-16 sm:w-16">
+                <RefreshCw className="h-7 w-7 animate-spin text-emerald-600 sm:h-8 sm:w-8" />
               </div>
             ) : mpesaDepositTracker?.status === "Completed" ? (
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
-                <CircleCheckBig className="h-8 w-8 text-emerald-600" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 sm:h-16 sm:w-16">
+                <CircleCheckBig className="h-7 w-7 text-emerald-600 sm:h-8 sm:w-8" />
               </div>
             ) : (
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
-                <CircleX className="h-8 w-8 text-red-600" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-50 sm:h-16 sm:w-16">
+                <CircleX className="h-7 w-7 text-red-600 sm:h-8 sm:w-8" />
               </div>
             )}
 
-            <div className="space-y-2">
-              <p className="text-lg font-semibold text-slate-900">{mpesaDepositTracker?.status || "Pending"}</p>
-              <p className="text-sm leading-6 text-slate-600">
+            <div className="space-y-2 px-1 sm:px-2">
+              <p className="text-base font-semibold text-slate-900 sm:text-lg">{mpesaDepositTracker?.status || "Pending"}</p>
+              <p className="text-sm leading-6 text-slate-600 sm:leading-6">
                 {mpesaDepositTracker?.status === "Pending"
                   ? "Please complete the prompt on your phone if you have not done so already. Confirmation usually takes a few seconds."
                   : mpesaDepositTracker?.status === "Completed"
@@ -741,7 +742,7 @@ export function ActionCard({ type }: ActionCardProps) {
                     : mpesaDepositTracker?.failureReason || "We could not confirm this payment. If funds were deducted, please contact support with your payment details."}
               </p>
               {mpesaDepositTracker?.exactStatus && (
-                <p className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700">
+                <p className="rounded-full bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 sm:px-4 sm:py-2">
                   M-Pesa status: {mpesaDepositTracker.exactStatus}
                 </p>
               )}
@@ -753,7 +754,7 @@ export function ActionCard({ type }: ActionCardProps) {
             </div>
           </div>
 
-          <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+          <DialogFooter className="flex flex-col gap-2 pt-1 sm:flex-row sm:justify-center">
             {mpesaDepositTracker?.status !== "Pending" ? (
               <Button
                 className="bg-emerald-600 text-white hover:bg-emerald-700"
@@ -763,6 +764,7 @@ export function ActionCard({ type }: ActionCardProps) {
               </Button>
             ) : null}
           </DialogFooter>
+          </div>
           </div>
         </DialogContent>
       </Dialog>

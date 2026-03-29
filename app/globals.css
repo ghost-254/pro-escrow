@@ -108,3 +108,70 @@ body {
 .dark .hover\:bg-orange-900:hover {
   background-color: rgba(154, 52, 18, 0.5);
 }
+
+@keyframes xcrow-loader-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes xcrow-loader-glow {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(0.92);
+  }
+
+  50% {
+    opacity: 0.95;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes xcrow-loader-shimmer {
+  0% {
+    transform: translateX(-160%);
+  }
+
+  100% {
+    transform: translateX(280%);
+  }
+}
+
+@keyframes xcrow-loader-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+
+  40% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+.xcrow-loader-ring {
+  animation: xcrow-loader-spin 9s linear infinite;
+}
+
+.xcrow-loader-ring-reverse {
+  animation: xcrow-loader-spin 7s linear infinite reverse;
+}
+
+.xcrow-loader-glow {
+  animation: xcrow-loader-glow 3.2s ease-in-out infinite;
+}
+
+.xcrow-loader-shimmer {
+  animation: xcrow-loader-shimmer 2.4s ease-in-out infinite;
+}
+
+.xcrow-loader-dot {
+  animation: xcrow-loader-dot 1.2s ease-in-out infinite;
+}

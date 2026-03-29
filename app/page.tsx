@@ -12,6 +12,9 @@ import { ArrowRight, Menu, Sun, Moon, Users, Shield, MessageCircle } from "lucid
 import Link from "next/link"
 import Image from "next/image"
 import { Footer } from "@/components/footer"
+import { triggerPageTransitionLoader } from "@/components/page-transition-loader"
+
+const ENTRY_PAGE_LOADING_DURATION_MS = 5000
 
 // Add this function at the top of your file, outside of the component
 function formatCurrency(amount: number, currency: "USD" | "KES"): string {
@@ -61,6 +64,10 @@ export default function Home() {
 
   if (!mounted) return null
 
+  const startEntryPageTransition = () => {
+    triggerPageTransitionLoader(ENTRY_PAGE_LOADING_DURATION_MS)
+  }
+
   // Add this inside your component, before the return statement
   const feeStructure = [
     { range: "0 - 5", feeUSD: "0", feeKES: "0" },
@@ -95,10 +102,10 @@ export default function Home() {
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-8">
               <Button variant="outline" asChild>
-                <Link href="/dashboard">Dashboard</Link>
+                <Link href="/dashboard" onClick={startEntryPageTransition}>Dashboard</Link>
               </Button>
               <Button className="bg-purple-600 hover:bg-purple-700 text-white">
-                <Link href="/auth">Get Started</Link>
+                <Link href="/auth" onClick={startEntryPageTransition}>Get Started</Link>
               </Button>
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -121,10 +128,10 @@ export default function Home() {
           {mobileMenuOpen && (
             <div className="md:hidden pt-4 pb-3 space-y-3">
               <Button variant="outline" asChild className="w-full">
-                <Link href="/dashboard">Dashboard</Link>
+                <Link href="/dashboard" onClick={startEntryPageTransition}>Dashboard</Link>
               </Button>
               <Button className="bg-purple-600 hover:bg-purple-700 text-white w-full">
-                <Link href="/auth">Get Started</Link>
+                <Link href="/auth" onClick={startEntryPageTransition}>Get Started</Link>
               </Button>
             </div>
           )}
@@ -144,13 +151,13 @@ export default function Home() {
                 Xcrow brings buyers and sellers together in a safe, monitored environment for confident deals.
               </p>
               <div className="flex flex-wrap gap-4">
-                <Link href="/dashboard/create-group">
+                <Link href="/dashboard/create-group" onClick={startEntryPageTransition}>
                   <Button size="lg" className="bg-purple-600 hover:bg-purple-700 text-white">
                     Create Xcrow Group
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
-                <Link href="/dashboard">
+                <Link href="/dashboard" onClick={startEntryPageTransition}>
                   <Button size="lg" variant="outline">
                     Learn More
                   </Button>
@@ -362,7 +369,7 @@ export default function Home() {
           <p className="text-lg text-gray-700 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
             Join Xcrow today and experience secure, monitored service transactions.
           </p>
-          <Link href="/auth">
+          <Link href="/auth" onClick={startEntryPageTransition}>
             <Button size="lg" className="bg-purple-600 hover:bg-purple-700 text-white">
               Get Started Now
               <ArrowRight className="ml-2 h-5 w-5" />

@@ -1,9 +1,9 @@
 'use client'
 
-import React, { FormEvent, JSX, useEffect, useState } from 'react'
+import React, { FormEvent, JSX, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth'
+import { onIdTokenChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { Eye, EyeOff } from 'lucide-react'
 import { toast } from 'react-toastify'
 
@@ -98,6 +98,7 @@ async function postAuthJson(
 
 export default function AuthPage(): JSX.Element {
   const router = useRouter()
+  const hasAttemptedSessionRedirect = useRef(false)
 
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin')
   const [isLoading, setIsLoading] = useState(false)
@@ -141,6 +142,35 @@ export default function AuthPage(): JSX.Element {
   useEffect(() => {
     setTimeOfDay(getTimeOfDay())
   }, [])
+
+  useEffect(() => {
+    const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
+      if (!firebaseUser || hasAttemptedSessionRedirect.current) {
+        return
+      }
+
+      try {
+        await firebaseUser.reload()
+        const currentUser = auth.currentUser ?? firebaseUser
+
+        if (!currentUser.emailVerified) {
+          return
+        }
+
+        hasAttemptedSessionRedirect.current = true
+        setIsLoading(true)
+
+        await syncServerSession(currentUser)
+        router.replace('/dashboard')
+        router.refresh()
+      } catch {
+        hasAttemptedSessionRedirect.current = false
+        setIsLoading(false)
+      }
+    })
+
+    return () => unsubscribe()
+  }, [router])
 
   useEffect(() => {
     setIsEightChars(password.length >= 8)

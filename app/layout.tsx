@@ -3,6 +3,7 @@ import { Inter } from "next/font/google"
 import { cookies } from "next/headers"
 import { ThemeProvider } from "@/components/theme-provider"
 import { CookieConsentBanner } from "@/components/cookie-consent-banner"
+import { PageTransitionLoader } from "@/components/page-transition-loader"
 import { COOKIE_CONSENT_NAME } from "@/lib/serverAuth"
 import "./globals.css"
 import type { Metadata } from "next"
@@ -28,7 +29,7 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="escrow-theme">
-          {children}
+          <PageTransitionLoader>{children}</PageTransitionLoader>
           <CookieConsentBanner initialConsent={cookieConsent} />
           <ToastContainer />
         </ThemeProvider>

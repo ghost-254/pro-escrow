@@ -5,6 +5,7 @@
 import { useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useSelector } from "react-redux"
+import { AppLoadingScreen } from "@/components/app-loading-screen"
 import type { RootState } from "@/lib/stores/store"
 
 const publicPaths = ["/", "/auth", "/terms", "/privacy", "/refund-policy"]
@@ -24,7 +25,12 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
 
   // Show a loading spinner or placeholder while checking authentication state
   if (loading) {
-    return <div>Loading...</div> // Replace with your custom loading component
+    return (
+      <AppLoadingScreen
+        title="Checking your session"
+        subtitle="Please wait a moment while we confirm your access."
+      />
+    )
   }
 
   // Allow access to public paths or if the user is authenticated

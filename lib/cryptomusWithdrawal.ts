@@ -1,6 +1,6 @@
 import axios from "axios"
 
-import { createCryptomusSignature } from "@/lib/serverPayments"
+import { createCryptomusRequestSignature } from "@/lib/serverPayments"
 
 const getCryptomusPayoutConfig = () => {
   const merchantId = process.env.NEXT_SERVER_CRYPTOMUS_MERCHANT_ID
@@ -18,7 +18,7 @@ export const callCryptomusPayoutApi = async (
   payload: Record<string, unknown>
 ) => {
   const { merchantId, apiKey } = getCryptomusPayoutConfig()
-  const sign = createCryptomusSignature(payload, apiKey)
+  const sign = createCryptomusRequestSignature(payload, apiKey)
 
   const headers = {
     merchant: merchantId,
@@ -27,11 +27,20 @@ export const callCryptomusPayoutApi = async (
   }
 
   try {
-    const response = await axios.post(
-      `https://api.cryptomus.com/v1/${endpoint}`,
-      payload,
-      { headers }
-    )
+    const response = await axios.post(`https://api.cryptomus.com/v1/${endpoint}`, payload, {
+      headers,
+      validateStatus: () => true,
+    })
+
+    if (response.status < 200 || response.status >= 300) {
+      throw new Error(
+        typeof response.data?.message === "string" && response.data.message.trim()
+          ? response.data.message
+          : typeof response.data?.error === "string" && response.data.error.trim()
+            ? response.data.error
+            : `Cryptomus Payout API error: ${response.status || "unknown"}`
+      )
+    }
 
     return response.data
   } catch (error: unknown) {

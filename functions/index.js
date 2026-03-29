@@ -201,8 +201,14 @@ function isMpesaPaymentRecord(data) {
   return !provider || provider === "kopokopo";
 }
 
-function serializeCryptomusPayload(payload) {
-  return JSON.stringify(payload).replace(/\//g, "\\/");
+function serializeCryptomusPayload(payload, { escapeSlashes = false } = {}) {
+  const serializedPayload = JSON.stringify(payload);
+
+  if (escapeSlashes) {
+    return serializedPayload.replace(/\//g, "\\/");
+  }
+
+  return serializedPayload;
 }
 
 function getRequiredEnvValue(name) {
@@ -1189,7 +1195,18 @@ async function callCryptomus(endpoint, payload, apiKey) {
       sign: createCryptomusSignature(payload, apiKey),
       "Content-Type": "application/json",
     },
+    validateStatus: () => true,
   });
+
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(
+      typeof response.data?.message === "string" && response.data.message.trim()
+        ? response.data.message
+        : typeof response.data?.error === "string" && response.data.error.trim()
+          ? response.data.error
+          : `Cryptomus API error: ${response.status || "unknown"}`
+    );
+  }
 
   return response.data;
 }
@@ -1565,49 +1582,6 @@ async function reconcileCryptoPayouts() {
   return processed;
 }
 
-exports.trackInitiatedMpesaDeposit = functionsV1
-  .region(REGION)
-  .firestore.document("deposits/{depositId}")
-  .onCreate(async (snapshot, context) => {
-    const data = snapshot.data() || {};
-    if (!shouldTrackMpesaDeposit({}, data)) {
-      return;
-    }
-
-    try {
-      await reconcileMpesaDepositDocument(snapshot, { accessToken: "" });
-      logger.info("Tracked initiated M-Pesa deposit", { depositId: context.params.depositId });
-    } catch (error) {
-      logger.error("Immediate M-Pesa deposit tracking failed", {
-        depositId: context.params.depositId,
-        error: error.message,
-      });
-    }
-  });
-
-exports.trackUpdatedMpesaDeposit = functionsV1
-  .region(REGION)
-  .firestore.document("deposits/{depositId}")
-  .onUpdate(async (change, context) => {
-    const beforeData = change.before.data() || {};
-    const afterSnapshot = change.after;
-    const afterData = afterSnapshot.data() || {};
-
-    if (!shouldTrackMpesaDeposit(beforeData, afterData)) {
-      return;
-    }
-
-    try {
-      await reconcileMpesaDepositDocument(afterSnapshot, { accessToken: "" });
-      logger.info("Tracked updated M-Pesa deposit reference", { depositId: context.params.depositId });
-    } catch (error) {
-      logger.error("Updated M-Pesa deposit tracking failed", {
-        depositId: context.params.depositId,
-        error: error.message,
-      });
-    }
-  });
-
 exports.trackInitiatedMpesaWithdrawal = functionsV1
   .region(REGION)
   .firestore.document("withdrawals/{withdrawalId}")
@@ -1662,13 +1636,11 @@ exports.reconcilePendingPayments = onSchedule(
   async () => {
     const kopoCache = { accessToken: "" };
     const summary = {
-      mpesaDeposits: 0,
       mpesaWithdrawals: 0,
       cryptoDeposits: 0,
       cryptoPayouts: 0,
     };
 
-    summary.mpesaDeposits = await reconcileMpesaDeposits(kopoCache);
     summary.mpesaWithdrawals = await reconcileMpesaWithdrawals(kopoCache);
     summary.cryptoDeposits = await reconcileCryptoDeposits();
     summary.cryptoPayouts = await reconcileCryptoPayouts();
