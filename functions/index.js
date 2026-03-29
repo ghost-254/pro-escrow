@@ -14,6 +14,8 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 const { FieldValue, Timestamp } = admin.firestore;
 const REGION = "us-central1";
+const MPESA_DEPOSIT_PENDING_TIMEOUT_MS = 60 * 1000;
+const MPESA_DEPOSIT_TIMEOUT_REASON = "This M-Pesa payment request expired. Please try again.";
 const PENDING_STATUSES = [
   "pending",
   "processing",
@@ -87,6 +89,16 @@ function hasNonEmptyString(value) {
 
 function isPendingPaymentStatus(status) {
   return PENDING_STATUSES.includes(String(status || "").toLowerCase());
+}
+
+function hasTimedOutMpesaDepositRequest(data) {
+  const createdAtMillis = getTimestampMillis(data.createdAt);
+
+  if (!createdAtMillis) {
+    return false;
+  }
+
+  return Date.now() - createdAtMillis >= MPESA_DEPOSIT_PENDING_TIMEOUT_MS;
 }
 
 function normalizeProviderStatusValue(status) {
@@ -554,6 +566,42 @@ async function applyKopoKopoDepositUpdate(depositId, payload) {
   });
 }
 
+async function expireTimedOutMpesaDeposit(depositId) {
+  const depositRef = db.collection("deposits").doc(depositId);
+
+  return db.runTransaction(async (transaction) => {
+    const depositSnapshot = await transaction.get(depositRef);
+    if (!depositSnapshot.exists) {
+      return false;
+    }
+
+    const depositData = depositSnapshot.data() || {};
+
+    if (String(depositData.method || "").toLowerCase() !== "m-pesa") {
+      return false;
+    }
+
+    if (!isPendingPaymentStatus(depositData.status) || depositData.balanceCredited) {
+      return false;
+    }
+
+    if (!hasTimedOutMpesaDepositRequest(depositData)) {
+      return false;
+    }
+
+    transaction.update(depositRef, {
+      status: "failed",
+      providerStatus: "expired",
+      providerResourceStatus: "expired",
+      failureReason: MPESA_DEPOSIT_TIMEOUT_REASON,
+      updatedAt: Timestamp.now(),
+      expiredAt: Timestamp.now(),
+    });
+
+    return true;
+  });
+}
+
 async function applyKopoKopoWithdrawalUpdate(withdrawalId, payload) {
   const withdrawalRef = db.collection("withdrawals").doc(withdrawalId);
   const result = extractKopoKopoWithdrawalResult(payload);
@@ -882,6 +930,7 @@ async function reconcileMpesaDepositDocument(docSnap, cache) {
   }
 
   if (!providerLocation) {
+    await expireTimedOutMpesaDeposit(docSnap.id);
     return false;
   }
 
@@ -892,6 +941,7 @@ async function reconcileMpesaDepositDocument(docSnap, cache) {
     paymentRequestId: data.paymentRequestId,
   });
   await applyKopoKopoDepositUpdate(docSnap.id, payload);
+  await expireTimedOutMpesaDeposit(docSnap.id);
 
   return true;
 }

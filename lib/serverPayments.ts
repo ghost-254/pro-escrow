@@ -7,6 +7,9 @@ import { adminDb } from "@/lib/firebaseAdmin"
 export const MPESA_WITHDRAWAL_FEE_KES = 50
 export const MPESA_WITHDRAWAL_MIN_KES = 200
 export const CRYPTO_WITHDRAWAL_MIN_USD = 10
+const MPESA_DEPOSIT_PENDING_TIMEOUT_MS = 60 * 1000
+const MPESA_DEPOSIT_TIMEOUT_REASON =
+  "This M-Pesa payment request expired. Please try again."
 
 const SUPPORTED_CRYPTO_NETWORKS = new Set(["TRON", "ETH", "BSC", "MATIC", "ARBITRUM"])
 const CRYPTOMUS_SUCCESS_STATUSES = new Set(["paid", "paid_over"])
@@ -126,6 +129,16 @@ function getTimestampMillis(value: unknown) {
 
 function isPendingStatus(status: unknown) {
   return PENDING_PAYMENT_STATUSES.has(String(status || "").toLowerCase())
+}
+
+function hasTimedOutMpesaDepositRequest(data: Record<string, unknown>) {
+  const createdAtMillis = getTimestampMillis(data.createdAt)
+
+  if (!createdAtMillis) {
+    return false
+  }
+
+  return Date.now() - createdAtMillis >= MPESA_DEPOSIT_PENDING_TIMEOUT_MS
 }
 
 function normalizeProviderStatusValue(status: unknown) {
@@ -781,6 +794,45 @@ export async function applyKopoKopoDepositUpdate(options: {
   })
 }
 
+async function expireTimedOutMpesaDeposit(depositId: string) {
+  const depositRef = adminDb.collection("deposits").doc(depositId)
+
+  const expired = await adminDb.runTransaction(async (transaction) => {
+    const depositSnapshot = await transaction.get(depositRef)
+
+    if (!depositSnapshot.exists) {
+      return false
+    }
+
+    const depositData = depositSnapshot.data() ?? {}
+
+    if (String(depositData.method || "").toLowerCase() !== "m-pesa") {
+      return false
+    }
+
+    if (!isPendingStatus(depositData.status) || depositData.balanceCredited) {
+      return false
+    }
+
+    if (!hasTimedOutMpesaDepositRequest(depositData)) {
+      return false
+    }
+
+    transaction.update(depositRef, {
+      status: "failed",
+      providerStatus: "expired",
+      providerResourceStatus: "expired",
+      failureReason: MPESA_DEPOSIT_TIMEOUT_REASON,
+      updatedAt: Timestamp.now(),
+      expiredAt: Timestamp.now(),
+    })
+
+    return true
+  })
+
+  return expired
+}
+
 export async function applyCryptomusPayoutUpdate(options: {
   withdrawalId: string
   payload: Record<string, unknown>
@@ -1087,6 +1139,14 @@ export async function syncMpesaDepositStatusForUser(uid: string, depositId: stri
   }
 
   if (!providerLocation) {
+    if (await expireTimedOutMpesaDeposit(depositId)) {
+      const expiredSnapshot = await depositRef.get()
+      return {
+        id: expiredSnapshot.id,
+        ...(expiredSnapshot.data() ?? {}),
+      }
+    }
+
     return { id: depositSnapshot.id, ...depositData }
   }
 
@@ -1100,6 +1160,14 @@ export async function syncMpesaDepositStatusForUser(uid: string, depositId: stri
     depositId,
     payload,
   })
+
+  if (await expireTimedOutMpesaDeposit(depositId)) {
+    const expiredSnapshot = await depositRef.get()
+    return {
+      id: expiredSnapshot.id,
+      ...(expiredSnapshot.data() ?? {}),
+    }
+  }
 
   const refreshedSnapshot = await depositRef.get()
   return {
